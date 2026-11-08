@@ -1,0 +1,34 @@
+recommendations:
+  - record_key: LOCALIZATION-REQUIREMENT-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Code and configuration agree on three locales; the admin guide lists only English and Japanese. Trust the code; the document conflict goes to Intent for the Business Owner.
+  - record_key: LOCALIZATION-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Per-locale screen files and pages exist for zh_CN; the guide is stale. Conflict goes to Intent.
+  - record_key: LOC-REQ-0008
+    recommendation: edit
+    confidence: low
+    reason: >
+      The page is a framework demo offering de_DE which has no screens, and reachability from the storefront is unproven. Recommend restricting the offered list to en_US, ja_JP, zh_CN or rejecting if unreachable; conflict goes to Intent.
+    edited_requirement: The locale selection screen SHALL offer en_US, ja_JP and zh_CN.
+  - record_key: LOC-BR-0003
+    recommendation: accept
+    confidence: low
+    reason: Single literal with no caller seen; confirm it is still used.
+  - record_key: LOC-REQ-0007
+    recommendation: reject
+    confidence: low
+    reason: Helper with no visible caller and swallowed errors; likely dead code.
+  - record_key: LOC-REQ-0009
+    recommendation: edit
+    confidence: low
+    reason: Bare 30-minute literal belongs to session management, not localization; move to that capability.
+    edited_requirement: Session timeout is owned by session management.
+  - record_key: CATB-REQ-0007
+    recommendation: accept
+    confidence: high
+    reason: Every query filters on locale; confirm the null-locale failure is a legacy defect, not required behaviour.
