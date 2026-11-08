@@ -1,0 +1,358 @@
+records:
+  - record_key: CATALOG-ENT-0001
+    kind: entity
+    capability_key: catalog-browsing
+    requirement: The system SHALL organise the catalog as category, product and item, where every product belongs to exactly one category and every item belongs to exactly one product.
+    plain_text: Every product belongs to one category, and every sellable item belongs to one product.
+    technical_note: Tables category, product, item with primary keys and foreign keys fk_product_1 (catid) and fk_item_1 (productid); indexes on product.catid and item.productid support lookups.
+    interface: false
+    confidence: high
+    confidence_basis: Primary and foreign key constraints on three tables plus supporting indexes; the database enforces it. Only the DDL was read, not the application.
+    risk_class: operational
+    basis: Foreign keys product.catid -> category and item.productid -> product, both NOT NULL.
+    traces:
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: product
+        line_start: 30
+        line_end: 34
+        excerpt: |
+          CREATE TABLE product (
+            productid varchar2(10) not null,
+            catid varchar2(10) not null,
+            constraint pk_product primary key (productid),
+            constraint fk_product_1 foreign key (catid) references category (catid));
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: item
+        line_start: 49
+        line_end: 53
+        excerpt: |
+          CREATE TABLE item (
+            itemid varchar2(10) not null,
+            productid varchar2(10) not null,
+            constraint pk_item primary key (itemid),
+            constraint fk_item_1 foreign key (productid) references product (productid));
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: category
+        line_start: 13
+        line_end: 15
+        excerpt: |
+          CREATE TABLE category (
+            catid varchar2(10) not null,
+            constraint pk_category primary key (catid));
+    stack_metadata:
+      db.object: category,product,item
+      db.kind: table
+  - record_key: CATALOG-REQ-0002
+    kind: requirement
+    capability_key: localization
+    requirement: The system SHALL hold one localized description (name, image, description) per category and per product for each locale, with name mandatory, and per item for each locale with price, cost, image and description mandatory.
+    plain_text: Category, product and item texts are kept separately for each language; names are always required, and each item must have a list price, unit cost, picture and description in every language offered.
+    technical_note: category_details and product_details keyed (id, locale), name NOT NULL; item_details keyed (itemid, locale) with listprice/unitcost decimal(10,2), image and descn NOT NULL, optional attr1..attr5 (80 chars). Locale is varchar2(10). Prices are stored per locale row.
+    interface: false
+    confidence: high
+    confidence_basis: Composite primary keys and NOT NULL constraints on three details tables; database-enforced. Locale value set is not constrained in DDL.
+    risk_class: operational
+    basis: Composite PKs (id, locale) and NOT NULL columns.
+    traces:
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: category_details
+        line_start: 19
+        line_end: 26
+        excerpt: |
+          CREATE TABLE category_details (
+            catid varchar2(10) not null,
+            name varchar2(80) not null,
+            locale varchar2(10) not null,
+            constraint pk_category_details primary key (catid, locale),
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: product_details
+        line_start: 38
+        line_end: 45
+        excerpt: |
+          CREATE TABLE product_details (
+            productid varchar2(10) not null,
+            locale varchar2(10) not null,
+            name varchar2(80) not null,
+            constraint pk_product_details primary key (productid, locale),
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: item_details
+        line_start: 57
+        line_end: 70
+        excerpt: |
+          CREATE TABLE item_details (
+            itemid varchar2(10) not null,
+            listprice decimal(10,2) not null,
+            unitcost decimal(10,2) not null,
+            locale varchar2(10) not null,
+            image varchar2(255) not null,
+            descn varchar2(255) not null,
+            constraint pk_item_details primary key (itemid, locale),
+    stack_metadata:
+      db.object: category_details,product_details,item_details
+      db.kind: table
+  - record_key: CUSTOMER-ENT-0003
+    kind: entity
+    capability_key: customer-account
+    requirement: The system SHALL record for each account a status, exactly one contact (family name, given name, telephone, email, all mandatory) with a mandatory address (street 1, city, state, zip, country; street 2 optional), and exactly one credit card.
+    plain_text: Each customer account has a status, a contact person with full address and phone and email, and one payment card on file.
+    technical_note: Tables account (status NOT NULL, FKs to contact_info and credit_card), contact_info (FK to address), address, credit_card. Field lengths: street 80, city 80, state 40, zip 20, country 40, email 120, telephone 40.
+    interface: false
+    confidence: high
+    confidence_basis: NOT NULL and FK constraints across four tables; database-enforced. Allowed status values are not constrained in DDL.
+    risk_class: regulated
+    basis: Personal data columns and FKs fk_account_1, fk_account_2, fk_contact_info_1.
+    traces:
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: account
+        line_start: 114
+        line_end: 121
+        excerpt: |
+          CREATE TABLE account (
+            account_id varchar2(40) not null,
+            status varchar2(20) not null,
+            contact_id varchar2(40) not null,
+            card_id varchar2(40) not null,
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: contact_info
+        line_start: 93
+        line_end: 101
+        excerpt: |
+          CREATE TABLE contact_info (
+            family_name varchar2(80) not null,
+            given_name varchar2(80) not null,
+            telephone varchar2(40) not null,
+            email varchar2(120) not null,
+            address_id varchar2(40) not null,
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: address
+        line_start: 81
+        line_end: 89
+        excerpt: |
+          CREATE TABLE address (
+            street_name1 varchar2(80) not null,
+            street_name2 varchar2(80),
+            city varchar2(80) not null,
+            state varchar2(40) not null,
+            zip_code varchar2(20) not null,
+            country varchar2(40) not null,
+    stack_metadata:
+      db.object: account,contact_info,address
+      db.kind: table
+  - record_key: CUSTOMER-REQ-0004
+    kind: requirement
+    capability_key: order-checkout
+    requirement: The system SHALL store a credit card with a mandatory number, type and expiry date.
+    plain_text: A payment card on file must have a card number, card type and expiry date.
+    technical_note: credit_card table; card_number stored as plain varchar2(40), expiry_date as varchar2(10) text (no date type, no format check).
+    interface: false
+    confidence: medium
+    confidence_basis: One clear place (NOT NULL columns); no format or validity constraints visible in DDL.
+    risk_class: regulated
+    basis: credit_card columns NOT NULL.
+    traces:
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: credit_card
+        line_start: 105
+        line_end: 110
+        excerpt: |
+          CREATE TABLE credit_card (
+            card_id varchar2(40) not null,
+            card_number varchar2(40) not null,
+            card_type varchar2(40) not null,
+            expiry_date varchar2(10) not null,
+    stack_metadata:
+      db.object: credit_card
+      db.kind: table
+  - record_key: CUSTOMER-ENT-0005
+    kind: entity
+    capability_key: customer-account
+    requirement: The system SHALL link each customer to exactly one sign-on user, one account and one profile, with the customer identified by the sign-on user name.
+    plain_text: Every customer is tied to exactly one login, one account and one preference profile.
+    technical_note: customer table PK user_id, FKs to signon_user(username), account(account_id), profile(profile_id); referenced tables defined elsewhere in the script.
+    interface: false
+    confidence: high
+    confidence_basis: PK plus three FKs, all NOT NULL; database-enforced.
+    risk_class: regulated
+    basis: fk_customer_1..3.
+    traces:
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: customer
+        line_start: 135
+        line_end: 142
+        excerpt: |
+          CREATE TABLE customer (
+            user_id varchar2(50) not null,
+            account_id varchar2(40) not null,
+            profile_id varchar2(40) not null,
+            constraint pk_customer primary key (user_id),
+    stack_metadata:
+      db.object: customer
+      db.kind: table
+  - record_key: FULFILL-ENT-0006
+    kind: entity
+    capability_key: order-fulfillment
+    requirement: The system SHALL store each purchase order line with a line number, category, product, item, quantity, unit price (2 decimals) and quantity shipped, all mandatory, and each line SHALL belong to an existing purchase order.
+    plain_text: Each order line records what was ordered, how many, at what price and how many have shipped.
+    technical_note: po_line_item PK (po_id, line_number), FK to purchase_order; category_id/product_id/item_id are not foreign keys, so they are not checked against the catalog.
+    interface: false
+    confidence: high
+    confidence_basis: NOT NULL and FK constraints; database-enforced. Absence of catalog FKs is observed in DDL only.
+    risk_class: financial
+    basis: unit_price number(12,2), quantity integers, fk_po_line_item_1.
+    traces:
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: po_line_item
+        line_start: 161
+        line_end: 171
+        excerpt: |
+          CREATE TABLE po_line_item (
+            po_id varchar2(40) not null,
+            line_number varchar2(10) not null,
+            quantity integer not null,
+            unit_price number(12,2) not null,
+            quantity_shipped integer not null,
+            constraint fk_po_line_item_1 foreign key (po_id) references purchase_order (po_id));
+    stack_metadata:
+      db.object: po_line_item
+      db.kind: table
+  - record_key: APPROVAL-ENT-0007
+    kind: entity
+    capability_key: order-approval
+    requirement: The system SHALL track exactly one status per order in the order manager, and SHALL be able to look orders up by status.
+    plain_text: Each order has one processing status, and orders can be found quickly by status.
+    technical_note: order_manager table (order_id PK, status varchar2(20) NOT NULL) with index ix_order_manager_status. Status values are not constrained in DDL.
+    interface: false
+    confidence: medium
+    confidence_basis: One table with NOT NULL and an index; the set of statuses and transitions is not visible here.
+    risk_class: operational
+    basis: order_manager definition and index.
+    traces:
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: order_manager
+        line_start: 175
+        line_end: 178
+        excerpt: |
+          CREATE TABLE order_manager (
+            order_id varchar2(40) not null,
+            status varchar2(20) not null,
+            constraint pk_order_manager primary key (order_id));
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: ix_order_manager_status
+        line_start: 223
+        line_end: 223
+        excerpt: |
+          CREATE INDEX ix_order_manager_status ON order_manager (status);
+    stack_metadata:
+      db.object: order_manager,ix_order_manager_status
+      db.kind: table,index
+  - record_key: FULFILL-REQ-0008
+    kind: requirement
+    capability_key: order-fulfillment
+    requirement: The system SHALL hold one inventory quantity per item, mandatory.
+    plain_text: Stock on hand is tracked as one number per item.
+    technical_note: inventory table PK item_id, quantity integer NOT NULL. No CHECK for non-negative and no FK to item.
+    interface: false
+    confidence: medium
+    confidence_basis: One clear place; no non-negativity rule visible in DDL.
+    risk_class: operational
+    basis: inventory definition.
+    traces:
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: inventory
+        line_start: 206
+        line_end: 209
+        excerpt: |
+          CREATE TABLE inventory (
+            item_id varchar2(10) not null,
+            quantity integer not null,
+            constraint pk_inventory primary key (item_id));
+    stack_metadata:
+      db.object: inventory
+      db.kind: table
+  - record_key: CHECKOUT-REQ-0009
+    kind: requirement
+    capability_key: order-checkout
+    requirement: The system SHALL keep named integer counters, one per name, for generating sequential identifiers.
+    plain_text: The system keeps running counters used to number things such as orders.
+    technical_note: counter table PK name, counter integer NOT NULL; used as a sequence substitute (purpose inferred from structure, not read from callers).
+    interface: false
+    confidence: low
+    confidence_basis: Purpose inferred from table shape; no consumer code seen in this unit.
+    risk_class: operational
+    basis: counter table definition.
+    traces:
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: counter
+        line_start: 213
+        line_end: 216
+        excerpt: |
+          CREATE TABLE counter (
+            name varchar2(40) not null,
+            counter integer not null,
+            constraint pk_counter primary key (name));
+    stack_metadata:
+      db.object: counter
+      db.kind: table
+  - record_key: REPORT-REQ-0010
+    kind: requirement
+    capability_key: order-reporting-batch
+    requirement: The system SHALL support retrieval of purchase orders by user and by order date.
+    plain_text: Orders can be looked up quickly by customer and by date.
+    technical_note: Indexes ix_po_user (po_user_id) and ix_po_date (po_date) on purchase_order; performance structures supporting queries and the date-based batch jobs.
+    interface: false
+    confidence: low
+    confidence_basis: Indexes show intended access paths only; the consuming queries were not read.
+    risk_class: operational
+    basis: Two indexes on purchase_order.
+    traces:
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: ix_po_user
+        line_start: 221
+        line_end: 221
+        excerpt: |
+          CREATE INDEX ix_po_user ON purchase_order (po_user_id);
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: ix_po_date
+        line_start: 222
+        line_end: 222
+        excerpt: |
+          CREATE INDEX ix_po_date ON purchase_order (po_date);
+    stack_metadata:
+      db.object: ix_po_user,ix_po_date
+      db.kind: index
+findings: []
+suspected_defects:
+  - capability_key: order-fulfillment
+    record_keys: [FULFILL-ENT-0006, FULFILL-REQ-0008]
+    severity: low
+    category: data-corruption
+    title: Order line and inventory item references are not enforced
+    description: >
+      po_line_item category_id, product_id and item_id and inventory.item_id have no foreign keys to the
+      catalog, so lines or stock rows can reference items that do not exist. Inventory has no non-negative check.
+    traces:
+      - kind: db_object
+        path: petstore_oracle.sql
+        anchor: po_line_item
+        line_start: 161
+        line_end: 171
+        excerpt: |
+          constraint fk_po_line_item_1 foreign key (po_id) references purchase_order (po_id));
