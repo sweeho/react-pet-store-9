@@ -1,0 +1,144 @@
+records:
+  - record_key: ORDER-CHECKOUT-ENT-0001
+    kind: entity
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL represent a postal address as six fields: street name 1, street name 2, city, state, zip code and country.
+    confidence: high
+    confidence_basis: >
+      Field list appears in the persistence descriptor, the bean's abstract accessors and the DTD, so three places agree on the fields (the DTD differs on optionality, see ORDER-CHECKOUT-BR-0001).
+    risk_class: operational
+    basis: >
+      Container-managed fields are declared in the deployment descriptor and mirrored by accessors on the bean.
+    plain_text: >
+      An address consists of two street lines, a city, a state, a zip code and a country.
+    technical_note: >
+      AddressEJB is a CMP 2.x entity bean with cmp-fields zipCode, streetName2, state, streetName1, city, country. Used as the shipping/billing address stored for an order; the owning order component is outside this shard.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/address/src/ejb-jar.xml
+        line_start: 46
+        line_end: 80
+        excerpt: |
+          <entity>
+            <display-name>AddressEJB</display-name>
+            <ejb-name>AddressEJB</ejb-name>
+            <persistence-type>Container</persistence-type>
+            <abstract-schema-name>Address</abstract-schema-name>
+            <cmp-field><field-name>zipCode</field-name></cmp-field>
+            <cmp-field><field-name>streetName2</field-name></cmp-field>
+            <cmp-field><field-name>state</field-name></cmp-field>
+            <cmp-field><field-name>streetName1</field-name></cmp-field>
+            <cmp-field><field-name>city</field-name></cmp-field>
+            <cmp-field><field-name>country</field-name></cmp-field>
+      - path: legacy-source/app/src/components/address/src/com/sun/j2ee/blueprints/address/ejb/AddressEJB.java
+        line_start: 53
+        line_end: 69
+        excerpt: |
+          public abstract String getStreetName1();
+          public abstract void setStreetName1(String streetName1);
+          public abstract String getStreetName2();
+          public abstract String getCity();
+          public abstract String getState();
+          public abstract String getZipCode();
+          public abstract String getCountry();
+    stack_metadata:
+      framework: EJB 2.0 CMP
+      ejb.bean: AddressEJB
+  - record_key: ORDER-CHECKOUT-BR-0001
+    kind: business-rule
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL treat street name 1, city, state and zip code as mandatory, and street name 2 and country as optional, in the address interchange format.
+    confidence: low
+    confidence_basis: >
+      Only the DTD declares this and the DTD is for an XML exchange format; the bean itself enforces nothing and no caller was seen in this shard. DTD names a single StreetName element (twice), not the street1/street2 names used by the bean.
+    risk_class: operational
+    basis: >
+      DTD content model Address (StreetName, StreetName?, City, State, ZipCode, Country?).
+    plain_text: >
+      When an address is exchanged as a document, a street, city, state and zip code must be present; a second street line and the country may be left out.
+    technical_note: >
+      Address.dtd only. The bean's ejbCreate accepts nulls without validation. Whether any document producer or consumer validates against this DTD is not established here.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/address/src/com/sun/j2ee/blueprints/address/rsrc/schemas/Address.dtd
+        line_start: 38
+        line_end: 43
+        excerpt: |
+          <!ELEMENT Address (StreetName, StreetName?, City, State, ZipCode, Country?)>
+          <!ELEMENT StreetName (#PCDATA)>
+          <!ELEMENT City (#PCDATA)>
+          <!ELEMENT State (#PCDATA)>
+          <!ELEMENT ZipCode (#PCDATA)>
+          <!ELEMENT Country (#PCDATA)>
+    stack_metadata:
+      framework: DTD
+  - record_key: ORDER-CHECKOUT-REQ-0001
+    kind: requirement
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL store an address from either six individual values or a copy of another address, without validating or altering the values, and SHALL be able to return the stored values as a copy.
+    confidence: medium
+    confidence_basis: >
+      Read in one class (creation and data-return methods); no tests or other enforcement seen. The absence of validation is inferred from the code.
+    risk_class: operational
+    basis: >
+      ejbCreate overloads copy every field verbatim; getData returns a new Address with the six fields.
+    plain_text: >
+      An address is saved exactly as entered, with no checks on its content, and can be read back in full.
+    technical_note: >
+      ejbCreate(six strings), ejbCreate(Address) and no-arg ejbCreate (leaves fields unset); getData builds an Address transfer object. No transaction attribute declared in this file's excerpt.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/address/src/com/sun/j2ee/blueprints/address/ejb/AddressEJB.java
+        line_start: 73
+        line_end: 114
+        excerpt: |
+          public Object ejbCreate(String streetName1, String streetName2, String city,
+                                  String state, String zipCode, String country) throws CreateException {
+            setStreetName1(streetName1);
+            ...
+            setCountry(country);
+            return null;
+          }
+          public Object ejbCreate(Address address) throws CreateException {
+          ...
+          public Address getData() {
+            Address address = new Address();
+    stack_metadata:
+      framework: EJB 2.0 CMP
+      ejb.bean: AddressEJB
+  - record_key: ORDER-REPORTING-BATCH-BR-0001
+    kind: business-rule
+    capability_key: order-reporting-batch
+    requirement: >
+      The system SHALL delete the addresses of an order together with the order when a completed or denied order older than 180 days is purged.
+    confidence: low
+    confidence_basis: >
+      Stated only in the operations runbook; the purge job is outside this module and was not read here, so the code side is unverified.
+    risk_class: regulated
+    basis: >
+      Runbook section 3.5 lists addresses among records removed with the order.
+    plain_text: >
+      When old finished or denied orders are removed, their addresses are removed too.
+    technical_note: >
+      Enforced by the PS_ORDER_PURGE job, not by this component. The address bean's ejbRemove is empty.
+    interface: false
+    traces:
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        kind: document
+        anchor: p1
+        excerpt: |
+          3.5 PS_ORDER_PURGE
+          Sundays only. Deletes COMPLETED and DENIED orders older than 180 days, with their order lines, supplier orders,
+          contact information, addresses and payment cards.
+      - path: legacy-source/app/src/components/address/src/com/sun/j2ee/blueprints/address/ejb/AddressEJB.java
+        line_start: 126
+        line_end: 126
+        excerpt: |
+          public void ejbRemove() throws RemoveException { }
+    stack_metadata:
+      batch.trigger: PS_ORDER_PURGE
+findings: []
+suspected_defects: []
