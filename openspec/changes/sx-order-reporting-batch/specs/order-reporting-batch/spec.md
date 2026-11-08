@@ -177,7 +177,7 @@ The system SHALL delete stored payment cards together with an order when the wee
 ### Requirement: Order lookup by user and date
 
 Recovered from: REPORT-REQ-0010
-The system SHOULD support retrieval of purchase orders by user and by order date.
+The system SHOULD support retrieval of purchase orders by user and by order date, and any such retrieval MUST return only the orders matching the given user or date.
 
 #### Scenario: Lookup by user
 
