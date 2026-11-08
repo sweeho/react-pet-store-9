@@ -1,26 +1,34 @@
 ## ADDED Requirements
 
-### Requirement: Daily order extract for Finance
+### Requirement: Daily order extract file
 
-Recovered from: ORDB-REQ-0001
-The system SHALL, daily at 01:30 and only after the database backup has succeeded, export all purchase orders dated from yesterday 00:00 (inclusive) to today 00:00 (exclusive) server time, ordered by order id, to a file named orders_YYYYMMDD.csv (YYYYMMDD = yesterday) with columns order id, user name, order time in epoch milliseconds, locale, order total, number of order lines and order status, and with no header row.
+ID: SWHR8-R-0222
+Recovered from: ORB-REQ-0001
+The system SHALL export every purchase order placed between 00:00 (inclusive) and the following 00:00 (exclusive) of the previous day to a comma-separated file named orders_YYYYMMDD.csv, with no header row, ordered by order number, with columns order number, user name, order time (epoch milliseconds), locale, order value, number of order lines and order status.
 
 #### Scenario: Previous day's orders exported
 
-- **GIVEN** the backup succeeded and orders exist dated yesterday
-- **WHEN** the extract runs at 01:30
-- **THEN** orders_YYYYMMDD.csv for yesterday contains one row per order, ordered by order id, with the seven columns and no header
+- **GIVEN** orders exist dated yesterday, today and the day before
+- **WHEN** the daily extract runs
+- **THEN** orders_YYYYMMDD.csv for yesterday contains one row per yesterday order, ordered by order number, with the seven columns and no header row
 
-#### Scenario: Backup failed
+### Requirement: Order extract daily export for Finance
 
-- **GIVEN** the database backup did not succeed
-- **WHEN** 01:30 arrives
-- **THEN** the extract does not run
+ID: SWHR8-R-0225
+Recovered from: ORDB-RULE-0001
+The system SHALL export each day the purchase orders dated from yesterday 00:00 up to but excluding today 00:00, with order id, user, date, locale, value, line count and status, ordered by order id, as a quoted comma-separated UTF-8 file named orders_YYYYMMDD.csv.
 
-### Requirement: Extract trailer and failure notification
+#### Scenario: Window boundaries
 
-Recovered from: ORDB-REQ-0002
-The system SHALL append a final trailer line "TRAILER,YYYYMMDD,<row count>" to the order extract file, where the count is the number of lines in the file before the trailer was added, and SHALL mail the finance team when the extract fails.
+- **GIVEN** an order dated exactly yesterday 00:00 and an order dated exactly today 00:00
+- **WHEN** the daily export runs
+- **THEN** the first order is in the file and the second is not
+
+### Requirement: Extract trailer line
+
+ID: SWHR8-R-0223
+Recovered from: ORB-REQ-0002
+The system SHALL append to each order extract file a final trailer line of the form TRAILER,YYYYMMDD,<row count>, where the date is the extract day and the row count is the number of data lines before the trailer.
 
 #### Scenario: Trailer written
 
@@ -28,106 +36,113 @@ The system SHALL append a final trailer line "TRAILER,YYYYMMDD,<row count>" to t
 - **WHEN** the extract completes
 - **THEN** the last line is "TRAILER,20260101,120"
 
-#### Scenario: Extract fails
-
-- **GIVEN** the extract job ends in failure
-- **WHEN** the failure is detected
-- **THEN** a failure mail is sent to the finance team
-
 ### Requirement: Stuck-order aging report
 
-Recovered from: ORDB-REQ-0003
-The system SHALL, daily at 01:45 after a successful order extract, list every order whose status is PENDING or APPROVED and whose order time is older than the stuck-order limit (24 hours) to order_aging_YYYYMMDD.txt, ordered by order time, showing order id, user, locale, value and status, and SHALL end with warning code 4 when any such order is listed.
+ID: SWHR8-R-0132
+Recovered from: ORB-REQ-0003
+The system SHALL list, in order_aging_YYYYMMDD.txt, every order whose status is PENDING or APPROVED and whose order time is more than 24 hours old (oldest first), together with order number, user, locale, value and status, and SHALL end with exit code 4 when any such order exists.
 
-#### Scenario: Stuck orders listed
+#### Scenario: Stuck order listed
 
 - **GIVEN** an APPROVED order placed 30 hours ago
 - **WHEN** the aging report runs
-- **THEN** the order is listed with id, user, locale, value and status and the job ends with code 4
+- **THEN** the order is listed with number, user, locale, value and status and the job ends with code 4
 
-#### Scenario: No stuck orders
+#### Scenario: Nothing stuck
 
 - **GIVEN** no PENDING or APPROVED order is older than 24 hours and no mismatch exists
 - **WHEN** the aging report runs
-- **THEN** no order is listed and the job ends with code 0
+- **THEN** no order is listed and the job does not end with code 4
 
-### Requirement: Supplier-completed mismatch detection
+### Requirement: Supplier-completed mismatch lines
 
-Recovered from: ORDB-REQ-0004
-GIVEN a supplier order with status COMPLETED whose order-center order status is not COMPLETED, WHEN the aging report runs, THEN the system SHALL list it as a MISMATCH line (order id, order status, supplier status), regardless of the order's age, and the job SHALL end with warning code 4.
+ID: SWHR8-R-0133
+Recovered from: ORB-REQ-0004
+The system SHALL include in the aging report, as MISMATCH lines, every order whose supplier order is COMPLETED while the order manager status is not COMPLETED, and SHALL treat any MISMATCH line as a reason for exit code 4.
 
 #### Scenario: Lost invoice message
 
 - **GIVEN** a supplier order COMPLETED and the matching order APPROVED, placed one hour ago
 - **WHEN** the aging report runs
-- **THEN** a MISMATCH line with order id, APPROVED and COMPLETED is listed and the job ends with code 4
-
-### Requirement: Order count per status in aging report
-
-Recovered from: ORDB-REQ-0005
-The system SHALL include in the aging report a count of orders per status.
-
-#### Scenario: Counts included
-
-- **GIVEN** orders exist in several statuses
-- **WHEN** the aging report runs
-- **THEN** the report shows each status with its order count, ordered by status
+- **THEN** a MISMATCH line for that order is listed and the job ends with code 4
 
 ### Requirement: Weekly purge of finished orders
 
-Recovered from: ORDB-REQ-0006
-The system SHALL, on Sundays at 02:00 and only after the day's order extract has succeeded, permanently delete every order with status COMPLETED or DENIED whose order time is before midnight 180 days ago, together with its order lines, supplier orders and supplier lines, contact information, address and payment card, in a single transaction.
+ID: SWHR8-R-0224
+Recovered from: ORB-REQ-0005
+The system SHALL, once a week, delete every order whose status is COMPLETED or DENIED and whose order time is earlier than local midnight 180 days ago, together with its supplier line items, supplier order, order lines, order manager row, contact information, address and credit card, in a single transaction.
 
 #### Scenario: Old completed order purged
 
-- **GIVEN** a COMPLETED order dated 200 days ago and it is Sunday after a successful extract
-- **WHEN** the purge runs
-- **THEN** the order and its lines, supplier records, contact, address and card are deleted in one transaction
+- **GIVEN** a COMPLETED order dated 200 days ago
+- **WHEN** the weekly purge runs
+- **THEN** the order and all its dependent records are deleted in one transaction
 
-#### Scenario: Extract not successful
-
-- **GIVEN** the day's extract did not succeed
-- **WHEN** 02:00 on Sunday arrives
-- **THEN** the purge does not run
-
-### Requirement: Open orders never purged
-
-Recovered from: ORDB-REQ-0007
-The system SHALL never purge orders with status PENDING or APPROVED, whatever their age.
-
-#### Scenario: Old open order kept
+#### Scenario: Open order kept
 
 - **GIVEN** a PENDING order dated 400 days ago
-- **WHEN** the purge runs
+- **WHEN** the weekly purge runs
 - **THEN** the order and its dependent records remain
 
-### Requirement: Nightly batch chain and schedule
+### Requirement: Nightly batch chain and dependencies
 
-Recovered from: ORDB-REQ-0008
-The system SHALL run the nightly batch chain as: database backup 01:00 (critical, up to 2 reruns), then order extract 01:30 (1 rerun), then, on extract success, order aging report 01:45, inventory report 01:50 and (Sundays only) order purge 02:00; the catalog check SHALL run daily at 06:00 and the health check every 10 minutes from 00:00 to 23:59. A failed backup SHALL hold the extract and so the jobs that depend on it.
+ID: SWHR8-R-0134
+Recovered from: ORB-REQ-0006
+The system SHALL run the nightly chain in this order: database backup at 01:00, order extract at 01:30 only after the backup succeeded, then the aging report (01:45), inventory report (01:50) and, on Sundays only, the order purge (02:00), each only after that day's order extract succeeded.
 
 #### Scenario: Backup fails
 
-- **GIVEN** the 01:00 backup failed after its reruns
+- **GIVEN** the 01:00 backup failed
 - **WHEN** the schedule proceeds
 - **THEN** the extract, aging report, inventory report and purge do not run
 
-#### Scenario: Normal night
+#### Scenario: Normal Sunday
 
-- **GIVEN** backup and extract succeed
+- **GIVEN** backup and extract succeed on a Sunday
 - **WHEN** the chain runs
-- **THEN** aging report 01:45 and inventory report 01:50 run, and on Sundays the purge runs at 02:00
+- **THEN** the aging report, inventory report and purge run at 01:45, 01:50 and 02:00
 
-### Requirement: Batch settings and exit codes
+### Requirement: Batch failure notifications
 
-Recovered from: ORDB-REQ-0009
-The system SHALL use batch settings of: order retention 180 days, backup retention 7 days, stuck-order limit 24 hours, low-stock limit 500 units; and SHALL end batch jobs with code 0 for success, 4 when a report or check found something, and 8 for a SQL, file or HTTP error.
+ID: SWHR8-R-0135
+Recovered from: ORB-REQ-0007
+The system SHALL notify the responsible mailbox when a batch job fails or finds a problem: ps-ops when the database backup fails or when the aging report ends with code 4, and ps-finance when the order extract fails.
 
-#### Scenario: Job hits an SQL error
+#### Scenario: Extract fails
 
-- **GIVEN** a batch job whose SQL statement fails
-- **WHEN** the job ends
-- **THEN** it ends with code 8
+- **GIVEN** the order extract ends in failure
+- **WHEN** the failure is detected
+- **THEN** a failure mail is sent to ps-finance
+
+#### Scenario: Aging report finds stuck orders
+
+- **GIVEN** the aging report ends with code 4
+- **WHEN** the job completes
+- **THEN** a mail is sent to ps-ops
+
+### Requirement: Order retention period setting
+
+ID: SWHR8-R-0024
+Recovered from: ORB-BR-0001
+The system SHALL purge completed and denied orders older than 180 days, with their dependent records, and SHALL read the retention period from the batch environment.
+
+#### Scenario: Retention applied
+
+- **GIVEN** the retention setting is 180 days
+- **WHEN** the purge computes its cutoff
+- **THEN** only COMPLETED or DENIED orders older than 180 days are eligible
+
+### Requirement: Stuck-order threshold
+
+ID: SWHR8-R-0131
+Recovered from: ORB-BR-0002
+The system SHALL report orders that remain pending or approved for more than 24 hours as stuck.
+
+#### Scenario: Order just under threshold
+
+- **GIVEN** a PENDING order placed 23 hours ago
+- **WHEN** the aging report runs
+- **THEN** the order is not reported as stuck
 
 ### Requirement: Order retrieval by date range
 
@@ -137,14 +152,15 @@ The system SHALL allow retrieval of purchase orders whose order date lies betwee
 
 #### Scenario: Orders within range
 
-- **GIVEN** orders dated before, on and after a begin and end timestamp
+- **GIVEN** orders dated before, on and after a begin and an end timestamp
 - **WHEN** orders are requested for that range
 - **THEN** orders dated from begin to end inclusive are returned
 
 ### Requirement: Purge removes address of purged order
 
+ID: SWHR8-R-0219
 Recovered from: ORDER-REPORTING-BATCH-BR-0001
-The system SHALL delete the address of an order together with the order when a completed or denied order older than 180 days is purged.
+The system SHALL delete the addresses of an order together with the order when a completed or denied order older than 180 days is purged.
 
 #### Scenario: Address deleted
 
@@ -154,6 +170,7 @@ The system SHALL delete the address of an order together with the order when a c
 
 ### Requirement: Purge removes contact information of purged order
 
+ID: SWHR8-R-0220
 Recovered from: ORDER-REPORTING-BATCH-REQ-0001
 The weekly purge SHALL delete the contact information of COMPLETED and DENIED orders older than 180 days together with the order.
 
@@ -165,6 +182,7 @@ The weekly purge SHALL delete the contact information of COMPLETED and DENIED or
 
 ### Requirement: Purge removes payment card of purged order
 
+ID: SWHR8-R-0221
 Recovered from: ORDRPT-REQ-0001
 The system SHALL delete stored payment cards together with an order when the weekly purge removes a COMPLETED or DENIED order older than 180 days.
 
@@ -173,14 +191,3 @@ The system SHALL delete stored payment cards together with an order when the wee
 - **GIVEN** a COMPLETED order older than 180 days with a stored payment card
 - **WHEN** the weekly purge runs
 - **THEN** the payment card is deleted
-
-### Requirement: Order lookup by user and date
-
-Recovered from: REPORT-REQ-0010
-The system SHALL support retrieval of purchase orders by user and by order date, and any such retrieval SHALL return only the orders matching the given user or date.
-
-#### Scenario: Lookup by user
-
-- **GIVEN** orders from many users
-- **WHEN** orders are requested for one user
-- **THEN** only that user's orders are returned

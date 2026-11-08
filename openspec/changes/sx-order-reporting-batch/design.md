@@ -6,6 +6,10 @@
 - Purge stages ids in a session temp table, deletes children first, one COMMIT.
 - Date-range retrieval is the EJB finder findPOBetweenDates; its link to the batch extract is inferred, not read. Indexes ix_po_user and ix_po_date exist on purchase_order.
 
+- ORB-REQ-0003: the aging script header comment says "not COMPLETED or DENIED", a different set from the SQL filter (PENDING, APPROVED); the SQL was followed.
+- ORB-REQ-0007: purge and inventory report define no failure alert.
+- Records ORB-BR-0001/0002 are the settings behind the purge cutoff and stuck-order cutoff.
+
 ## Suspected defects (for the defect register)
 
 - Purge inner-joins contact_info, so orders without a contact row are never purged; address and card are deleted by id without checking sharing; supplier_order.contact_id rows may survive. Extract and purge are linked only by schedule, not per order.

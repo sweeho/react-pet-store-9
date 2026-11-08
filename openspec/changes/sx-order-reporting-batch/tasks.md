@@ -25,4 +25,4 @@
 ## 5. Order retrieval
 
 - [ ] 5.1 Retrieve orders by inclusive date range
-- [ ] 5.2 Support lookup by user and by order date
+- [ ] 5.2 Expose the retention and stuck-order settings (180 days, 24 hours) from batch configuration
