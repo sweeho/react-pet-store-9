@@ -82,11 +82,31 @@ test.describe("shopping cart", () => {
       data: { billing: party, shipping: party },
     });
     expect(first.ok()).toBe(true);
-    const second = await page.request.post("/api/checkout", {
-      data: { billing: party, shipping: party },
-    });
-    expect(second.ok()).toBe(false);
-    expect(JSON.stringify(await second.json()).toLowerCase()).toContain("empty");
+    // The second identical submit goes through the checkout page itself.
+    await page.goto("/checkout");
+    const fields: [RegExp, string][] = [
+      [/last name/i, party.lastName],
+      [/first name/i, party.firstName],
+      [/address\s*1|street/i, party.address1],
+      [/city/i, party.city],
+      [/state/i, party.state],
+      [/zip|postal/i, party.postalCode],
+      [/phone/i, party.phone],
+      [/email/i, party.email],
+    ];
+    for (const [label, value] of fields) {
+      const inputs = page.getByLabel(label);
+      const n = await inputs.count();
+      for (let i = 0; i < n; i++) {
+        if (await inputs.nth(i).isEditable()) await inputs.nth(i).fill(value);
+      }
+    }
+    await page
+      .getByRole("button", { name: /submit|place order|confirm/i })
+      .first()
+      .click();
+    await expect(page.getByText("Order Error")).toBeVisible();
+    await expect(page.getByText(/empty/i).first()).toBeVisible();
   });
 
   // case: SWHR8-C-0078@v1
