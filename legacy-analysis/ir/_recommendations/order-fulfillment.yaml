@@ -1,0 +1,352 @@
+recommendations:
+  - record_key: ORD-FUL-BR-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORD-FUL-BR-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORD-FUL-BR-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORD-FUL-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORD-FUL-REQ-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORD-FUL-WF-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: FULF-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Read from DDL constraints, the highest-confidence source; both DDL exports and the schema agree.
+  - record_key: FULF-ENT-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Read from DDL constraints, the highest-confidence source; both DDL exports and the schema agree.
+  - record_key: FULF-ENT-0007
+    recommendation: accept
+    confidence: high
+    reason: >
+      Read from DDL constraints, the highest-confidence source; both DDL exports and the schema agree.
+  - record_key: FULF-ENT-0008
+    recommendation: accept
+    confidence: high
+    reason: >
+      Read from DDL constraints, the highest-confidence source; both DDL exports and the schema agree.
+  - record_key: FULFILL-ENT-0006
+    recommendation: accept
+    confidence: high
+    reason: >
+      Read from DDL constraints, the highest-confidence source; both DDL exports and the schema agree.
+  - record_key: FULFILL-REQ-0008
+    recommendation: accept
+    confidence: high
+    reason: >
+      Read from DDL constraints, the highest-confidence source; both DDL exports and the schema agree.
+  - record_key: ORDB-ENT-0010
+    recommendation: accept
+    confidence: high
+    reason: >
+      Read from DDL constraints, the highest-confidence source; both DDL exports and the schema agree.
+  - record_key: ORDB-ENT-0011
+    recommendation: accept
+    confidence: high
+    reason: >
+      Read from DDL constraints, the highest-confidence source; both DDL exports and the schema agree.
+  - record_key: ORDER-FULFILLMENT-ENTITY-0001
+    recommendation: edit
+    confidence: low
+    reason: >
+      Several passes emitted this same key for different behaviours in different modules, so the IR record is ambiguous. The spec draft states one variant; split the other variants into their own records before approving. Pass text and cited code should be compared per module.
+    edited_requirement: >
+      Split by module so each record states one behaviour; keep the wording of the variant drafted in spec.md for the module you confirm.
+  - record_key: ORDER-FULFILLMENT-ENTITY-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Read from DDL constraints, the highest-confidence source; both DDL exports and the schema agree.
+  - record_key: ORDER-FULFILLMENT-ENTITY-0010
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDER-FULFILLMENT-BR-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Pass code evidence is clear in one place; infrastructure behaviour of the lookup/transition plumbing, confirm it is wanted in the rebuild rather than replaced by platform features.
+  - record_key: ORDER-FULFILLMENT-BR-0002
+    recommendation: edit
+    confidence: low
+    reason: >
+      Several passes emitted this same key for different behaviours in different modules, so the IR record is ambiguous. The spec draft states one variant; split the other variants into their own records before approving. Pass text and cited code should be compared per module.
+    edited_requirement: >
+      Split by module so each record states one behaviour; keep the wording of the variant drafted in spec.md for the module you confirm.
+  - record_key: ORDER-FULFILLMENT-BR-0003
+    recommendation: edit
+    confidence: low
+    reason: >
+      Several passes emitted this same key for different behaviours in different modules, so the IR record is ambiguous. The spec draft states one variant; split the other variants into their own records before approving. Pass text and cited code should be compared per module.
+    edited_requirement: >
+      Split by module so each record states one behaviour; keep the wording of the variant drafted in spec.md for the module you confirm.
+  - record_key: ORDER-FULFILLMENT-BR-0004
+    recommendation: edit
+    confidence: low
+    reason: >
+      Several passes emitted this same key for different behaviours in different modules, so the IR record is ambiguous. The spec draft states one variant; split the other variants into their own records before approving. Pass text and cited code should be compared per module.
+    edited_requirement: >
+      Split by module so each record states one behaviour; keep the wording of the variant drafted in spec.md for the module you confirm.
+  - record_key: ORDER-FULFILLMENT-BR-0005
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Pass code evidence is clear in one place; infrastructure behaviour of the lookup/transition plumbing, confirm it is wanted in the rebuild rather than replaced by platform features.
+  - record_key: ORDER-FULFILLMENT-BUSINESS-RULE-0001
+    recommendation: edit
+    confidence: low
+    reason: >
+      Several passes emitted this same key for different behaviours in different modules, so the IR record is ambiguous. The spec draft states one variant; split the other variants into their own records before approving. Pass text and cited code should be compared per module.
+    edited_requirement: >
+      Split by module so each record states one behaviour; keep the wording of the variant drafted in spec.md for the module you confirm.
+  - record_key: ORDER-FULFILLMENT-BUSINESS-RULE-0004
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDER-FULFILLMENT-BUSINESS-RULE-0005
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDER-FULFILLMENT-BUSINESS-RULE-0008
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDER-FULFILLMENT-BUSINESS-RULE-0009
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDER-FULFILLMENT-INT-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDER-FULFILLMENT-INTEGRATION-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDER-FULFILLMENT-INTEGRATION-0004
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: OAPP-INT-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Pass code evidence is clear in one place; infrastructure behaviour of the lookup/transition plumbing, confirm it is wanted in the rebuild rather than replaced by platform features.
+  - record_key: ORDER-FULFILLMENT-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Pass code evidence is clear in one place; infrastructure behaviour of the lookup/transition plumbing, confirm it is wanted in the rebuild rather than replaced by platform features.
+  - record_key: ORDER-FULFILLMENT-REQ-0002
+    recommendation: edit
+    confidence: low
+    reason: >
+      Several passes emitted this same key for different behaviours in different modules, so the IR record is ambiguous. The spec draft states one variant; split the other variants into their own records before approving. Pass text and cited code should be compared per module.
+    edited_requirement: >
+      Split by module so each record states one behaviour; keep the wording of the variant drafted in spec.md for the module you confirm.
+  - record_key: ORDER-FULFILLMENT-REQ-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDER-FULFILLMENT-REQ-0004
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDER-FULFILLMENT-REQ-0006
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDER-FULFILLMENT-REQUIREMENT-0001
+    recommendation: edit
+    confidence: low
+    reason: >
+      Several passes emitted this same key for different behaviours in different modules, so the IR record is ambiguous. The spec draft states one variant; split the other variants into their own records before approving. Pass text and cited code should be compared per module.
+    edited_requirement: >
+      Split by module so each record states one behaviour; keep the wording of the variant drafted in spec.md for the module you confirm.
+  - record_key: ORDER-FULFILLMENT-WF-0007
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDER-FULFILLMENT-WORKFLOW-0001
+    recommendation: edit
+    confidence: low
+    reason: >
+      Several passes emitted this same key for different behaviours in different modules, so the IR record is ambiguous. The spec draft states one variant; split the other variants into their own records before approving. Pass text and cited code should be compared per module.
+    edited_requirement: >
+      Split by module so each record states one behaviour; keep the wording of the variant drafted in spec.md for the module you confirm.
+  - record_key: ORDER-FULFILLMENT-WORKFLOW-0006
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDER-FULFILLMENT-WORKFLOW-0007
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDER-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDF-BR-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Pass code evidence is clear in one place; infrastructure behaviour of the lookup/transition plumbing, confirm it is wanted in the rebuild rather than replaced by platform features.
+  - record_key: ORDF-BR-0003
+    recommendation: edit
+    confidence: low
+    reason: >
+      Several passes emitted this same key for different behaviours in different modules, so the IR record is ambiguous. The spec draft states one variant; split the other variants into their own records before approving. Pass text and cited code should be compared per module.
+    edited_requirement: >
+      Split by module so each record states one behaviour; keep the wording of the variant drafted in spec.md for the module you confirm.
+  - record_key: ORDF-BR-0004
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Pass code evidence is clear in one place; infrastructure behaviour of the lookup/transition plumbing, confirm it is wanted in the rebuild rather than replaced by platform features.
+  - record_key: ORDF-INT-0001
+    recommendation: edit
+    confidence: low
+    reason: >
+      Several passes emitted this same key for different behaviours in different modules, so the IR record is ambiguous. The spec draft states one variant; split the other variants into their own records before approving. Pass text and cited code should be compared per module.
+    edited_requirement: >
+      Split by module so each record states one behaviour; keep the wording of the variant drafted in spec.md for the module you confirm.
+  - record_key: ORDF-INT-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Pass code evidence is clear in one place; infrastructure behaviour of the lookup/transition plumbing, confirm it is wanted in the rebuild rather than replaced by platform features.
+  - record_key: ORDF-REQ-0002
+    recommendation: edit
+    confidence: low
+    reason: >
+      Several passes emitted this same key for different behaviours in different modules, so the IR record is ambiguous. The spec draft states one variant; split the other variants into their own records before approving. Pass text and cited code should be compared per module.
+    edited_requirement: >
+      Split by module so each record states one behaviour; keep the wording of the variant drafted in spec.md for the module you confirm.
+  - record_key: ORDF-REQ-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDF-WF-0005
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Pass code evidence is clear in one place; infrastructure behaviour of the lookup/transition plumbing, confirm it is wanted in the rebuild rather than replaced by platform features.
+  - record_key: ORDFUL-REQ-0004
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDFUL-REQ-0005
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDFUL-REQ-0006
+    recommendation: edit
+    confidence: low
+    reason: >
+      Several passes emitted this same key for different behaviours in different modules, so the IR record is ambiguous. The spec draft states one variant; split the other variants into their own records before approving. Pass text and cited code should be compared per module.
+    edited_requirement: >
+      Split by module so each record states one behaviour; keep the wording of the variant drafted in spec.md for the module you confirm.
+  - record_key: ORDFUL-REQ-0008
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDFUL-RULE-0008
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDFUL-WF-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDFUL-WORKFLOW-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: ORDFUL-WORKFLOW-0004
+    recommendation: edit
+    confidence: low
+    reason: >
+      Pass B flagged conflicting sources for the namespaced adapter-editor form. Confirm which form production uses; the conflict goes to Intent for the Business Owner.
+    edited_requirement: >
+      Split by module so each record states one behaviour; keep the wording of the variant drafted in spec.md for the module you confirm.
+  - record_key: ORDFUL-WORKFLOW-0005
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: order-fulfillment-BR-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: order-fulfillment-BR-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: order-fulfillment-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: order-fulfillment-REQ-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: order-fulfillment-WORKFLOW-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
+  - record_key: order-fulfillment-WORKFLOW-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes agree with the cited source code; no document or sample contradicts it. Confidence is capped by a single code location.
