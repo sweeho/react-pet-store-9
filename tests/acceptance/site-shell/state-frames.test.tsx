@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -6,6 +6,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // The Localization page is the primary area; its data comes from the network.
 import LocalizationPage from "@/pages/localization";
 
+// Contract assumed of the shared frames (reused by every page):
+//   empty frame -> element with data-testid="empty-frame", containing a visible message
+//   error frame -> element with data-testid="error-frame" and role="alert", containing a message
+//                  and a button named "Retry" or "Try again"
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={["/localization"]}>
@@ -31,15 +35,12 @@ describe("shared state frames", () => {
       ),
     );
 
-    const { container } = renderPage();
+    renderPage();
 
-    // The empty frame carries an explicit empty-state message (not a loading text or only a heading);
-    // no failure is reported and nothing offers a retry.
-    await waitFor(() =>
-      expect(container.textContent ?? "").toMatch(/\b(no|nothing|empty|none|not available)\b/i),
-    );
-    expect(container.textContent ?? "").not.toMatch(/loading/i);
-    expect(screen.queryByRole("alert")).toBeNull();
+    // The shared empty frame itself is rendered, with a message, and no error or retry is offered.
+    const frame = await screen.findByTestId("empty-frame");
+    expect(frame.textContent?.trim().length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("error-frame")).toBeNull();
     expect(screen.queryByRole("button", { name: /retry|try again/i })).toBeNull();
   });
 
@@ -51,10 +52,13 @@ describe("shared state frames", () => {
 
     renderPage();
 
-    // The error frame is announced as an alert with a visible message and a retry control.
-    const frame = await screen.findByRole("alert");
+    // The shared error frame is rendered (scoped by its test id, so other alerts such as toasts
+    // or route announcers do not matter) with a visible message and a retry control inside it.
+    const frame = await screen.findByTestId("error-frame");
+    expect(frame.getAttribute("role")).toBe("alert");
     expect(frame.textContent?.trim().length).toBeGreaterThan(0);
-    const retry = (await screen.findAllByRole("button", { name: /retry|try again/i }))[0];
+    expect(screen.queryByTestId("empty-frame")).toBeNull();
+    const retry = within(frame).getByRole("button", { name: /retry|try again/i });
     const callsBefore = fetchMock.mock.calls.length;
 
     await user.click(retry);
