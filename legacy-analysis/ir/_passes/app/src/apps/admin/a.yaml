@@ -1,0 +1,352 @@
+records:
+  - record_key: ADM-REQ-0001
+    kind: requirement
+    capability_key: admin-order-management
+    requirement: >
+      The system SHALL restrict the administration order-management entry point to authenticated users holding the administrator role, using a form-based login.
+    confidence: high
+    confidence_basis: >
+      Declared in web.xml (security constraint, role, login config) and the user guide describes an order administrator; but the constraint covers only one of two servlets (see defect).
+    risk_class: regulated
+    basis: web.xml constrains GET and POST on the admin launcher URL to role administrator, with FORM login.
+    plain_text: Only people with the administrator role can sign in to the order administration tool, through a login form.
+    technical_note: web.xml security-constraint on /AdminRequestProcessor, login-config FORM (login.jsp / error.jsp), transport-guarantee NONE (no TLS required).
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/admin/src/docroot/WEB-INF/web.xml
+        line_start: 75
+        line_end: 97
+        excerpt: |
+          <security-constraint>
+            <web-resource-collection>
+              <web-resource-name>MySecureBit0</web-resource-name>
+              <url-pattern>/AdminRequestProcessor</url-pattern>
+              <http-method>GET</http-method>
+              <http-method>POST</http-method>
+            </web-resource-collection>
+            <auth-constraint>
+              <role-name>administrator</role-name>
+            </auth-constraint>
+    stack_metadata:
+      framework: servlet
+      jsp.page: login.jsp
+  - record_key: ADM-REQ-0002
+    kind: requirement
+    capability_key: admin-order-management
+    requirement: >
+      The system SHALL expire an administrator session after 54 minutes of inactivity.
+    confidence: low
+    confidence_basis: Bare configuration literal with no comment or document stating the intent.
+    risk_class: operational
+    basis: session-timeout configured in web.xml.
+    plain_text: An administrator's session ends after 54 minutes without activity.
+    technical_note: web.xml session-config session-timeout 54.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/admin/src/docroot/WEB-INF/web.xml
+        line_start: 67
+        line_end: 69
+        excerpt: |
+          <session-config>
+            <session-timeout>54</session-timeout>
+          </session-config>
+    stack_metadata:
+      framework: servlet
+      session.scope: http-session
+  - record_key: ADM-WF-0003
+    kind: workflow
+    capability_key: admin-order-management
+    requirement: >
+      WHEN an administrator chooses to manage orders, the system SHALL return a Java Web Start launch descriptor for the rich admin client, pointing at the serving host and port and carrying the user's session identifier; WHEN the administrator chooses logout, the system SHALL show the logout page.
+    confidence: high
+    confidence_basis: Behaviour in the launcher servlet, with the user guide describing "Launch Rich Client" (Java Web Start).
+    risk_class: operational
+    basis: AdminRequestProcessor.doPost dispatches on the currentScreen parameter; buildJNLP writes the descriptor.
+    plain_text: From the admin home page an administrator launches the order management desktop application, or logs out.
+    technical_note: AdminRequestProcessor.doPost; currentScreen "manageorders" -> application/x-java-jnlp-file; "logout" forwards to logout.jsp; a missing currentScreen yields an empty response. The session id is passed to the client as an argument.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/apps/admin/src/admin/com/sun/j2ee/blueprints/admin/web/AdminRequestProcessor.java
+        line_start: 104
+        line_end: 113
+        excerpt: |
+          String curScreen = req.getParameter("currentScreen");
+          if (curScreen == null) {
+          curScreen = curScreen.trim();
+          if(curScreen.equals("logout")) {
+          if(curScreen.equals("manageorders")) {
+              resp.setContentType("application/x-java-jnlp-file");
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        kind: document
+        anchor: p1 (section 3.1 Opening the client)
+        excerpt: |
+          Go to http://localhost:8000/admin/ and click Launch Rich Client. The client starts with Java Web
+          Start
+    stack_metadata:
+      framework: servlet
+      jsp.page: index.jsp, logout.jsp
+  - record_key: ADM-REQ-0004
+    kind: requirement
+    capability_key: admin-order-management
+    requirement: >
+      The system SHALL list orders by a requested status (PENDING, APPROVED, DENIED or COMPLETED), returning for each order its id, user id, order date, order amount and status, together with the total count.
+    confidence: high
+    confidence_basis: Server handler and client data source both implement and use the four statuses; user guide describes the two panes.
+    risk_class: operational
+    basis: ApplRequestProcessor GETORDERS builds the response from the order-processing facade; client requests all four statuses.
+    plain_text: The admin tool shows orders by status, with the order number, customer, date, amount and status of each.
+    technical_note: GETORDERS request handled in ApplRequestProcessor.getOrders via AdminRequestBD.getOrdersByStatus (remote EJB OPCAdminFacade). DataSource loads PENDING, APPROVED, DENIED, COMPLETED.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/apps/admin/src/admin/com/sun/j2ee/blueprints/admin/web/ApplRequestProcessor.java
+        line_start: 133
+        line_end: 135
+        excerpt: |
+          if (reqType.equals("GETORDERS")) {
+              return getOrders(root);
+          }
+      - path: legacy-source/app/src/apps/admin/src/admin/com/sun/j2ee/blueprints/admin/web/ApplRequestProcessor.java
+        line_start: 171
+        line_end: 171
+        excerpt: |
+          OrdersTO orders = bd.getOrdersByStatus(status);
+      - path: legacy-source/app/src/apps/admin/src/client/com/sun/j2ee/blueprints/admin/client/DataSource.java
+        line_start: 134
+        line_end: 140
+        excerpt: |
+          server.getOrders(PetStoreProxy.Order.PENDING)));
+          server.getOrders(PetStoreProxy.Order.APPROVED)));
+          server.getOrders(PetStoreProxy.Order.DENIED)));
+          server.getOrders(PetStoreProxy.Order.COMPLETED)));
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        kind: document
+        anchor: p1 (sections 3.2-3.3)
+        excerpt: |
+          The View Non-Pending Orders panel shows orders that are approved, denied or completed.
+    stack_metadata:
+      framework: servlet
+      ejb.bean: OPCAdminFacade
+  - record_key: ADM-WF-0005
+    kind: workflow
+    capability_key: admin-order-management
+    requirement: >
+      The system SHALL let an administrator change the status of pending orders only to APPROVED or DENIED, and WHEN committed SHALL send the approved set and the denied set as status-change requests, then reload the order lists.
+    confidence: high
+    confidence_basis: Enforced in the client (status options, commit logic) and the server relay; user guide documents the same flow.
+    risk_class: financial
+    basis: OrdersApprovePanel offers PENDING/APPROVED/DENIED; DataSource.commit separates approved and denied rows and skips when neither exists.
+    plain_text: Administrators approve or deny pending orders in the tool, then save; orders left pending are not changed.
+    technical_note: DataSource commit() (approve model) calls server.updateStatus per status. The refresh action warns when uncommitted edits exist. Only rows whose status differs from PENDING are sent.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/apps/admin/src/client/com/sun/j2ee/blueprints/admin/client/DataSource.java
+        line_start: 419
+        line_end: 419
+        excerpt: |
+          statusList = new String[] { PetStoreProxy.Order.PENDING };
+      - path: legacy-source/app/src/apps/admin/src/client/com/sun/j2ee/blueprints/admin/client/DataSource.java
+        line_start: 462
+        line_end: 474
+        excerpt: |
+          if (approvedOrders.length > 0) {
+              server.updateStatus(approvedOrders,
+              PetStoreProxy.Order.APPROVED);
+          }
+          if (deniedOrders.length > 0) {
+              server.updateStatus(deniedOrders,
+              PetStoreProxy.Order.DENIED);
+          }
+      - path: legacy-source/app/src/apps/admin/src/client/com/sun/j2ee/blueprints/admin/client/OrdersApprovePanel.java
+        line_start: 82
+        line_end: 84
+        excerpt: |
+          cellOptions.addItem(PetStoreProxy.Order.PENDING);
+          cellOptions.addItem(PetStoreProxy.Order.APPROVED);
+          cellOptions.addItem(PetStoreProxy.Order.DENIED);
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        kind: document
+        anchor: p1 (section 3.3 Approving or denying orders)
+        excerpt: |
+          Select a new status: approved or denied.
+    stack_metadata:
+      framework: swing rich client
+  - record_key: ADM-REQ-0006
+    kind: requirement
+    capability_key: admin-order-management
+    requirement: >
+      The system SHALL apply an administrator's status changes by publishing one approval message containing every (order id, status) pair with both values present, asynchronously, and reply SUCCESS once the message is handed off.
+    confidence: high
+    confidence_basis: Seen in the web relay and the business delegate; the downstream effect is outside this module.
+    risk_class: financial
+    basis: ApplRequestProcessor.updateOrders skips entries lacking id or status, then AdminRequestBD.updateOrders sends OrderApproval XML through AsyncSender.
+    plain_text: Approval and denial decisions are passed on to order processing in the background; the tool is told success once they have been handed over, not once they are applied.
+    technical_note: UPDATESTATUS request; entries missing OrderId or OrderStatus are silently skipped; message sent via local AsyncSender EJB. Status values are assumed equal across both schemas (code comment); not validated against the four known statuses.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/apps/admin/src/admin/com/sun/j2ee/blueprints/admin/web/ApplRequestProcessor.java
+        line_start: 220
+        line_end: 235
+        excerpt: |
+          if (orderId != null && orderStatus != null) {
+              oa.addOrder(new ChangedOrder(orderId, orderStatus));
+      - path: legacy-source/app/src/apps/admin/src/admin/com/sun/j2ee/blueprints/admin/web/AdminRequestBD.java
+        line_start: 120
+        line_end: 120
+        excerpt: |
+          sender.sendAMessage(oa.toXML());
+    stack_metadata:
+      framework: servlet
+      ejb.bean: AsyncSender
+      jms.queue: via AsyncSender (queue name not in this module)
+  - record_key: ADM-REQ-0007
+    kind: requirement
+    capability_key: inventory-reporting
+    requirement: >
+      The system SHALL provide revenue (sum of amounts) and order-count (sum of quantities) summaries between a start and end date, grouped by category, or by item when a category is requested, with a grand total.
+    confidence: medium
+    confidence_basis: Single clear implementation in the servlet; the aggregation itself is in a facade outside this module and no document describes the charts.
+    risk_class: financial
+    basis: ApplRequestProcessor.getChartInfo handles REVENUE and ORDERS; the admin client has bar and pie chart panels. Filed under inventory-reporting as closest operations-reporting capability; no listed capability covers sales charts.
+    plain_text: The admin tool shows sales revenue or order counts for a date range, by category or by item within a category, with a total.
+    technical_note: Dates parsed as M/D/YYYY by StringTokenizer; amounts accumulated as float; element name Category or Item depends on category being null. Total is emitted as TotalSales for both measures.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/apps/admin/src/admin/com/sun/j2ee/blueprints/admin/web/ApplRequestProcessor.java
+        line_start: 139
+        line_end: 141
+        excerpt: |
+          else if (reqType.equals("REVENUE") || reqType.equals("ORDERS")) {
+              return getChartInfo(root, reqType);
+          }
+      - path: legacy-source/app/src/apps/admin/src/admin/com/sun/j2ee/blueprints/admin/web/ApplRequestProcessor.java
+        line_start: 265
+        line_end: 271
+        excerpt: |
+          if (request.equals("REVENUE")) {
+              float totalAmount = 0f;
+    stack_metadata:
+      framework: servlet
+      ejb.bean: OPCAdminFacade
+  - record_key: ADM-REQ-0008
+    kind: requirement
+    capability_key: admin-order-management
+    requirement: >
+      GIVEN an order-service request whose type is not GETORDERS, UPDATESTATUS, REVENUE or ORDERS, WHEN it is received, the system SHALL reply with an error naming the unknown type; GIVEN no session exists, the system SHALL reply that the session timed out and the administrator must log in again.
+    confidence: high
+    confidence_basis: Both branches are explicit in code, with message text.
+    risk_class: operational
+    basis: ApplRequestProcessor.doPost / processRequest.
+    plain_text: Unknown requests, and requests without a live sign-in, get a clear error message.
+    technical_note: Replies are XML Response/Error documents; malformed XML yields "Exception while processing ... Please try again".
+    interface: true
+    traces:
+      - path: legacy-source/app/src/apps/admin/src/admin/com/sun/j2ee/blueprints/admin/web/ApplRequestProcessor.java
+        line_start: 94
+        line_end: 97
+        excerpt: |
+          if(session == null) {
+              out.println(replyHeader +
+                          "<Error>Session Timed Out; Please exit and " +
+      - path: legacy-source/app/src/apps/admin/src/admin/com/sun/j2ee/blueprints/admin/web/ApplRequestProcessor.java
+        line_start: 145
+        line_end: 145
+        excerpt: |
+          "Unknown request type - " + reqType +
+    stack_metadata:
+      framework: servlet
+  - record_key: ADM-BR-0009
+    kind: business-rule
+    capability_key: order-approval
+    requirement: >
+      The system SHALL hold orders over the regional limit as PENDING until an administrator approves or denies them; the admin module itself applies no limit.
+    confidence: medium
+    confidence_basis: Stated in documents; the limit is not in this module, and the two documents give different figures (see conflict).
+    dispute:
+      reason: contradicts-docs
+      detail: >
+        User guide says orders above $500 are pending; runbook says limits are US 500 and JP 50000. Confirm in the order-processing module.
+    risk_class: financial
+    basis: Documents only; no limit code exists in the admin module.
+    plain_text: Large orders wait for an administrator's decision; small ones are approved automatically.
+    technical_note: Threshold logic lives outside the admin module (order-processing application); the admin client only handles the PENDING list.
+    interface: false
+    traces:
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        kind: document
+        anchor: p1 (section 3.3)
+        excerpt: |
+          An order is pending if its total value is greater than $500.
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        kind: document
+        anchor: p1 (section 1.1 Order flow)
+        excerpt: |
+          total under limit (US 500, JP 50000)  --> APPROVED automatically
+    stack_metadata:
+      framework: documentation
+findings: []
+suspected_defects:
+  - capability_key: admin-order-management
+    record_keys: [ADM-REQ-0001, ADM-REQ-0008]
+    severity: high
+    category: other
+    title: Order data service is not covered by the administrator security constraint
+    description: >
+      Only the launcher URL requires the administrator role. The data service that lists orders and approves or denies them is not constrained and only checks that some session exists, so any session holder may call it.
+    traces:
+      - path: legacy-source/app/src/apps/admin/src/docroot/WEB-INF/web.xml
+        line_start: 75
+        line_end: 78
+        excerpt: |
+          <security-constraint>
+            <web-resource-collection>
+              <web-resource-name>MySecureBit0</web-resource-name>
+              <url-pattern>/AdminRequestProcessor</url-pattern>
+      - path: legacy-source/app/src/apps/admin/src/admin/com/sun/j2ee/blueprints/admin/web/ApplRequestProcessor.java
+        line_start: 94
+        line_end: 94
+        excerpt: |
+          if(session == null) {
+  - capability_key: admin-order-management
+    record_keys: [ADM-REQ-0004]
+    severity: medium
+    category: error-swallowed
+    title: Failed order listing returns null instead of an error reply
+    description: >
+      When the order service fails or returns nothing, getOrders returns null after printing a stack trace, so the client receives no error document.
+    traces:
+      - path: legacy-source/app/src/apps/admin/src/admin/com/sun/j2ee/blueprints/admin/web/ApplRequestProcessor.java
+        line_start: 173
+        line_end: 173
+        excerpt: |
+          return null;
+  - capability_key: inventory-reporting
+    record_keys: [ADM-REQ-0007]
+    severity: low
+    category: inconsistent-rounding
+    title: Revenue totals accumulated in single-precision floating point
+    description: >
+      Monetary amounts are summed as float, which can drift from exact currency totals.
+    traces:
+      - path: legacy-source/app/src/apps/admin/src/admin/com/sun/j2ee/blueprints/admin/web/ApplRequestProcessor.java
+        line_start: 266
+        line_end: 266
+        excerpt: |
+          float totalAmount = 0f;
+  - capability_key: order-approval
+    record_keys: [ADM-BR-0009]
+    severity: medium
+    category: contradicts-document
+    title: Approval limit differs between documents
+    description: >
+      User guide states a single $500 pending threshold; runbook states per-region limits (US 500, JP 50000).
+    traces:
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        kind: document
+        anchor: p1 (section 3.3)
+        excerpt: |
+          An order is pending if its total value is greater than $500.
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        kind: document
+        anchor: p1 (section 1.1)
+        excerpt: |
+          total under limit (US 500, JP 50000)  --> APPROVED automatically
