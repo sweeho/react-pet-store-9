@@ -1,0 +1,420 @@
+records:
+  - record_key: ORDER-APPROVAL-BUSINESS-RULE-0001
+    kind: business-rule
+    capability_key: order-approval
+    requirement: >
+      The system SHALL automatically approve an order whose total is under 500 (en_US locale) or under 50000 (ja_JP locale); other orders SHALL remain pending until an administrator decides.
+    confidence: high
+    confidence_basis: >
+      The limits appear in the properties file and are restated in the operations runbook order flow (two places). The code that actually consumes them is outside this module and was not read, so the comparison operator (under vs. up-to) is unconfirmed.
+    risk_class: financial
+    basis: >
+      petstore.properties holds opc.autoApprove.limit per locale; the runbook states "total under limit (US 500, JP 50000) -> APPROVED automatically, otherwise PENDING".
+    plain_text: >
+      An order from a US customer under 500, or from a Japanese customer under 50,000, is approved automatically. Any other order waits for an administrator to approve or deny it.
+    technical_note: >
+      Set in conf/petstore.properties (opc.autoApprove.limit.en_US / .ja_JP); the properties header says the J2EE modules actually read env-entry elements in ejb-jar.xml, so this file may only mirror the live value.
+    interface: false
+    stack_metadata:
+      framework: J2EE properties
+      ejb.bean: PurchaseOrderMDB
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 29
+        line_end: 31
+        excerpt: |
+          # Order Processing Center (ejb-jar.xml of opc)
+          opc.autoApprove.limit.en_US=500
+          opc.autoApprove.limit.ja_JP=50000
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        kind: document
+        anchor: p1 (1.1 Order flow)
+        excerpt: "total under limit (US 500, JP 50000)  --> APPROVED automatically"
+  - record_key: ORDER-APPROVAL-BUSINESS-RULE-0002
+    kind: business-rule
+    capability_key: order-approval
+    requirement: >
+      GIVEN an order in the zh_CN locale, WHEN it is received, the configuration SHALL provide no auto-approval limit for that locale; the behaviour for such orders is not stated.
+    confidence: low
+    confidence_basis: >
+      Inferred from an absence: no zh_CN limit key exists in the configuration and the runbook names only US and JP. What the OPC code does with a missing limit was not read.
+    dispute:
+      reason: other
+      detail: >
+        catalog.locales includes zh_CN but only en_US and ja_JP have an approval limit. Settling it needs the OPC code that reads the limit (default value, or always pending).
+    risk_class: financial
+    basis: >
+      Absence of opc.autoApprove.limit.zh_CN in petstore.properties against catalog.locales listing zh_CN.
+    plain_text: >
+      Chinese-locale orders have no approval limit configured. It is unclear whether they are approved automatically or always wait for an administrator.
+    technical_note: >
+      Compare catalog.locales (line 23) with the autoApprove keys (lines 30-31). Runbook says po_locale may be zh_CN.
+    interface: false
+    stack_metadata:
+      framework: J2EE properties
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 23
+        line_end: 31
+        excerpt: |
+          catalog.locales=en_US,ja_JP,zh_CN
+          opc.autoApprove.limit.en_US=500
+          opc.autoApprove.limit.ja_JP=50000
+  - record_key: LOCALIZATION-REQUIREMENT-0001
+    kind: requirement
+    capability_key: localization
+    requirement: >
+      The system SHALL serve the storefront in the locales en_US, ja_JP and zh_CN, with en_US as the default locale.
+    confidence: medium
+    confidence_basis: >
+      One clear place (petstore.properties). The admin guide says only English and Japanese ship with the product, which conflicts on zh_CN, but the runbook mentions zh_CN as a valid order locale.
+    dispute:
+      reason: contradicts-docs
+      detail: >
+        Properties list zh_CN; the admin guide section 3.2 says the storefront comes with English and Japanese. Settling it needs the docroot and screen definitions for zh.
+    risk_class: presentational
+    basis: >
+      catalog.locales and catalog.defaultLocale settings.
+    plain_text: >
+      The store is offered in English, Japanese and Chinese, and English is used when no other choice is made.
+    technical_note: >
+      conf/petstore.properties catalog.locales / catalog.defaultLocale; per the header, the live values are web.xml env-entries.
+    interface: false
+    stack_metadata:
+      framework: J2EE properties
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 23
+        line_end: 24
+        excerpt: |
+          catalog.locales=en_US,ja_JP,zh_CN
+          catalog.defaultLocale=en_US
+      - path: legacy-analysis/sources/pdf/petstore-admin-guide/extracted.md
+        kind: document
+        anchor: p1 (3.2 Adding a localization)
+        excerpt: "comes with the English (en) and Japanese (ja) localizations"
+  - record_key: CATALOG-BROWSING-REQUIREMENT-0001
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL list catalog results two items per page.
+    confidence: low
+    confidence_basis: >
+      A bare literal (catalog.pageSize=2) with no comment or document; the value looks like a test or demo setting but may be the live one.
+    risk_class: presentational
+    basis: >
+      No authoritative source other than the properties file.
+    plain_text: >
+      Product lists show two items at a time.
+    technical_note: >
+      conf/petstore.properties catalog.pageSize=2; live use not verified.
+    interface: false
+    stack_metadata:
+      framework: J2EE properties
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 25
+        line_end: 25
+        excerpt: |
+          catalog.pageSize=2
+  - record_key: CUSTOMER-ACCOUNT-REQUIREMENT-0001
+    kind: requirement
+    capability_key: customer-account
+    requirement: >
+      The system SHALL require sign-on to reach the customer screen, the customer action, the enter-order-information screen and the sign-on welcome screen, and SHALL show the sign-on form (or the sign-on error page after a failed sign-on) when the user is not signed on.
+    confidence: high
+    confidence_basis: >
+      Declared in signon-config.xml as four security constraints with form and error pages; the runtime filter that enforces it was not read here.
+    risk_class: regulated
+    basis: >
+      Four protected resources and the login/error pages are declared.
+    plain_text: >
+      Customers must sign in before viewing or editing their account, entering order information, or seeing the welcome page after sign-on.
+    technical_note: >
+      WEB-INF/signon-config.xml of the petstore web module: signon-form-login-page signon.screen, error page signon_error.screen, constraints on customer.screen, customer.do, enter_order_information.screen, signon_welcome.screen. No auth-constraint roles are listed in these constraints.
+    interface: false
+    stack_metadata:
+      framework: blueprints signon filter
+      jsp.page: signon.screen
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/docroot/WEB-INF/signon-config.xml
+        line_start: 40
+        line_end: 79
+        excerpt: |
+          <signon-form-login-page>
+           signon.screen
+          </signon-form-login-page>
+          <signon-form-error-page>
+           signon_error.screen
+          </signon-form-error-page>
+          <url-pattern>customer.screen</url-pattern>
+          <url-pattern>customer.do</url-pattern>
+          <url-pattern>enter_order_information.screen</url-pattern>
+          <url-pattern>signon_welcome.screen</url-pattern>
+  - record_key: CUSTOMER-ACCOUNT-REQUIREMENT-0002
+    kind: requirement
+    capability_key: customer-account
+    requirement: >
+      The system SHALL end a signed-on session after 15 minutes of inactivity.
+    confidence: high
+    confidence_basis: >
+      The value 15 is in the properties file and in web.xml session-timeout, two places that agree.
+    risk_class: regulated
+    basis: >
+      signon.session.timeoutMinutes=15 and web.xml session-timeout 15.
+    plain_text: >
+      A customer who is idle for 15 minutes is signed out.
+    technical_note: >
+      conf/petstore.properties signon.session.timeoutMinutes; web.xml of the petstore module sets session-timeout=15 (minutes).
+    interface: false
+    stack_metadata:
+      framework: J2EE
+      session.scope: HTTP session
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 26
+        line_end: 26
+        excerpt: |
+          signon.session.timeoutMinutes=15
+      - path: legacy-source/app/src/apps/petstore/src/docroot/WEB-INF/web.xml
+        line_start: 162
+        line_end: 162
+        excerpt: |
+              <session-timeout>15</session-timeout>
+  - record_key: CUSTOMER-ACCOUNT-REQUIREMENT-0003
+    kind: requirement
+    capability_key: customer-account
+    requirement: >
+      The system SHALL remember the user name of a returning customer in a browser cookie named bp_signon.
+    confidence: medium
+    confidence_basis: >
+      One clear place (properties); the code that writes or reads the cookie was not read.
+    risk_class: operational
+    basis: >
+      signon.rememberUsernameCookie=bp_signon.
+    plain_text: >
+      The sign-in page remembers the customer's user name between visits.
+    technical_note: >
+      conf/petstore.properties signon.rememberUsernameCookie.
+    interface: false
+    stack_metadata:
+      framework: blueprints signon filter
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 27
+        line_end: 27
+        excerpt: |
+          signon.rememberUsernameCookie=bp_signon
+  - record_key: ORDER-NOTIFICATIONS-REQUIREMENT-0001
+    kind: requirement
+    capability_key: order-notifications
+    requirement: >
+      The system SHALL by default send no mail on order receipt, approval or completion; each of the three mails SHALL be switchable on independently.
+    confidence: high
+    confidence_basis: >
+      Three false flags in the properties file and the admin guide stating notifications are disabled by default and enabled per env-entry.
+    risk_class: operational
+    basis: >
+      opc.mail.sendConfirmation, sendApproval and sendCompletedOrder are false; admin guide 3.1 lists the matching env-entries.
+    plain_text: >
+      Order emails (received, approved, completed) are turned off unless an administrator turns them on one by one.
+    technical_note: >
+      conf/petstore.properties lines 36-38; ejb-jar.xml env-entries param/SendConfirmationMailOrder, SendApprovalMailOrder, SendCompletedOrderMailOrder; mail host in sun-j2ee-ri.xml.
+    interface: true
+    stack_metadata:
+      framework: J2EE
+      ejb.bean: ConfirmationMailInvoiceMDB, ApprovalMailOrderApprovalMDB, CompletionMailCompletedOrderMDB
+      jms.queue: jms/opc/MailQueue
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 36
+        line_end: 38
+        excerpt: |
+          opc.mail.sendConfirmation=false
+          opc.mail.sendApproval=false
+          opc.mail.sendCompletedOrder=false
+      - path: legacy-analysis/sources/pdf/petstore-admin-guide/extracted.md
+        kind: document
+        anchor: p1 (3.1 E-mail notifications)
+        excerpt: "Notifications about order status are disabled by default."
+  - record_key: ORDER-FULFILLMENT-REQUIREMENT-0001
+    kind: integration
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL pass orders between the storefront, order processing center, supplier and admin through the queues jms/opc/OrderQueue, jms/opc/OrderApprovalQueue, jms/supplier/PurchaseOrderQueue and jms/opc/MailQueue, and invoices through the topic jms/opc/InvoiceTopic.
+    confidence: high
+    confidence_basis: >
+      Destinations in the properties file match the runbook list; runbook order flow gives their roles.
+    risk_class: operational
+    basis: >
+      JMS destination names; flow is order -> OPC -> supplier purchase order -> invoice back to OPC.
+    plain_text: >
+      Orders, approvals, supplier purchase orders, invoices and mail requests travel between the store, order center and supplier as messages.
+    technical_note: >
+      conf/petstore.properties jms.* keys (declared as sun-j2ee-ri.xml destinations).
+    interface: true
+    stack_metadata:
+      jms.queue: OrderQueue, OrderApprovalQueue, PurchaseOrderQueue, MailQueue, InvoiceTopic
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 40
+        line_end: 45
+        excerpt: |
+          jms.queue.order=jms/opc/OrderQueue
+          jms.queue.orderApproval=jms/opc/OrderApprovalQueue
+          jms.topic.invoice=jms/opc/InvoiceTopic
+          jms.queue.supplierPurchaseOrder=jms/supplier/PurchaseOrderQueue
+          jms.queue.mail=jms/opc/MailQueue
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        kind: document
+        anchor: p1 (1.1 Order flow)
+        excerpt: "APPROVED --> Supplier (PurchaseOrderQueue) --> ships from INVENTORY --> InvoiceTopic --> OPC"
+  - record_key: ORDER-FULFILLMENT-BUSINESS-RULE-0001
+    kind: business-rule
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL validate purchase order, invoice, order approval and supplier order XML messages against the structural check, and SHALL NOT validate them against XSD schemas.
+    confidence: medium
+    confidence_basis: >
+      Flags in one file; the validation code was not read, and the header notes live values are in ejb-jar.xml.
+    risk_class: operational
+    basis: >
+      xml.validation flags true for PurchaseOrder, Invoice, OrderApproval, SupplierOrder; xsdValidation flags false.
+    plain_text: >
+      Incoming order, invoice, approval and supplier messages are checked for correctness, but not against the full formal schema.
+    technical_note: >
+      petstore.properties opc.xml.validation.*, opc.xml.xsdValidation, supplier.xml.validation.SupplierOrder, supplier.xml.xsdValidation.*.
+    interface: true
+    stack_metadata:
+      framework: J2EE
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 32
+        line_end: 35
+        excerpt: |
+          opc.xml.validation.PurchaseOrder=true
+          opc.xml.validation.Invoice=true
+          opc.xml.validation.OrderApproval=true
+          opc.xml.xsdValidation=false
+      - path: legacy-source/conf/petstore.properties
+        line_start: 48
+        line_end: 50
+        excerpt: |
+          supplier.xml.validation.SupplierOrder=true
+          supplier.xml.xsdValidation.SupplierOrder=false
+          supplier.xml.xsdValidation.Invoice=false
+  - record_key: ORDER-REPORTING-BATCH-BUSINESS-RULE-0001
+    kind: business-rule
+    capability_key: order-reporting-batch
+    requirement: >
+      The system SHALL retain orders for 180 days before purge and SHALL treat an order as stuck after 24 hours.
+    confidence: high
+    confidence_basis: >
+      The values appear in petstore.properties, in env.sh and in the runbook settings table (three places).
+    risk_class: operational
+    basis: >
+      batch.order.retentionDays=180, PS_ORDER_RETENTION_DAYS=180, batch.order.stuckHours=24, PS_STUCK_ORDER_HOURS=24; runbook table.
+    plain_text: >
+      Orders are kept 180 days; an order not progressing for 24 hours is reported as stuck.
+    technical_note: >
+      Duplicated in conf/petstore.properties and conf/env.sh; batch scripts source env.sh, so a change in one file alone does not take effect.
+    interface: false
+    stack_metadata:
+      batch.trigger: Control-M via env.sh
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 57
+        line_end: 58
+        excerpt: |
+          batch.order.retentionDays=180
+          batch.order.stuckHours=24
+      - path: legacy-source/conf/env.sh
+        line_start: 15
+        line_end: 15
+        excerpt: |
+          PS_ORDER_RETENTION_DAYS=180
+      - path: legacy-source/conf/env.sh
+        line_start: 17
+        line_end: 17
+        excerpt: |
+          PS_STUCK_ORDER_HOURS=24
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        kind: document
+        anchor: p1 (5. Settings)
+        excerpt: "Order retention180 days / Stuck order limit24 hours"
+  - record_key: INVENTORY-REPORTING-BUSINESS-RULE-0001
+    kind: business-rule
+    capability_key: inventory-reporting
+    requirement: >
+      The system SHALL keep database backups for 7 days and SHALL flag inventory as low stock at 500 units.
+    confidence: high
+    confidence_basis: >
+      Values agree in properties, env.sh and the runbook table. Whether low stock is below or at-or-below 500 is in SQL not read here.
+    risk_class: operational
+    basis: >
+      batch.backup.keepDays=7, PS_BACKUP_KEEP_DAYS=7, batch.inventory.lowStockQty=500, PS_LOW_STOCK_QTY=500.
+    plain_text: >
+      Backups are kept for a week, and stock of 500 units triggers a low stock flag.
+    technical_note: >
+      Duplicated in conf/petstore.properties and conf/env.sh; folders under /var/petstore.
+    interface: false
+    stack_metadata:
+      batch.trigger: shell scripts sourcing env.sh
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 53
+        line_end: 59
+        excerpt: |
+          batch.backup.dir=/var/petstore/backup
+          batch.backup.keepDays=7
+          batch.extract.dir=/var/petstore/extract
+          batch.log.dir=/var/petstore/log
+          batch.order.retentionDays=180
+          batch.order.stuckHours=24
+          batch.inventory.lowStockQty=500
+      - path: legacy-source/conf/env.sh
+        line_start: 16
+        line_end: 18
+        excerpt: |
+          PS_BACKUP_KEEP_DAYS=7
+          PS_STUCK_ORDER_HOURS=24
+          PS_LOW_STOCK_QTY=500
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        kind: document
+        anchor: p1 (5. Settings)
+        excerpt: "Backup retention7 days / Low stock limit500 units"
+findings: []
+suspected_defects:
+  - capability_key: order-reporting-batch
+    record_keys: [ORDER-REPORTING-BATCH-BUSINESS-RULE-0001]
+    severity: low
+    category: other
+    title: Batch settings duplicated in two files, plus embedded database credentials differ
+    description: >
+      Retention, backup and threshold values are defined in both petstore.properties and env.sh, and the database credential in env.sh (a literal password in the connection URL) differs from the property file's. Changing one copy does not change the other.
+    traces:
+      - path: legacy-source/conf/env.sh
+        line_start: 14
+        line_end: 18
+        excerpt: |
+          PS_DB_URL="jdbc:derby://localhost:1527//var/petstore/db/PetStoreDB;user=estoreuser;password=estore"
+      - path: legacy-source/conf/petstore.properties
+        line_start: 9
+        line_end: 9
+        excerpt: |
+          petstore.db.password=«REDACTED:secret-finding-75»
+  - capability_key: order-approval
+    record_keys: [ORDER-APPROVAL-BUSINESS-RULE-0002]
+    severity: medium
+    category: other
+    title: No auto-approval limit for zh_CN orders
+    description: >
+      zh_CN is a served locale but has no limit key; the outcome for those orders is not documented.
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 23
+        line_end: 31
+        excerpt: |
+          catalog.locales=en_US,ja_JP,zh_CN
+          opc.autoApprove.limit.en_US=500
+          opc.autoApprove.limit.ja_JP=50000
