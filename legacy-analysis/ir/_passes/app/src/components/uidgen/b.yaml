@@ -1,0 +1,265 @@
+records:
+  - record_key: ORDER-CHECKOUT-REQ-0001
+    kind: requirement
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL generate a unique identifier for a caller-supplied prefix by incrementing a persistent per-prefix counter by one and returning the prefix concatenated with the new counter value.
+    confidence: medium
+    confidence_basis: >
+      Clear in one place (CounterEJB.getNextValue); the session bean delegates to it. No test or config restates it. The runbook confirms order numbers come from a counter starting at 1001 but that start value is not in this module.
+    risk_class: operational
+    basis: >
+      CounterEJB.getNextValue adds 1 to the stored counter, stores it and returns name + count. UniqueIdGeneratorEJB.getUniqueId delegates to it.
+    plain_text: >
+      Every new order or similar item receives a number made of a fixed prefix followed by a running count that goes up by one each time.
+    technical_note: >
+      UniqueIdGeneratorEJB.getUniqueId(prefix) calls CounterLocal.getNextValue(). Counter is a CMP 2.x entity; the increment is a read-modify-write inside the container transaction (Required).
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/uidgen/src/com/sun/j2ee/blueprints/uidgen/counter/ejb/CounterEJB.java
+        line_start: 159
+        line_end: 163
+        excerpt: |
+          public String getNextValue() {
+              int count = getCounter() + 1;
+              setCounter(count);
+              return getName() + String.valueOf(count);
+          }
+      - path: legacy-source/app/src/components/uidgen/src/com/sun/j2ee/blueprints/uidgen/ejb/UniqueIdGeneratorEJB.java
+        line_start: 67
+        line_end: 69
+        excerpt: |
+          public String getUniqueId(String idPrefix) {
+              return getCounter(idPrefix).getNextValue();
+          }
+    stack_metadata:
+      framework: EJB 2.0
+      ejb.bean: UniqueIdGeneratorEJB, CounterEJB
+      ejb.transaction: Required
+
+  - record_key: ORDER-CHECKOUT-BR-0001
+    kind: business-rule
+    capability_key: order-checkout
+    requirement: >
+      GIVEN no counter exists for the requested prefix WHEN an identifier is requested THEN the system SHALL create a counter for that prefix starting at 0, so the first identifier issued ends in 1.
+    confidence: high
+    confidence_basis: >
+      Enforced in two places: the session bean creates on FinderException and CounterEJB.ejbCreate sets counter to 0.
+    risk_class: operational
+    basis: >
+      getCounter finds by primary key and on FinderException creates the counter; ejbCreate sets the counter to 0.
+    plain_text: >
+      The first time a prefix is used, numbering starts fresh and the first number issued is 1.
+    technical_note: >
+      Find-or-create in UniqueIdGeneratorEJB.getCounter; the counter name is the CMP primary key. Find-then-create is not atomic, so concurrent first use of a prefix may fail on create (see defect).
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/uidgen/src/com/sun/j2ee/blueprints/uidgen/ejb/UniqueIdGeneratorEJB.java
+        line_start: 74
+        line_end: 86
+        excerpt: |
+          private CounterLocal getCounter(String name) {
+              try {
+                  CounterLocal counter = null;
+                  try {
+                      counter = clh.findByPrimaryKey(name);
+                  } catch (FinderException fe) {
+                      counter = clh.create(name);
+                  }
+                  return counter;
+              } catch (CreateException ce) {
+                  throw new EJBException("Could not create counter " + name + ". Error: " + ce.getMessage());
+              }
+          }
+      - path: legacy-source/app/src/components/uidgen/src/com/sun/j2ee/blueprints/uidgen/counter/ejb/CounterEJB.java
+        line_start: 150
+        line_end: 154
+        excerpt: |
+          public String ejbCreate(String name) throws CreateException {
+              setName(name);
+              setCounter(0);
+              return null;
+          }
+    stack_metadata:
+      framework: EJB 2.0
+      ejb.bean: CounterEJB
+      db.object: Counter (CMP abstract schema)
+
+  - record_key: ORDER-CHECKOUT-ENT-0001
+    kind: entity
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL persist one counter per distinct prefix, identified uniquely by the prefix name and holding an integer last-issued value.
+    confidence: high
+    confidence_basis: >
+      Declared in ejb-jar.xml (cmp-fields counter and name, primkey-field name) and in the abstract accessors of CounterEJB.
+    risk_class: operational
+    basis: >
+      Entity CounterEJB has CMP fields counter and name with name as primary key (String).
+    plain_text: >
+      The system remembers, for each prefix, the last number it handed out.
+    technical_note: >
+      CMP 2.x entity, abstract schema Counter, prim-key-class java.lang.String, non-reentrant. Counter is a 32-bit int.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/uidgen/src/ejb-jar.xml
+        line_start: 46
+        line_end: 70
+        excerpt: |
+          <entity>
+            <ejb-name>CounterEJB</ejb-name>
+            <persistence-type>Container</persistence-type>
+            <prim-key-class>java.lang.String</prim-key-class>
+            <reentrant>False</reentrant>
+            <cmp-version>2.x</cmp-version>
+            <abstract-schema-name>Counter</abstract-schema-name>
+            <cmp-field><field-name>counter</field-name></cmp-field>
+            <cmp-field><field-name>name</field-name></cmp-field>
+            <primkey-field>name</primkey-field>
+      - path: legacy-source/app/src/components/uidgen/src/com/sun/j2ee/blueprints/uidgen/counter/ejb/CounterEJB.java
+        line_start: 142
+        line_end: 146
+        excerpt: |
+          public abstract int getCounter();
+          public abstract void setCounter(int counter);
+          public abstract String getName();
+          public abstract void setName(String name);
+    stack_metadata:
+      framework: EJB 2.0
+      ejb.bean: CounterEJB
+      db.object: Counter
+
+  - record_key: ORDER-CHECKOUT-BR-0002
+    kind: business-rule
+    capability_key: order-checkout
+    requirement: >
+      GIVEN a counter cannot be created or the naming lookup of the counter fails WHEN an identifier is requested THEN the system SHALL fail the request with an error and not return an identifier.
+    confidence: medium
+    confidence_basis: >
+      Single clear place (EJBException thrown in two handlers); no documentation of the intended caller behaviour.
+    risk_class: operational
+    basis: >
+      NamingException in ejbCreate and CreateException in getCounter are rethrown as EJBException.
+    plain_text: >
+      If a number cannot be issued, the request fails rather than returning a made-up or duplicate number.
+    technical_note: >
+      EJBException thrown from UniqueIdGeneratorEJB.ejbCreate and getCounter; container rolls back the transaction.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/uidgen/src/com/sun/j2ee/blueprints/uidgen/ejb/UniqueIdGeneratorEJB.java
+        line_start: 56
+        line_end: 63
+        excerpt: |
+          public void ejbCreate() {
+            try {
+              ic = new InitialContext();
+              clh = (CounterLocalHome) ic.lookup("java:comp/env/ejb/Counter");
+            } catch (NamingException ne) {
+               throw new EJBException("UniqueIdGeneratorEJB Got naming exception! " + ne.getMessage());
+            }
+          }
+    stack_metadata:
+      framework: EJB 2.0
+      ejb.bean: UniqueIdGeneratorEJB
+
+  - record_key: ORDER-CHECKOUT-REQ-0002
+    kind: requirement
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL make the identifier generator available to other server components in the same application only (local access), without caller role restrictions.
+    confidence: medium
+    confidence_basis: >
+      ejb-jar.xml declares local interfaces only, use-caller-identity and unchecked method permissions; callers are outside this module so use is not verified here.
+    risk_class: operational
+    basis: >
+      Only local-home/local interfaces are declared; method-permission unchecked on counter methods.
+    plain_text: >
+      Number generation is an internal service used by the application itself and is not open to outside systems.
+    technical_note: >
+      Local home/local interfaces only; stateless session bean; container-managed transactions with Required on methods.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/uidgen/src/ejb-jar.xml
+        line_start: 71
+        line_end: 90
+        excerpt: |
+          <session>
+            <ejb-name>UniqueIdGeneratorEJB</ejb-name>
+            <local-home>com.sun.j2ee.blueprints.uidgen.ejb.UniqueIdGeneratorLocalHome</local-home>
+            <local>com.sun.j2ee.blueprints.uidgen.ejb.UniqueIdGeneratorLocal</local>
+            <session-type>Stateless</session-type>
+            <transaction-type>Container</transaction-type>
+    stack_metadata:
+      framework: EJB 2.0
+      ejb.bean: UniqueIdGeneratorEJB
+      ejb.transaction: Required
+      session.scope: Stateless
+
+  - record_key: ORDER-CHECKOUT-REQ-0003
+    kind: requirement
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL issue order numbers for the batch order extract from this counter mechanism, with numbering that starts at 1001 per the operations runbook.
+    confidence: low
+    confidence_basis: >
+      Only the runbook states the 1001 counter; this module has no start value of 1001 (new counters start at 0), and the link between orders and the prefix is made by callers outside this shard.
+    dispute:
+      reason: contradicts-docs
+      detail: >
+        Runbook says order number comes from "the 1001 counter"; code in this module starts counters at 0 so first id is prefix+1. Settling needs the caller code or seed data that creates the order counter.
+    risk_class: operational
+    basis: >
+      Runbook column po_id describes order numbers as from the 1001 counter.
+    plain_text: >
+      Order numbers shown in the finance extract come from a running counter documented as starting at 1001.
+    technical_note: >
+      Document-only evidence; the uidgen module itself starts at 0.
+    interface: true
+    traces:
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        line_start: 76
+        line_end: 76
+        anchor: "3.2 PS_ORDER_EXTRACT, column 1 po_id"
+        kind: document
+        excerpt: |
+          1 po_idOrder number, from the 1001 counter
+    stack_metadata:
+      framework: EJB 2.0
+findings: []
+suspected_defects:
+  - capability_key: order-checkout
+    record_keys: [ORDER-CHECKOUT-BR-0001]
+    severity: medium
+    category: data-corruption
+    title: Find-then-create counter is not atomic
+    description: >
+      A missing counter is detected by a finder exception and then created in a separate step; two concurrent first requests for a prefix can both attempt creation, one failing with a create error and no identifier.
+    traces:
+      - path: legacy-source/app/src/components/uidgen/src/com/sun/j2ee/blueprints/uidgen/ejb/UniqueIdGeneratorEJB.java
+        line_start: 77
+        line_end: 85
+  - capability_key: order-checkout
+    record_keys: [ORDER-CHECKOUT-REQ-0001]
+    severity: low
+    category: other
+    title: Counter is a 32-bit int with no overflow handling
+    description: >
+      The counter is an int incremented without a bound check; after 2147483647 it wraps negative and would produce identifiers like prefix-2147483648.
+    traces:
+      - path: legacy-source/app/src/components/uidgen/src/com/sun/j2ee/blueprints/uidgen/counter/ejb/CounterEJB.java
+        line_start: 159
+        line_end: 163
+  - capability_key: order-checkout
+    record_keys: [ORDER-CHECKOUT-REQ-0003]
+    severity: low
+    category: contradicts-document
+    title: Runbook says counter starts at 1001, code starts at 0
+    description: >
+      Runbook describes the order number as coming from a 1001 counter; ejbCreate initialises counters at 0.
+    traces:
+      - path: legacy-source/app/src/components/uidgen/src/com/sun/j2ee/blueprints/uidgen/counter/ejb/CounterEJB.java
+        line_start: 150
+        line_end: 154
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        kind: document
+        anchor: "3.2 PS_ORDER_EXTRACT, column 1 po_id"
