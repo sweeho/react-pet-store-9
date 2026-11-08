@@ -21,7 +21,7 @@ test("[SWHR8-C-0108] bill-to e-mail is stored on the order and shown in the conf
   const { orderId } = await placed.json();
 
   await page.goto(`/orders/${orderId}`);
-  await expect(page.getByText(email)).toBeVisible();
+  await expect(page.getByText(email).first()).toBeVisible();
 
   const stored = await request.get(`/api/orders/${orderId}`);
   expect((await stored.json()).billTo.email).toBe(email);
