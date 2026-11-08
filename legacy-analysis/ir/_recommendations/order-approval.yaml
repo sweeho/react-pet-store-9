@@ -1,0 +1,20 @@
+recommendations:
+  - {record_key: ORDAPP-RULE-0001, recommendation: accept, confidence: high, reason: "Passes A and B agree with each other and with petstore.properties; limits 500 US, 50000 JP."}
+  - {record_key: ORDAPP-RULE-0002, recommendation: accept, confidence: medium, reason: "Code leaves non-US/JP orders pending; the zh_CN limit is absent from config, so confirm intent with the Business Owner."}
+  - {record_key: ADM-BR-0009, recommendation: accept, confidence: low, reason: "Flagged contradicts-docs; the code holds orders over limit as PENDING, confirm which is true in production and send the conflict to Intent."}
+  - {record_key: ORDAPP-RULE-0003, recommendation: accept, confidence: high, reason: "Both passes read the PENDING-only guard in OrderApprovalMDB."}
+  - {record_key: ORDAPP-WF-0001, recommendation: accept, confidence: high, reason: "Both OrderApprovalMDB and OrderApprovalTD are cited."}
+  - {record_key: ORDER-APPROVAL-ENTITY-0001, recommendation: accept, confidence: high, reason: "Descriptor and bean agree across three passes."}
+  - {record_key: ORDER-APPROVAL-REQ-0001, recommendation: accept, confidence: medium, reason: "Passes A and C agree on create, update, read and not-found."}
+  - {record_key: APPR-ENT-0001, recommendation: edit, confidence: medium, reason: "DDL allows four statuses, code names five including SHIPPED_PART; this is a code/schema conflict for the Business Owner.", edited_requirement: "The system SHALL track order state as PENDING, APPROVED, DENIED or COMPLETED; whether SHIPPED_PART is valid is unresolved."}
+  - {record_key: APPR-ENT-0009, recommendation: accept, confidence: low, reason: "No trace pointers were recorded; confirm the find-by-status finder in the order manager before accepting."}
+  - {record_key: ORDER-APPROVAL-WF-0001, recommendation: reject, confidence: low, reason: "Reachability of the delegate factory was not established; reject unless a caller is found."}
+  - {record_key: ORDER-APPROVAL-INTEGRATION-0001, recommendation: accept, confidence: high, reason: "AsyncSenderEJB is the single publish path."}
+  - {record_key: ORDER-APPROVAL-BUSINESS-RULE-0002, recommendation: accept, confidence: medium, reason: "Failure is raised to the caller in AsyncSenderEJB."}
+  - {record_key: ORDER-APPROVAL-BUSINESS-RULE-0003, recommendation: accept, confidence: medium, reason: "Required transaction attribute in ejb-jar.xml and the bean agree; it is an implementation detail the rebuild may satisfy differently."}
+  - {record_key: ORDAPP-WORKFLOW-0001, recommendation: accept, confidence: high, reason: "DTD and ChangedOrder agree."}
+  - {record_key: ORDFUL-REQ-0008, recommendation: accept, confidence: medium, reason: "Belongs partly to order-fulfillment; keep as the validation rule for these documents."}
+  - {record_key: ORDER-NOTIFICATIONS-INTEGRATION-0005, recommendation: edit, confidence: low, reason: "Mail format fits order-notifications better; move it there.", edited_requirement: "Move to order-notifications capability."}
+  - {record_key: ORN-BR-0001, recommendation: edit, confidence: low, reason: "Config default plus the user guide; belongs to order-notifications.", edited_requirement: "Move to order-notifications capability."}
+  - {record_key: ADMIN-REQ-0002, recommendation: reject, confidence: medium, reason: "Sales reporting, not order approval; misclassified."}
+  - {record_key: INVENTORY-REPORTING-BUSINESS-RULE-0001, recommendation: reject, confidence: high, reason: "Backup retention and low stock are unrelated to order approval."}
