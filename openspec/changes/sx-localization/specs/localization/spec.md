@@ -256,7 +256,7 @@ The system SHALL format currency and numbers for a locale with a caller-specifie
 
 Recovered from: LOC-REQ-0007
 
-The system SHOULD decode Japanese text submitted in SJIS or JIS encoding into Unicode.
+The system SHALL decode Japanese text submitted in SJIS or JIS encoding into Unicode.
 
 #### Scenario: SJIS input
 
