@@ -49,9 +49,15 @@ test.describe("shopping cart", () => {
     await expect(page.getByRole("link", { name: "Remove" })).toHaveCount(2);
     await expect(page.getByLabel("Quantity EST-1")).toHaveValue("2");
     await expect(page.getByLabel("Quantity EST-6")).toHaveValue("1");
-    const body = await page.locator("body").innerText();
-    expect(body).toMatch(/\$\d[\d,]*\.\d{2}/);
-    await expect(page.getByText(/Total/)).toContainText("$");
+    const usd = (n: number) =>
+      `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const cart = await (await page.request.get("/api/cart")).json();
+    const body = page.locator("body");
+    for (const item of cart.items as { listPrice: number }[]) {
+      await expect(body).toContainText(usd(Number(item.listPrice)));
+    }
+    await expect(body).toContainText(usd(Number(cart.total)));
+    await expect(page.getByText(/Total/).first()).toBeVisible();
   });
 
   // case: SWHR8-C-0077@v1
@@ -69,8 +75,8 @@ test.describe("shopping cart", () => {
     expect(second.ok()).toBe(false);
     expect(JSON.stringify(await second.json()).toLowerCase()).toContain("empty");
     await page.goto("/checkout/error");
-    await expect(page.getByText("Order Error")).toBeVisible();
-    await expect(page.getByText(/empty/i)).toBeVisible();
+    await expect(page.getByText("Order Error").first()).toBeVisible();
+    await expect(page.getByText(/empty/i).first()).toBeVisible();
   });
 
   // case: SWHR8-C-0078@v1
