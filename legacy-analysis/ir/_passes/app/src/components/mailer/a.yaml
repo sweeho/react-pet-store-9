@@ -1,0 +1,158 @@
+records:
+  - record_key: ORDER-NOTIFICATIONS-INT-0001
+    kind: integration
+    capability_key: order-notifications
+    requirement: The system SHALL consume mail requests from a message queue, each carrying a recipient address, a subject and a content body in a fixed XML structure (Mail with Address, Subject, Content), and send one e-mail per request.
+    confidence: high
+    confidence_basis: Listener code, the Mail DTD and the descriptor queue declaration all agree; destination name is not in this module.
+    risk_class: operational
+    basis: The message-driven bean parses the text message into a Mail and sends it; DTD fixes the three elements.
+    plain_text: Notification e-mails are requested by other parts of the system through a queue; each request names the recipient, subject and body, and one e-mail is sent for it.
+    technical_note: MailerMDB.onMessage casts to TextMessage, Mail.fromXML (validating), then MailHelper. Queue name is bound at deploy time.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/mailer/src/com/sun/j2ee/blueprints/mailer/ejb/MailerMDB.java
+        line_start: 74
+        line_end: 82
+        excerpt: |
+          textMessage = (TextMessage)recvMsg;
+          xmlMailMessage = textMessage.getText();
+          recMail = Mail.fromXML(xmlMailMessage);
+          sendMail(recMail.getAddress(), recMail.getSubject(), recMail.getContent(),  Locale.getDefault());
+      - path: legacy-source/app/src/components/mailer/src/com/sun/j2ee/blueprints/mailer/rsrc/schemas/Mail.dtd
+        line_start: 38
+        line_end: 41
+        excerpt: |
+          <!ELEMENT Mail (Address, Subject, Content)>
+          <!ELEMENT Address (#PCDATA)>
+          <!ELEMENT Subject (#PCDATA)>
+          <!ELEMENT Content (#PCDATA)>
+    stack_metadata:
+      framework: EJB 2.0 MDB
+      ejb.bean: MailerMDB
+      ejb.transaction: Required
+      jms.queue: javax.jms.Queue
+  - record_key: ORDER-NOTIFICATIONS-REQ-0002
+    kind: requirement
+    capability_key: order-notifications
+    requirement: The system SHALL send each notification as an HTML message to the recipient address(es) given, with the supplied subject, the current date as sent date and the sender address configured for the mail service.
+    confidence: medium
+    confidence_basis: One clear place (MailHelper); sender is the mail session default, configured per admin guide.
+    risk_class: operational
+    basis: Content type is hard-coded text/html; From taken from session default; recipients parsed non-strictly.
+    plain_text: Customer e-mails are sent as formatted (HTML) messages from the configured sender address, with the subject and date set automatically.
+    technical_note: MailHelper.createAndSendMail uses JavaMail Session from JNDI java:comp/env/mail/MailSession, setFrom(), InternetAddress.parse(addr,false), X-Mailer header JavaMailer.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/mailer/src/com/sun/j2ee/blueprints/mailer/ejb/MailHelper.java
+        line_start: 182
+        line_end: 195
+        excerpt: |
+          Session session = (Session) ic.lookup(JNDINames.MAIL_SESSION);
+          Message msg = new MimeMessage(session);
+          msg.setFrom();
+          msg.setRecipients(Message.RecipientType.TO,
+                   InternetAddress.parse(emailAddress, false));
+          msg.setSubject(subject);
+          String contentType = "text/html";
+          msg.setHeader("X-Mailer", "JavaMailer");
+          msg.setSentDate(new Date());
+          Transport.send(msg);
+      - path: legacy-analysis/sources/pdf/petstore-admin-guide/extracted.md
+        kind: document
+        anchor: p1 (3.1 E-mail notifications)
+        excerpt: |
+          Then set the mail service in src/apps/opc/src/sun-j2ee-ri.xml: mail-from (From: address), mail-
+          host (mail server) and name (user name on the mail server).
+    stack_metadata:
+      framework: JavaMail
+      db.object: mail/MailSession
+  - record_key: ORDER-NOTIFICATIONS-BR-0003
+    kind: business-rule
+    capability_key: order-notifications
+    requirement: GIVEN a mail cannot be sent (for example no mail server is configured) WHEN the notification is processed THEN the system SHALL discard the failure without retry and without failing the originating order processing.
+    confidence: high
+    confidence_basis: Explicit comment plus catch block that swallows; error text written to stderr in helper.
+    risk_class: operational
+    basis: MailerAppException is caught and ignored with comment about missing mail server.
+    plain_text: If an e-mail cannot be sent, the failure is ignored; the order carries on and the e-mail is not retried.
+    technical_note: MailHelper wraps any Exception as MailerAppException; MailerMDB catches and ignores, so the message is consumed.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/mailer/src/com/sun/j2ee/blueprints/mailer/ejb/MailerMDB.java
+        line_start: 83
+        line_end: 86
+        excerpt: |
+          } catch (MailerAppException me) {
+            //throw new EJBException("MailerMDB.onMessage" + me);
+            //ignore since user probably forgot to set up mail server
+          } catch (XMLDocumentException xde) {
+      - path: legacy-source/app/src/components/mailer/src/com/sun/j2ee/blueprints/mailer/ejb/MailHelper.java
+        line_start: 196
+        line_end: 199
+        excerpt: |
+          } catch (Exception e) {
+              System.err.print("createAndSendMail exception : " + e);
+              throw new MailerAppException("Failure while sending mail");
+          }
+    stack_metadata:
+      ejb.bean: MailerMDB
+  - record_key: ORDER-NOTIFICATIONS-BR-0004
+    kind: business-rule
+    capability_key: order-notifications
+    requirement: GIVEN a queued mail request is malformed or unreadable WHEN it is processed THEN the system SHALL treat it as a processing error and not send mail.
+    confidence: medium
+    confidence_basis: One clear place; redelivery behaviour depends on container, not visible.
+    risk_class: operational
+    basis: XML parse and JMS errors are rethrown as EJBException, unlike send failures.
+    plain_text: A broken notification request is reported as an error rather than silently dropped.
+    technical_note: XMLDocumentException and JMSException rethrown as EJBException, rolling back the Required transaction.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/mailer/src/com/sun/j2ee/blueprints/mailer/ejb/MailerMDB.java
+        line_start: 86
+        line_end: 90
+        excerpt: |
+          } catch (XMLDocumentException xde) {
+            throw new EJBException("MailerMDB.onMessage" + xde);
+          } catch(JMSException je) {
+            throw new EJBException("MailerMDB.onMessage" + je);
+          }
+    stack_metadata:
+      ejb.transaction: Required
+  - record_key: ORDER-NOTIFICATIONS-BR-0005
+    kind: business-rule
+    capability_key: order-notifications
+    requirement: The system SHALL send order-status e-mails only when notifications have been enabled by an administrator; they are disabled by default.
+    confidence: medium
+    confidence_basis: Stated in two documents; the enabling switches live in the OPC module outside this shard, so not seen in code here.
+    risk_class: operational
+    basis: Admin guide and user guide both say notifications are off by default. The flags are in another module; filed here as closest capability.
+    plain_text: Order status e-mails are off until an administrator turns them on.
+    technical_note: Env-entries param/SendApprovalMail, SendConfirmationMail, SendCompletedOrderMail in OPC ejb-jar.xml gate the sending beans; not in this module.
+    interface: false
+    traces:
+      - path: legacy-analysis/sources/pdf/petstore-admin-guide/extracted.md
+        kind: document
+        anchor: p1 (3.1 E-mail notifications)
+        excerpt: |
+          Notifications about order status are disabled by default.
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        kind: document
+        anchor: p1
+        excerpt: |
+          An e-mail about the order status is sent only if the administrator has
+          enabled notifications
+findings: []
+suspected_defects:
+  - capability_key: order-notifications
+    record_keys: [ORDER-NOTIFICATIONS-BR-0003]
+    severity: medium
+    category: error-swallowed
+    title: Mail send failures are silently ignored
+    description: >
+      Any failure sending mail is converted to an exception then ignored in the listener; only stderr gets a line. Customers get no notification and nobody is alerted.
+    traces:
+      - path: legacy-source/app/src/components/mailer/src/com/sun/j2ee/blueprints/mailer/ejb/MailerMDB.java
+        line_start: 83
+        line_end: 86
