@@ -8,7 +8,9 @@ import { expect, test } from "@playwright/test";
 //   /cart page: empty message "Your Shopping Cart is Empty."; otherwise per item a "Remove" link,
 //     a quantity input (accessible name "Quantity <itemId>"), the unit price, a "Total" in US dollars
 //     and an "Update" button submitting all quantities.
-//   /checkout/error page for an empty cart shows "Order Error" and the word "empty".
+//   /checkout page: the form of order-checkout (billing + shipping fields, labelled as there) with a
+//     submit button named /submit|place order|confirm/i; submitting with an empty cart lands on
+//   /checkout/error page (that empty-cart submit lands here) shows "Order Error" and the word "empty".
 const party = {
   lastName: "Doe",
   firstName: "Jane",
@@ -52,12 +54,23 @@ test.describe("shopping cart", () => {
     const usd = (n: number) =>
       `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const cart = await (await page.request.get("/api/cart")).json();
-    const body = page.locator("body");
-    for (const item of cart.items as { listPrice: number }[]) {
-      await expect(body).toContainText(usd(Number(item.listPrice)));
+    // Each item's unit price must sit in that item's own row (the row holding its quantity input).
+    for (const item of cart.items as { itemId: string; listPrice: number }[]) {
+      const row = page
+        .locator("tr, li, [role=row]")
+        .filter({ has: page.getByLabel(`Quantity ${item.itemId}`) })
+        .last();
+      await expect(row).toContainText(item.itemId);
+      await expect(row).toContainText(usd(Number(item.listPrice)));
+      await expect(row.getByRole("link", { name: "Remove" })).toHaveCount(1);
     }
-    await expect(body).toContainText(usd(Number(cart.total)));
-    await expect(page.getByText(/Total/).first()).toBeVisible();
+    // The total sits in the element labelled "Total", which is not an item row.
+    const totalRow = page
+      .locator("tr, li, [role=row], div, p, span")
+      .filter({ hasText: /Total/ })
+      .filter({ hasNot: page.getByLabel(/^Quantity /) })
+      .last();
+    await expect(totalRow).toContainText(usd(Number(cart.total)));
   });
 
   // case: SWHR8-C-0077@v1
@@ -74,7 +87,22 @@ test.describe("shopping cart", () => {
     });
     expect(second.ok()).toBe(false);
     expect(JSON.stringify(await second.json()).toLowerCase()).toContain("empty");
-    await page.goto("/checkout/error");
+    // Reach the error page by submitting the checkout form again with the now-empty cart.
+    await page.goto("/checkout");
+    for (const [label, value] of [
+      ["Last name", party.lastName],
+      ["First name", party.firstName],
+      ["Address line 1", party.address1],
+      ["City", party.city],
+      ["State", party.state],
+      ["Postal code", party.postalCode],
+      ["Telephone", party.phone],
+      ["E-mail", party.email],
+    ]) {
+      for (const i of [0, 1]) await page.getByLabel(label).nth(i).fill(value);
+    }
+    await page.getByRole("button", { name: /submit|place order|confirm/i }).click();
+    await expect(page).toHaveURL(/\/checkout\/error/);
     await expect(page.getByText("Order Error").first()).toBeVisible();
     await expect(page.getByText(/empty/i).first()).toBeVisible();
   });
