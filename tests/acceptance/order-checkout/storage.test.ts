@@ -149,13 +149,16 @@ describe("order line storage", () => {
     const r = await repo();
     const order = await baseOrder();
     await r.savePurchaseOrder(order);
-    // No user, role or session parameter exists: the calls take only the data (line / order id + number).
-    expect(r.saveLineItem.length).toBeLessThanOrEqual(1);
-    expect(r.saveLineItems.length).toBeLessThanOrEqual(1);
-    expect(r.readLineItem.length).toBeLessThanOrEqual(2);
+    // No role needed: the calls are made detached from any session, user or role context, passing only data,
+    // and the stored line carries no user or role field.
+    const { saveLineItem, saveLineItems, readLineItem } = r;
+    await saveLineItem(line(order.orderId, { lineNumber: 5 }));
+    const stored = await readLineItem(order.orderId, 5);
+    expect(stored).toMatchObject({ itemId: "EST-1", quantity: 2 });
+    expect(Object.keys(stored as object).filter((k) => /user|role|session/i.test(k))).toEqual([]);
     await r.saveLineItem(line(order.orderId, { lineNumber: 0 }));
     expect(await r.readLineItem(order.orderId, 0)).toMatchObject({ itemId: "EST-1", quantity: 2 });
-    await r.saveLineItems([line(order.orderId, { lineNumber: 3 })]);
+    await saveLineItems([line(order.orderId, { lineNumber: 3 })]);
     expect(await r.readLineItem(order.orderId, 3)).toMatchObject({ itemId: "EST-1" });
     // A batch with one invalid line leaves nothing behind: the write ran as one transaction.
     await expect(
