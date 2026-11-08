@@ -1,0 +1,237 @@
+records:
+  - record_key: order-fulfillment-WORKFLOW-0001
+    kind: workflow
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL accept each approved order as an XML purchase order message from the order center's purchase order queue, store it as a supplier order, and attempt to fulfil it immediately.
+    confidence: medium
+    confidence_basis: >
+      Message-driven entry point and facade call read directly in code; queue name confirmed by the runbook only in prose, so one clear code place plus a document.
+    risk_class: operational
+    basis: The message-driven bean passes the message text to the fulfilment facade, which parses and persists the order then processes it.
+    plain_text: >
+      When the order center sends an approved order to the supplier, the supplier records it and immediately tries to ship it from stock.
+    technical_note: >
+      SupplierOrderMDB.onMessage -> OrderFulfillmentFacadeEJB.processPO (parse via TPASupplierOrderXDE, create SupplierOrder entity, processAnOrder). Any checked exception is rethrown as EJBException (message redelivery by container).
+    interface: true
+    traces:
+      - path: legacy-source/app/src/apps/supplier/src/com/sun/j2ee/blueprints/supplier/processpo/ejb/SupplierOrderMDB.java
+        line_start: 101
+        line_end: 113
+        excerpt: |
+          public void onMessage(Message recvMsg) {
+      - path: legacy-source/app/src/apps/supplier/src/com/sun/j2ee/blueprints/supplier/orderfulfillment/ejb/OrderFulfillmentFacadeEJB.java
+        line_start: 465
+        line_end: 479
+        excerpt: |
+          public String processPO(String poXmlDoc) throws CreateException,
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        excerpt: |
+          APPROVED --> Supplier (PurchaseOrderQueue) --> ships from INVENTORY --> InvoiceTopic --> OPC
+        anchor: p1 (1.1 Order flow)
+    stack_metadata:
+      framework: EJB 2.x MDB
+      ejb.bean: SupplierOrderMDB
+      jms.queue: jms/supplier/PurchaseOrderQueue
+  - record_key: order-fulfillment-BR-0001
+    kind: business-rule
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL ship a purchase order line only when current stock for the item is at least the line quantity, and on shipping SHALL reduce stock by that quantity; a line with insufficient stock or an unknown item SHALL be left unshipped.
+    confidence: medium
+    confidence_basis: One clear enforcement place (checkInventory); no schema constraint or test. Behaviour on unknown item (not found) read from the catch returning false.
+    risk_class: operational
+    basis: All-or-nothing per line; no partial shipment of a line.
+    plain_text: >
+      A line is shipped in full only if the supplier has enough stock of that item; otherwise it waits. Stock goes down by the shipped amount.
+    technical_note: >
+      OrderFulfillmentFacadeEJB.checkInventory: findByPrimaryKey(itemId), compare getQuantity to line quantity, reduceQuantity. FinderException returns false.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/supplier/src/com/sun/j2ee/blueprints/supplier/orderfulfillment/ejb/OrderFulfillmentFacadeEJB.java
+        line_start: 368
+        line_end: 381
+        excerpt: |
+          if(inv.getQuantity() < item.getQuantity())
+            return(false);
+          inv.reduceQuantity(item.getQuantity());
+    stack_metadata:
+      ejb.bean: OrderFulfillmentFacadeEJB
+      db.object: Inventory CMP entity
+  - record_key: order-fulfillment-BR-0002
+    kind: business-rule
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL skip lines already fully shipped, mark each newly shipped line fully shipped, and mark the supplier order COMPLETED only when every line was available in this pass.
+    confidence: medium
+    confidence_basis: One clear place; completion flag derived from allItemsAvailable, which stays true if lines were skipped as already shipped.
+    risk_class: operational
+    basis: processAnOrder loops lines, tracks allItemsAvailable and invoiceReqd.
+    plain_text: >
+      Already shipped lines are not shipped twice. The order is complete once nothing is left waiting for stock.
+    technical_note: processAnOrder in OrderFulfillmentFacadeEJB.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/supplier/src/com/sun/j2ee/blueprints/supplier/orderfulfillment/ejb/OrderFulfillmentFacadeEJB.java
+        line_start: 429
+        line_end: 440
+        excerpt: |
+          if(li.getQuantity() == li.getQuantityShipped())
+            continue;
+    stack_metadata:
+      ejb.bean: OrderFulfillmentFacadeEJB
+  - record_key: order-fulfillment-REQ-0001
+    kind: requirement
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL, when at least one line is shipped in a pass, produce one invoice XML document listing only the lines shipped in that pass, with shipping date set to the processing time, the original order date, and a fixed customer label, and SHALL send it to the invoice topic for the order center.
+    confidence: high
+    confidence_basis: Invoice creation, topic sending and the document flow description agree across code (facade, delegate) and the runbook.
+    risk_class: financial
+    basis: createInvoice adds only lines in the shipped map; SupplierOrderTD publishes to the invoice topic.
+    plain_text: >
+      Each time goods ship, the supplier sends the order center an invoice for exactly the items shipped in that run. The invoice addresses the customer generically.
+    technical_note: >
+      createInvoice sets userId to the literal "Dear PetStore Customer"; SupplierOrderTD.doTransition publishes via TopicSender to the invoice MDB topic.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/apps/supplier/src/com/sun/j2ee/blueprints/supplier/orderfulfillment/ejb/OrderFulfillmentFacadeEJB.java
+        line_start: 387
+        line_end: 413
+        excerpt: |
+          invoiceXDE.setUserId("Dear PetStore Customer");
+      - path: legacy-source/app/src/apps/supplier/src/com/sun/j2ee/blueprints/supplier/transitions/SupplierOrderTD.java
+        line_start: 232
+        line_end: 238
+        excerpt: |
+          invoiceTopicSender.sendMessage(xmlInvoice);
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        excerpt: |
+          APPROVED --> Supplier (PurchaseOrderQueue) --> ships from INVENTORY --> InvoiceTopic --> OPC
+        anchor: p1 (1.1 Order flow)
+    stack_metadata:
+      ejb.bean: SupplierOrderTD
+      jms.queue: jms/opc/InvoiceTopic
+  - record_key: order-fulfillment-WORKFLOW-0002
+    kind: workflow
+    capability_key: order-fulfillment
+    requirement: >
+      GIVEN a purchase order that could not be fully shipped on arrival WHEN the supplier's stock is updated THEN the system SHALL reprocess every supplier order with status PENDING, ship what stock now allows, and send an invoice for each order that shipped something.
+    confidence: high
+    confidence_basis: Code (processPendingPO and servlet call) plus user guide and runbook describing the behaviour.
+    risk_class: operational
+    basis: updateinventory screen action runs updateInventory then processPendingPO then sends invoices in one user transaction.
+    plain_text: >
+      After a stock clerk updates stock, waiting orders are retried and invoices go out for anything that can now ship.
+    technical_note: >
+      RcvrRequestProcessor.doPost (currentScreen=updateinventory) with UserTransaction begin/commit; facade.findOrdersByStatus(PENDING). The transaction is committed only on the success path; exceptions are only printed.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/apps/supplier/src/com/sun/j2ee/blueprints/supplier/orderfulfillment/ejb/OrderFulfillmentFacadeEJB.java
+        line_start: 489
+        line_end: 510
+        excerpt: |
+          supplierOrderLocalHome.findOrdersByStatus(OrderStatusNames.PENDING);
+      - path: legacy-source/app/src/apps/supplier/src/com/sun/j2ee/blueprints/supplier/inventory/web/RcvrRequestProcessor.java
+        line_start: 184
+        line_end: 188
+        excerpt: |
+          ut.begin();        // start the xaction.
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        excerpt: |
+          After every update the Supplier notifies the OPC. The OPC checks whether it can now fulfil orders it
+        anchor: 4.1 Viewing and editing inventory
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        excerpt: |
+          Resubmitting the supplier inventory in the Supplier client makes the OPC re-evaluate unfulfilled
+        anchor: p1 (4.3 Stuck APPROVED order)
+    stack_metadata:
+      framework: Servlet + EJB
+      jsp.page: displayinventory.jsp
+      ejb.transaction: UserTransaction (bean-managed in servlet)
+  - record_key: order-fulfillment-REQ-0002
+    kind: requirement
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL let a stock clerk view every inventory item with its current quantity and set a new quantity for selected items, ignoring blank and negative entries.
+    confidence: high
+    confidence_basis: Display bean query, update loop, and user guide procedure agree.
+    risk_class: operational
+    basis: updateInventory only sets quantity when the value is present and >= 0; a non-numeric value would throw NumberFormatException (unhandled).
+    plain_text: >
+      The stock clerk sees all items and quantities, can overwrite quantities, and cannot set a negative number.
+    technical_note: >
+      DisplayInventoryBean.getInventory uses findAllInventoryItems; RcvrRequestProcessor.updateInventory parses item_/qty_ request parameters.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/supplier/src/com/sun/j2ee/blueprints/supplier/inventory/web/DisplayInventoryBean.java
+        line_start: 73
+        line_end: 89
+        excerpt: |
+          invColl = inventoryHomeRef.findAllInventoryItems();
+      - path: legacy-source/app/src/apps/supplier/src/com/sun/j2ee/blueprints/supplier/inventory/web/RcvrRequestProcessor.java
+        line_start: 127
+        line_end: 130
+        excerpt: |
+          if(qty.intValue() >= 0 ) {
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        excerpt: |
+          2. To change a quantity, edit the New Quantity cell of the item and tick its Update box.
+        anchor: 4.1 Viewing and editing inventory
+    stack_metadata:
+      jsp.page: displayinventory.jsp
+      ejb.bean: InventoryEJB
+  - record_key: customer-account-BR-0001
+    kind: business-rule
+    capability_key: customer-account
+    requirement: >
+      The system SHALL require sign-on with the administrator role to use the supplier inventory update function.
+    confidence: medium
+    confidence_basis: One declarative place (web.xml); only the request processor URL is constrained, so JSPs may be reachable directly. Filed under customer-account as the closest listed role-security capability.
+    risk_class: regulated
+    basis: security-constraint on /RcvrRequestProcessor with form login.
+    plain_text: >
+      Only users with the administrator role can change supplier stock; they sign in through a login form.
+    technical_note: web.xml security-constraint; transport-guarantee NONE (no TLS requirement).
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/supplier/src/docroot/WEB-INF/web.xml
+        line_start: 91
+        line_end: 104
+        excerpt: |
+          <url-pattern>/RcvrRequestProcessor</url-pattern>
+    stack_metadata:
+      framework: Servlet security
+findings: []
+suspected_defects:
+  - capability_key: order-fulfillment
+    record_keys: [order-fulfillment-BR-0002]
+    severity: medium
+    category: other
+    title: Order marked COMPLETED when a pass ships nothing and no line was blocked
+    description: >
+      allItemsAvailable starts true and only turns false on a stock failure, so lines skipped as already shipped never block completion; an order whose invoice generation fails is still set COMPLETED and returns no invoice (error printed, invoice lost).
+    traces:
+      - path: legacy-source/app/src/apps/supplier/src/com/sun/j2ee/blueprints/supplier/orderfulfillment/ejb/OrderFulfillmentFacadeEJB.java
+        line_start: 439
+        line_end: 450
+        excerpt: |
+          if(allItemsAvailable)
+            po.setPoStatus(OrderStatusNames.COMPLETED);
+  - capability_key: order-fulfillment
+    record_keys: [order-fulfillment-WORKFLOW-0002, order-fulfillment-REQ-0002]
+    severity: high
+    category: error-swallowed
+    title: Inventory update failures are printed and swallowed, leaving the screen unanswered and the transaction open
+    description: >
+      All exceptions in the update-inventory path are only printStackTrace'd; no forward or rollback occurs, so a failure yields no user response, and invoice sending errors are swallowed while the transaction still commits (invoices lost, order stays APPROVED upstream, see runbook 4.3).
+    traces:
+      - path: legacy-source/app/src/apps/supplier/src/com/sun/j2ee/blueprints/supplier/inventory/web/RcvrRequestProcessor.java
+        line_start: 190
+        line_end: 206
+        excerpt: |
+          fe.printStackTrace();
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        excerpt: |
+          An order stays APPROVED when the supplier's invoice message never reaches the OPC
+        anchor: p1 (4.3 Stuck APPROVED order)
