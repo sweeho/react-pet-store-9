@@ -1,0 +1,239 @@
+records:
+  - record_key: ORDAPP-WORKFLOW-0001
+    kind: workflow
+    capability_key: order-approval
+    requirement: The system SHALL exchange order approval decisions as a document containing one or more orders, each carrying an order id and an order status.
+    confidence: medium
+    confidence_basis: One clear place (DTD plus ChangedOrder serialization); no test or doc spells out the message contents.
+    risk_class: operational
+    interface: true
+    basis: OrderApproval DTD requires Order+ with OrderId and OrderStatus; ChangedOrder reads/writes exactly those two children in order.
+    plain_text: When orders are approved or denied, a message listing each order number and its new status is passed between the order center and other parts of the system.
+    technical_note: OrderApproval.dtd and OrderApproval.java/ChangedOrder.java (DOM serialization, fromDOM throws if element is not Order).
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/rsrc/schemas/OrderApproval.dtd
+        line_start: 38
+        line_end: 45
+        excerpt: |
+          <!ELEMENT OrderApproval (Order+)>
+          <!ELEMENT Order (OrderId, OrderStatus)>
+          <!ELEMENT OrderId (#PCDATA)>
+          <!-- FIXME should be attribute -->
+          <!ELEMENT OrderStatus (#PCDATA)>
+      - path: legacy-source/app/src/components/xmldocuments/src/com/sun/j2ee/blueprints/xmldocuments/ChangedOrder.java
+        line_start: 71
+        line_end: 76
+        excerpt: |
+          Element root = document.createElement(XML_ORDER);
+          XMLDocumentUtils.appendChild(document, root, XML_ORDERID, orderId);
+          XMLDocumentUtils.appendChild(document, root, XML_ORDERSTATUS, orderStatus);
+          return root;
+    stack_metadata: {framework: XML DOM, db.object: none}
+  - record_key: ORDAPP-REQ-0002
+    kind: requirement
+    capability_key: order-approval
+    requirement: GIVEN an order-approval document element that is not an Order WHEN it is read THEN the system SHALL reject it with an error stating an Order element is expected, and SHALL require OrderId followed by OrderStatus in that order.
+    confidence: medium
+    confidence_basis: Single class enforces this; no test seen.
+    risk_class: operational
+    interface: true
+    basis: fromDOM checks tag name and uses strict first-child/next-sibling lookups.
+    plain_text: An incoming approval message that is malformed, or has its order number and status out of order, is refused with an error.
+    technical_note: ChangedOrder.fromDOM; getFirstChild/getNextSibling with optional=false.
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/com/sun/j2ee/blueprints/xmldocuments/ChangedOrder.java
+        line_start: 79
+        line_end: 90
+        excerpt: |
+          public static ChangedOrder fromDOM(Node node) throws XMLDocumentException {
+            Element element;
+            if (node.getNodeType() == Node.ELEMENT_NODE && (element = ((Element) node)).getTagName().equals(XML_ORDER)) {
+          ...
+            throw new XMLDocumentException(XML_ORDER + " element expected.");
+    stack_metadata: {framework: XML DOM}
+  - record_key: ORDFUL-WORKFLOW-0003
+    kind: workflow
+    capability_key: order-fulfillment
+    requirement: The system SHALL send a supplier a purchase order containing order id, user id, email, order date, ship and bill addresses, total price, credit card (number, expiry, type) and at least one line item, with a locale defaulting to en_US.
+    confidence: medium
+    confidence_basis: One clear place (DTD); the runbook confirms a purchase order queue to the supplier but not the content.
+    risk_class: financial
+    interface: true
+    basis: PurchaseOrder.dtd defines the structure; line items imported from LineItem.dtd.
+    plain_text: Each approved order is sent to the supplier with customer, address, payment card, total and the ordered items; language defaults to US English.
+    technical_note: PurchaseOrder.dtd (locale CDATA "en_US"). Card number is carried in clear text content.
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/rsrc/schemas/PurchaseOrder.dtd
+        line_start: 38
+        line_end: 42
+        excerpt: |
+          <!ELEMENT PurchaseOrder (OrderId, UserId, EmailId, OrderDate, ShipAddress, BillAddress, TotalPrice, CreditCard, LineItem+)>
+          <!ATTLIST PurchaseOrder
+          	locale CDATA "en_US"
+          >
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        anchor: Messaging / order flow (APPROVED --> Supplier (PurchaseOrderQueue))
+        excerpt: "APPROVED --> Supplier (PurchaseOrderQueue) --> ships from INVENTORY --> InvoiceTopic --> OPC"
+    stack_metadata: {jms.queue: jms/supplier/PurchaseOrderQueue}
+  - record_key: ORDFUL-WORKFLOW-0004
+    kind: workflow
+    capability_key: order-fulfillment
+    requirement: The system SHALL send the supplier order document with order id, order date, a shipping address (first/last name, street, city, state, country, zip) and at least one line item, in a namespaced form (supplier order namespace) when produced by the third-party-adapter editor.
+    confidence: medium
+    confidence_basis: DTD and XDE constants agree on structure, but the DTD (lower-case, shipaddress) and the namespaced XSD/XDE form (ShippingAddress, Email, Phone) differ; which is live was not established.
+    risk_class: operational
+    interface: true
+    basis: SupplierOrder.dtd and TPASupplierOrderXDE constants.
+    plain_text: Orders that the supplier must ship carry the order number, date, delivery address and the items to ship.
+    technical_note: SupplierOrder.dtd vs TPASupplierOrderXDE (tpaso prefix, adds Email/Phone). Two schema generations coexist.
+    dispute:
+      reason: conflicting-sources
+      detail: The plain DTD lacks Email/Phone and uses different element names than the TPA XDE; settle by checking which format the supplier actually consumes.
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/rsrc/schemas/SupplierOrder.dtd
+        line_start: 37
+        line_end: 38
+        excerpt: |
+          <!ELEMENT SupplierOrder (orderid, orderdate, shipaddress, lineitem+)>
+      - path: legacy-source/app/src/components/xmldocuments/src/com/sun/j2ee/blueprints/xmldocuments/tpa/TPASupplierOrderXDE.java
+        line_start: 60
+        line_end: 77
+        excerpt: |
+          public static final String XML_NAMESPACE = "http://blueprints.j2ee.sun.com/TPASupplierOrder";
+          public static final String XML_SUPPLIERORDER = XML_PREFIX + ":" + "SupplierOrder";
+          public static final String XML_EMAIL = XML_PREFIX + ":" + "Email";
+          public static final String XML_PHONE = XML_PREFIX + ":" + "Phone";
+    stack_metadata: {framework: XML DOM}
+  - record_key: ORDFUL-WORKFLOW-0005
+    kind: workflow
+    capability_key: order-fulfillment
+    requirement: The system SHALL return an invoice document from the supplier to the order center containing order id, user id, order date, shipping date and at least one line item, with dates formatted yyyy-MM-dd.
+    confidence: high
+    confidence_basis: DTD, XDE builder and the runbook/user guide (InvoiceTopic, COMPLETED = shipped and invoiced) agree.
+    risk_class: financial
+    interface: true
+    basis: Invoice.dtd and TPAInvoiceXDE structure and date format.
+    plain_text: When the supplier ships goods it sends back an invoice listing the order, customer, dates and shipped items; this is what lets the order be completed.
+    technical_note: TPAInvoiceXDE (tpai namespace); SimpleDateFormat yyyy-MM-dd; Invoice.dtd locale default en_US.
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/rsrc/schemas/Invoice.dtd
+        line_start: 89
+        line_end: 93
+        excerpt: |
+          <!ELEMENT Invoice (OrderId, UserId, OrderDate, ShippingDate, LineItem+)>
+          <!ATTLIST Invoice
+          	locale CDATA "en_US"
+          >
+      - path: legacy-source/app/src/components/xmldocuments/src/com/sun/j2ee/blueprints/xmldocuments/tpa/TPAInvoiceXDE.java
+        line_start: 70
+        line_end: 70
+        excerpt: |
+          private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        anchor: Order status table (COMPLETED)
+        excerpt: "COMPLETEDAll lines shipped and invoiced"
+    stack_metadata: {jms.queue: jms/opc/InvoiceTopic}
+  - record_key: ORDFUL-REQ-0006
+    kind: requirement
+    capability_key: order-fulfillment
+    requirement: The system SHALL describe each shipped or ordered line with category, product, item, line number, quantity and unit price.
+    confidence: medium
+    confidence_basis: Line item DTD and TPALineItemUtils agree; one construct each.
+    risk_class: financial
+    interface: true
+    basis: LineItem.dtd and TPALineItemUtils.addLineItem.
+    plain_text: Every line on an order or invoice states what the item is, which line it is, how many, and the price each.
+    technical_note: Unit price held as float (Float.toString); quantity as int.
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/rsrc/schemas/LineItem.dtd
+        line_start: 37
+        line_end: 38
+        excerpt: |
+          <!ELEMENT LineItem (CategoryId, ProductId, ItemId, LineNum, Quantity, UnitPrice)>
+      - path: legacy-source/app/src/components/xmldocuments/src/com/sun/j2ee/blueprints/xmldocuments/tpa/TPALineItemUtils.java
+        line_start: 73
+        line_end: 74
+        excerpt: |
+          lineItemElement.setAttributeNS(XML_NAMESPACE, XML_QUANTITY, Long.toString(quantity));
+          lineItemElement.setAttributeNS(XML_NAMESPACE, XML_UNITPRICE, Float.toString(unitPrice));
+    stack_metadata: {framework: XML DOM}
+  - record_key: ORDNOT-WORKFLOW-0007
+    kind: workflow
+    capability_key: order-notifications
+    requirement: The system SHALL represent each outgoing customer mail as a document with an address, a subject and content.
+    confidence: medium
+    confidence_basis: Mail.dtd alone; no Java in this module consumes it.
+    risk_class: operational
+    interface: true
+    basis: Mail.dtd element declaration.
+    plain_text: Customer e-mails carry a recipient, a subject line and a body.
+    technical_note: Mail.dtd; consumers live in other modules.
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/rsrc/schemas/Mail.dtd
+        line_start: 38
+        line_end: 41
+        excerpt: |
+          <!ELEMENT Mail (Address, Subject, Content)>
+          <!ELEMENT Address (#PCDATA)>
+          <!ELEMENT Subject (#PCDATA)>
+          <!ELEMENT Content (#PCDATA)>
+    stack_metadata: {framework: XML DTD}
+  - record_key: ORDFUL-REQ-0008
+    kind: requirement
+    capability_key: order-fulfillment
+    requirement: The system SHALL validate incoming order documents against their published schema, resolving the schema through a catalog that can be overridden by a configured catalog location, and reject a document whose type does not match the expected type.
+    confidence: medium
+    confidence_basis: Seen in utility and resolver code; no test.
+    risk_class: operational
+    interface: true
+    basis: XMLDocumentUtils.fromXML/transform throw "Document not of type"; CustomEntityResolver loads EntityCatalog.properties and an optional override.
+    plain_text: Documents exchanged with the supplier are checked against an agreed layout, and ones that do not match are refused.
+    technical_note: XMLDocumentUtils.createParser(validating, xsdSupport, resolver); resolver falls back from URL to classpath resource.
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/com/sun/j2ee/blueprints/xmldocuments/XMLDocumentUtils.java
+        line_start: 455
+        line_end: 455
+        excerpt: |
+          throw new XMLDocumentException("Document not of type: " + dtdPublicId);
+      - path: legacy-source/app/src/components/xmldocuments/src/com/sun/j2ee/blueprints/xmldocuments/CustomEntityResolver.java
+        line_start: 49
+        line_end: 50
+        excerpt: |
+          public static final String ENTITY_CATALOG
+          = "/com/sun/j2ee/blueprints/xmldocuments/rsrc/EntityCatalog.properties";
+    stack_metadata: {framework: JAXP}
+findings: []
+suspected_defects:
+  - capability_key: order-approval
+    record_keys: [ORDAPP-WORKFLOW-0001]
+    severity: low
+    category: other
+    title: Order status carried as element, flagged FIXME
+    description: The DTD comment says OrderStatus should be an attribute; it is an element with free text, with no restriction to valid statuses.
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/rsrc/schemas/OrderApproval.dtd
+        line_start: 44
+        line_end: 45
+  - capability_key: order-fulfillment
+    record_keys: [ORDFUL-REQ-0006, ORDFUL-WORKFLOW-0005]
+    severity: medium
+    category: inconsistent-rounding
+    title: Unit prices carried as binary float
+    description: Unit price is converted with Float.toString, so monetary values can lose precision in invoices and supplier documents.
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/com/sun/j2ee/blueprints/xmldocuments/tpa/TPALineItemUtils.java
+        line_start: 74
+        line_end: 74
+  - capability_key: order-fulfillment
+    record_keys: [ORDFUL-WORKFLOW-0005]
+    severity: low
+    category: error-swallowed
+    title: Constructor prints stack trace then rethrows
+    description: Entity resolution failures are printed to stderr as well as thrown; and XMLDocumentUtils.getContent swallows DOMException silently.
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/com/sun/j2ee/blueprints/xmldocuments/tpa/TPAInvoiceXDE.java
+        line_start: 94
+        line_end: 97
+      - path: legacy-source/app/src/components/xmldocuments/src/com/sun/j2ee/blueprints/xmldocuments/XMLDocumentUtils.java
+        line_start: 157
+        line_end: 159
