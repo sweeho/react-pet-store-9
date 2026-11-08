@@ -112,13 +112,21 @@ describe("status records", () => {
 
   // case: SWHR8-C-0099@v1
   it("[SWHR8-C-0099] an order has exactly one status record identified by its order id", async () => {
-    const { findOrdersByStatus } = await svc();
-    const store = statusStore({ "30": "APPROVED", "31": "APPROVED" });
-    const matching = findOrdersByStatus({ store, status: "APPROVED" }).filter(
-      (r: { orderId: string }) => r.orderId === "30",
+    const { createStatusRecord, findOrdersByStatus, getStatus } = await svc();
+    const store = statusStore({ "31": "APPROVED" });
+    createStatusRecord({ store, orderId: "30", status: "PENDING" });
+    try {
+      createStatusRecord({ store, orderId: "30", status: "APPROVED" });
+    } catch {
+      // refusing the second record is an acceptable way to keep one record per order
+    }
+    const all = ["PENDING", "APPROVED", "DENIED", "COMPLETED"].flatMap((status) =>
+      findOrdersByStatus({ store, status }),
     );
-    expect(matching).toHaveLength(1);
-    expect(matching[0]).toMatchObject({ orderId: "30", status: "APPROVED" });
+    const forOrder = all.filter((r: { orderId: string }) => r.orderId === "30");
+    expect(forOrder).toHaveLength(1);
+    expect(getStatus({ store, orderId: "30" })).toBe(forOrder[0].status);
+    expect(all).toHaveLength(2);
   });
 });
 
@@ -208,10 +216,15 @@ describe("automatic approval", () => {
 
   // case: SWHR8-C-0102@v1
   it("[SWHR8-C-0102] an over-limit US order stays PENDING until an administrator decides", async () => {
-    const { receiveOrder, getStatus } = await svc();
+    const { receiveOrder, getStatus, handleDecision } = await svc();
     const store = statusStore();
+    const send = vi.fn();
     receiveOrder({ store, order: { orderId: "60", total: 900, locale: "en_US" } });
     expect(getStatus({ store, orderId: "60" })).toBe("PENDING");
+    // no administrator decision yet: still PENDING
+    expect(getStatus({ store, orderId: "60" })).toBe("PENDING");
+    handleDecision({ store, orderId: "60", decision: "APPROVED", send });
+    expect(getStatus({ store, orderId: "60" })).toBe("APPROVED");
   });
 
   // case: SWHR8-C-0103@v1
