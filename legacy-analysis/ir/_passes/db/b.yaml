@@ -1,0 +1,453 @@
+records:
+  - record_key: CATB-ENT-0001
+    kind: entity
+    capability_key: catalog-browsing
+    requirement: The system SHALL hold the catalog as category, product and item, each product belonging to exactly one category and each item to exactly one product, with localised name, image and description held per locale.
+    confidence: high
+    confidence_basis: Primary and foreign key constraints in DDL, plus the populate source cited in the schema header comment; not read the populate file itself in this pass.
+    risk_class: operational
+    basis: Primary keys on (catid, locale) and (productid, locale) and foreign keys category<-product<-item.
+    plain_text: Pets are organised as categories, kinds of pet within a category, and sellable pets. Names and descriptions exist once per language.
+    technical_note: Tables category, category_details, product, product_details, item with FKs; Oracle and Cloudscape DDL are the same apart from column types.
+    interface: false
+    traces:
+      - path: legacy-source/db/schema/petstore_oracle.sql
+        line_start: 28
+        line_end: 53
+        excerpt: |
+          CREATE TABLE product (
+            productid varchar2(10) not null,
+            catid varchar2(10) not null,
+            constraint pk_product primary key (productid),
+            constraint fk_product_1 foreign key (catid) references category (catid));
+    stack_metadata:
+      db.object: category, category_details, product, product_details, item
+  - record_key: CATB-ENT-0002
+    kind: entity
+    capability_key: catalog-browsing
+    requirement: The system SHALL store, for each item and locale, a list price and a unit cost (both mandatory, two decimals, up to 10 digits), an image and description (mandatory) and up to five optional attributes.
+    confidence: high
+    confidence_basis: NOT NULL and decimal(10,2) in DDL and a comment stating the meaning of both prices; one file but two statements of the rule.
+    risk_class: financial
+    basis: ITEM_DETAILS definition; comment says LISTPRICE is shelf price, UNITCOST supplier cost.
+    plain_text: Every pet has, per language, a shelf price, the supplier cost, a picture, a description and up to five extra attributes.
+    technical_note: item_details PK (itemid, locale). No check that listprice >= unitcost; header comment says this is deliberate because sample data has EST-26 ja_JP below cost.
+    interface: false
+    traces:
+      - path: legacy-source/db/schema/petstore_oracle.sql
+        line_start: 55
+        line_end: 70
+        excerpt: |
+          -- ITEM_DETAILS: Localised price, image, description and up to five attributes of an item. LISTPRICE is the shelf price, UNITCOST the supplier cost.
+          -- Source: PopulateSQL.xml
+          CREATE TABLE item_details (
+            itemid varchar2(10) not null,
+            listprice decimal(10,2) not null,
+            unitcost decimal(10,2) not null,
+    stack_metadata:
+      db.object: item_details
+  - record_key: CATB-BR-0003
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: The catalog check SHALL report, with a failing exit code, every category with no product (C1), every product with no item (C2), every item priced below cost in any locale (C3), every item lacking a description in a locale of its category (C4), and every item with no supplier inventory row (C5).
+    confidence: high
+    confidence_basis: SQL file plus runbook section 3.6 describing the same five checks; the SQL itself states the fail condition.
+    risk_class: operational
+    basis: Five SELECTs that must each return 0 rows.
+    plain_text: A scheduled check lists catalog data problems - empty categories, products with no pets, pets priced below cost, pets missing a description in a served language, and pets the supplier does not stock - and the job is marked failed if any exists.
+    technical_note: db/batch/catalog_check.sql run by ps_catalog_check.sh; rows starting C1..C5 fail the job with code 4. C4 derives the served locales from category_details of the item's category, whereas the comment and runbook name en_US, ja_JP, zh_CN.
+    interface: false
+    traces:
+      - path: legacy-source/db/batch/catalog_check.sql
+        line_start: 1
+        line_end: 17
+        excerpt: |
+          -- PS_CATALOG_CHECK: catalog integrity checks. Each query must return 0 rows;
+          -- the script fails the job (code 4) when any row starts with C1 to C5.
+          -- C3: items priced below cost
+          SELECT 'C3' AS chk, itemid, locale FROM item_details WHERE listprice < unitcost;
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        anchor: p1 (3.6 PS_CATALOG_CHECK)
+        excerpt: |
+          Runs catalog checks C1 to C5 (db/batch/catalog_check.sql): category without product, product without item, item
+    stack_metadata:
+      db.object: db/batch/catalog_check.sql
+      batch.trigger: PS_CATALOG_CHECK daily 06:00
+  - record_key: CUSB-ENT-0004
+    kind: entity
+    capability_key: customer-account
+    requirement: The system SHALL store sign-on credentials as one row per unique user name with a mandatory password, and each customer SHALL reference exactly one sign-on user, one account and one profile.
+    confidence: high
+    confidence_basis: PK, NOT NULL and FK constraints plus comment; password plain-text stated in comment.
+    risk_class: regulated
+    basis: signon_user PK username; customer FKs to signon_user, account, profile.
+    plain_text: Each user name is unique and has a password; each registered shopper has exactly one account and one set of preferences.
+    technical_note: signon_user(username PK, password varchar2(50)) comment 'PASSWORD is plain text'. customer.user_id equals signon_user.username.
+    interface: false
+    traces:
+      - path: legacy-source/db/schema/petstore_oracle.sql
+        line_start: 72
+        line_end: 77
+        excerpt: |
+          -- SIGNON_USER: Sign-on credentials. One row per user name. PASSWORD is plain text.
+          CREATE TABLE signon_user (
+            username varchar2(50) not null,
+            password varchar2(50) not null,
+      - path: legacy-source/db/schema/petstore_oracle.sql
+        line_start: 135
+        line_end: 142
+        excerpt: |
+          CREATE TABLE customer (
+            user_id varchar2(50) not null,
+            account_id varchar2(40) not null,
+            profile_id varchar2(40) not null,
+    stack_metadata:
+      db.object: signon_user, customer
+  - record_key: CUSB-ENT-0005
+    kind: entity
+    capability_key: customer-account
+    requirement: The system SHALL hold for each account a status, a contact (family name, given name, telephone, e-mail, all mandatory, plus an address with street, city, state, zip and country mandatory) and one payment card (number, type, expiry text, all mandatory).
+    confidence: high
+    confidence_basis: NOT NULL and FK constraints across address, contact_info, credit_card, account.
+    risk_class: regulated
+    basis: DDL for address, contact_info, credit_card, account.
+    plain_text: A customer account records who the customer is, how to reach them, where they live, and one payment card.
+    technical_note: card_number stored in clear (comment); expiry_date is text like 04/04; address shared across accounts, orders and supplier orders by FK.
+    interface: false
+    traces:
+      - path: legacy-source/db/schema/petstore_oracle.sql
+        line_start: 103
+        line_end: 121
+        excerpt: |
+          -- CREDIT_CARD: Payment card. CARDNUMBER is stored in clear. EXPIRYDATE is text such as 04/04.
+          CREATE TABLE credit_card (
+            card_id varchar2(40) not null,
+            card_number varchar2(40) not null,
+    stack_metadata:
+      db.object: address, contact_info, credit_card, account
+  - record_key: CUSB-ENT-0006
+    kind: entity
+    capability_key: customer-account
+    requirement: The system SHALL hold per customer a profile with a mandatory preferred language, an optional favourite category, and mandatory my-list and banner preference flags.
+    confidence: medium
+    confidence_basis: One DDL definition; no second statement.
+    risk_class: presentational
+    basis: profile table.
+    plain_text: Each shopper has a preferred language, optionally a favourite pet category, and two on/off display choices.
+    technical_note: profile(preferred_language, favorite_category, my_list_preference number(1), banner_preference number(1)). favorite_category has no FK to category.
+    interface: false
+    traces:
+      - path: legacy-source/db/schema/petstore_oracle.sql
+        line_start: 125
+        line_end: 131
+        excerpt: |
+          CREATE TABLE profile (
+            profile_id varchar2(40) not null,
+            preferred_language varchar2(10) not null,
+            favorite_category varchar2(10),
+            my_list_preference number(1) not null,
+            banner_preference number(1) not null,
+    stack_metadata:
+      db.object: profile
+  - record_key: ORDB-ENT-0007
+    kind: entity
+    capability_key: order-checkout
+    requirement: The system SHALL record each received order with identifier, user, e-mail, date (epoch milliseconds), locale, total value (two decimals), a contact and a payment card, and each order line with category, product, item, quantity, unit price and quantity shipped.
+    confidence: high
+    confidence_basis: DDL plus runbook extract column list agreeing on the fields.
+    risk_class: financial
+    basis: purchase_order and po_line_item tables.
+    plain_text: Every order keeps who ordered, when, in which language/currency, the total, the delivery contact, the card used, and each line ordered.
+    technical_note: po_value is in the currency of po_locale (runbook). Line PK (po_id, line_number). po_line_item has no FK on item_id/product_id/category_id.
+    interface: false
+    traces:
+      - path: legacy-source/db/schema/petstore_oracle.sql
+        line_start: 144
+        line_end: 171
+        excerpt: |
+          CREATE TABLE purchase_order (
+            po_id varchar2(40) not null,
+            po_user_id varchar2(50) not null,
+            po_date number(19) not null,
+            po_value number(12,2) not null,
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        anchor: p1 (3.2 PS_ORDER_EXTRACT column table)
+        excerpt: |
+          4 po_localeen_US, ja_JP or zh_CN. The order value is in the currency of the locale.
+    stack_metadata:
+      db.object: purchase_order, po_line_item
+  - record_key: ORDB-BR-0008
+    kind: business-rule
+    capability_key: order-checkout
+    requirement: The system SHALL reject an order line whose quantity is not greater than zero, or whose quantity shipped exceeds the quantity ordered.
+    confidence: medium
+    confidence_basis: Two CHECK constraints in one file; no Java validation read in this pass.
+    risk_class: operational
+    basis: ALTER TABLE CHECK constraints.
+    plain_text: An order line must be for at least one unit, and cannot be shipped in a quantity larger than ordered.
+    technical_note: ck_po_line_qty, ck_po_line_shipped. Not present as CHECK on supplier_line_item.
+    interface: false
+    traces:
+      - path: legacy-source/db/schema/petstore_oracle.sql
+        line_start: 232
+        line_end: 233
+        excerpt: |
+          ALTER TABLE po_line_item ADD CONSTRAINT ck_po_line_qty CHECK (quantity > 0);
+          ALTER TABLE po_line_item ADD CONSTRAINT ck_po_line_shipped CHECK (quantity_shipped <= quantity);
+    stack_metadata:
+      db.object: po_line_item
+  - record_key: ORDB-ENT-0009
+    kind: entity
+    capability_key: order-approval
+    requirement: The system SHALL track each order's processing state as exactly one of PENDING, APPROVED, DENIED or COMPLETED.
+    confidence: high
+    confidence_basis: CHECK constraint, table comment and runbook meanings agree.
+    risk_class: operational
+    basis: order_manager.status CHECK.
+    plain_text: Every order is always in one of four states - waiting, approved, denied, or completed.
+    technical_note: PENDING = waiting for admin client; APPROVED = sent to supplier, no invoice; per order_aging.sql comments.
+    interface: false
+    traces:
+      - path: legacy-source/db/schema/petstore_oracle.sql
+        line_start: 234
+        line_end: 234
+        excerpt: |
+          ALTER TABLE order_manager ADD CONSTRAINT ck_order_manager_status CHECK (status in ('PENDING','APPROVED','DENIED','COMPLETED'));
+      - path: legacy-source/db/batch/order_aging.sql
+        line_start: 1
+        line_end: 2
+        excerpt: |
+          -- PS_ORDER_AGING_REPORT: orders still PENDING or APPROVED after 24 hours.
+          -- PENDING = waiting for the admin client. APPROVED = sent to the supplier, no invoice yet.
+    stack_metadata:
+      db.object: order_manager
+  - record_key: ORDB-ENT-0010
+    kind: entity
+    capability_key: order-fulfillment
+    requirement: The system SHALL record supplier orders with status PENDING or COMPLETED only, each with lines, and SHALL hold supplier stock per item as a quantity that is never negative.
+    confidence: high
+    confidence_basis: Two CHECK constraints plus PK definitions.
+    risk_class: operational
+    basis: supplier_order, supplier_line_item, inventory.
+    plain_text: Supplier orders are either open or completed, and stock levels can never go below zero.
+    technical_note: ck_supplier_order_status, ck_inventory_qty. inventory has no FK to item.
+    interface: false
+    traces:
+      - path: legacy-source/db/schema/petstore_oracle.sql
+        line_start: 235
+        line_end: 236
+        excerpt: |
+          ALTER TABLE supplier_order ADD CONSTRAINT ck_supplier_order_status CHECK (po_status in ('PENDING','COMPLETED'));
+          ALTER TABLE inventory ADD CONSTRAINT ck_inventory_qty CHECK (quantity >= 0);
+    stack_metadata:
+      db.object: supplier_order, supplier_line_item, inventory
+  - record_key: ORDB-ENT-0011
+    kind: entity
+    capability_key: order-fulfillment
+    requirement: The system SHALL generate order and purchase-order identifiers from named counters persisted in the database.
+    confidence: medium
+    confidence_basis: Table comment and runbook ("1001 counter"); generator code not read.
+    risk_class: operational
+    basis: counter table.
+    plain_text: Order numbers come from a stored running counter.
+    technical_note: counter(name PK, counter integer), used by UniqueIdGeneratorEJB.
+    interface: false
+    traces:
+      - path: legacy-source/db/schema/petstore_oracle.sql
+        line_start: 211
+        line_end: 216
+        excerpt: |
+          -- COUNTER: Named sequence used by UniqueIdGeneratorEJB for order and PO identifiers.
+          CREATE TABLE counter (
+            name varchar2(40) not null,
+            counter integer not null,
+    stack_metadata:
+      db.object: counter
+  - record_key: ORDB-BR-0012
+    kind: business-rule
+    capability_key: order-reporting-batch
+    requirement: The system SHALL, daily, export the previous calendar day's orders (id, user, date, locale, value, line count, status) ordered by order id to a comma-separated UTF-8 file for Finance, with no header and a trailer row giving date and row count.
+    confidence: high
+    confidence_basis: SQL plus runbook section 3.2 agree on columns and window; trailer seen only in runbook.
+    risk_class: financial
+    basis: order_extract.sql, runbook.
+    plain_text: Each morning Finance receives a file of the previous day's orders, with a closing line counting the rows.
+    technical_note: Window [yesterday 00:00, today 00:00) server time in epoch ms; SYSCS_EXPORT_QUERY; file renamed orders_YYYYMMDD.csv by the script.
+    interface: true
+    traces:
+      - path: legacy-source/db/batch/order_extract.sql
+        line_start: 1
+        line_end: 12
+        excerpt: |
+          -- PS_ORDER_EXTRACT: export yesterday's purchase orders for Finance.
+          WHERE p.po_date >= :LO_MS AND p.po_date < :HI_MS
+          ORDER BY p.po_id',
+          ':OUT_FILE', ',', '"', 'UTF-8');
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        anchor: p1 (3.2 PS_ORDER_EXTRACT)
+        excerpt: |
+          No header row. The last line is a trailer TRAILER,YYYYMMDD,<row count>. Failure mails ps-finance.
+    stack_metadata:
+      db.object: db/batch/order_extract.sql
+      batch.trigger: PS_ORDER_EXTRACT daily 01:30
+  - record_key: ORDB-BR-0013
+    kind: business-rule
+    capability_key: order-reporting-batch
+    requirement: The system SHALL list every order still PENDING or APPROVED whose date is more than 24 hours old, and every order whose supplier order is COMPLETED while the order itself is not COMPLETED, and SHALL fail the job with exit code 4 when any is listed.
+    confidence: high
+    confidence_basis: SQL, comments and runbook 3.3 / 4.3 agree; 24 h is a script parameter (cutoff passed in), runbook gives 24 hours.
+    risk_class: operational
+    basis: order_aging.sql.
+    plain_text: Each day operations get a list of orders stuck for over a day, and of orders the supplier finished but the store never closed.
+    technical_note: :CUTOFF_MS = now - 24h. Rows tagged STUCK and MISMATCH; also status counts. The sql is bound by ps_order_aging_report.sh.
+    interface: false
+    traces:
+      - path: legacy-source/db/batch/order_aging.sql
+        line_start: 4
+        line_end: 14
+        excerpt: |
+          WHERE m.status IN ('PENDING', 'APPROVED') AND p.po_date < :CUTOFF_MS
+          WHERE s.po_status = 'COMPLETED' AND m.status <> 'COMPLETED';
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        anchor: p1 (3.3 PS_ORDER_AGING_REPORT)
+        excerpt: |
+          Exit code 4 when any is listed; Control-
+    stack_metadata:
+      db.object: db/batch/order_aging.sql
+      batch.trigger: PS_ORDER_AGING_REPORT daily 01:45
+  - record_key: ORDB-BR-0014
+    kind: business-rule
+    capability_key: order-reporting-batch
+    requirement: The system SHALL, weekly on Sundays after that day's extract, permanently delete COMPLETED and DENIED orders older than 180 days together with their order lines, supplier orders and lines, contact, address and payment card, and SHALL never delete PENDING or APPROVED orders.
+    confidence: high
+    confidence_basis: SQL, header comment and runbook 3.5 and 5 (180 days) agree.
+    risk_class: regulated
+    basis: order_purge.sql.
+    plain_text: Once a week, finished or denied orders more than 180 days old are erased along with the customer details held for them, but only after they have been exported to Finance.
+    technical_note: Single transaction (AUTOCOMMIT OFF, COMMIT at end); candidate ids staged in a session temp table; deletion order children first. 180 days comes from retention setting in env.sh via :CUTOFF_MS.
+    interface: false
+    traces:
+      - path: legacy-source/db/batch/order_purge.sql
+        line_start: 1
+        line_end: 26
+        excerpt: |
+          -- PS_ORDER_PURGE: delete COMPLETED and DENIED orders older than 180 days.
+          -- Runs only after PS_ORDER_EXTRACT so every order has been extracted first.
+             WHERE m.status IN ('COMPLETED', 'DENIED') AND p.po_date < :CUTOFF_MS;
+          DELETE FROM credit_card        WHERE card_id IN (SELECT card_id FROM session.purge_po);
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        anchor: p1 (3.5 PS_ORDER_PURGE)
+        excerpt: |
+          Sundays only. Deletes COMPLETED and DENIED orders older than 180 days, with their order lines, supplier orders,
+    stack_metadata:
+      db.object: db/batch/order_purge.sql
+      batch.trigger: PS_ORDER_PURGE Sunday 02:00
+  - record_key: INVB-BR-0015
+    kind: business-rule
+    capability_key: inventory-reporting
+    requirement: The system SHALL report items whose supplier stock is below the low-stock threshold (500 units), lowest first then by item id, with the English description, followed by the count of items tracked and total units in stock.
+    confidence: medium
+    confidence_basis: SQL takes threshold as a parameter; 500 comes only from the runbook settings table, not seen in env.sh.
+    risk_class: operational
+    basis: inventory_report.sql, runbook 3.4.
+    plain_text: Operations get a daily list of pets with fewer than 500 in stock, emptiest first, and a total stock count.
+    technical_note: Inner join to item_details locale en_US, so items with no en_US row are silently omitted. :LOW_QTY = PS_LOW_STOCK_QTY.
+    interface: false
+    traces:
+      - path: legacy-source/db/batch/inventory_report.sql
+        line_start: 3
+        line_end: 10
+        excerpt: |
+          JOIN item_details d ON d.itemid = i.item_id AND d.locale = 'en_US'
+           WHERE i.quantity < :LOW_QTY
+           ORDER BY i.quantity, i.item_id;
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        anchor: p1 (3.4 PS_INVENTORY_REPORT)
+        excerpt: |
+          Lists supplier items with stock below 500 units in /var/petstore/extract/inventory_YYYYMMDD.txt.
+    stack_metadata:
+      db.object: db/batch/inventory_report.sql
+      batch.trigger: PS_INVENTORY_REPORT daily 01:50
+  - record_key: INVB-BR-0016
+    kind: business-rule
+    capability_key: inventory-reporting
+    requirement: The system SHALL take a daily online backup of the database, keep it in a dated folder, and delete backups older than 7 days.
+    confidence: medium
+    confidence_basis: SQL only calls the backup; dated folder and 7-day retention are from the runbook (script not read in this pass).
+    risk_class: operational
+    basis: db_backup.sql and runbook 3.1/5.
+    plain_text: The database is backed up every night and the last week of backups is kept.
+    technical_note: CALL SYSCS_UTIL.SYSCS_BACKUP_DATABASE('/var/petstore/backup'); critical job, up to 2 reruns 10 minutes apart.
+    interface: false
+    traces:
+      - path: legacy-source/db/batch/db_backup.sql
+        line_start: 3
+        line_end: 3
+        excerpt: |
+          CALL SYSCS_UTIL.SYSCS_BACKUP_DATABASE('/var/petstore/backup');
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        anchor: p1 (3.1 PS_DB_BACKUP)
+        excerpt: |
+          moved to /var/petstore/backup/PetStoreDB_YYYYMMDD. Backups older than 7 days are deleted. Critical job: up to 2
+    stack_metadata:
+      db.object: db/batch/db_backup.sql
+      batch.trigger: PS_DB_BACKUP daily 01:00
+suspected_defects:
+  - capability_key: order-reporting-batch
+    record_keys: [ORDB-BR-0014]
+    severity: medium
+    category: data-corruption
+    title: Purge deletes contact, address and card rows by id without checking other references
+    description: >
+      The purge deletes contact_info, address and credit_card rows referenced by the purged order, but account.contact_id/card_id, supplier_order.contact_id and other orders may reference the same rows through foreign keys. Whether they are shared is not visible from the schema; if so the delete fails the whole transaction or removes data a live account needs. Also the purge does not delete supplier_order rows whose po_id has no purge match, and supplier_order.contact_id is deleted from contact_info only if equal to the order contact.
+    traces:
+      - path: legacy-source/db/batch/order_purge.sql
+        line_start: 22
+        line_end: 24
+        excerpt: |
+          DELETE FROM contact_info       WHERE contact_id IN (SELECT contact_id FROM session.purge_po);
+          DELETE FROM address            WHERE address_id IN (SELECT address_id FROM session.purge_po);
+          DELETE FROM credit_card        WHERE card_id IN (SELECT card_id FROM session.purge_po);
+  - capability_key: catalog-browsing
+    record_keys: [CATB-BR-0003]
+    severity: low
+    category: contradicts-document
+    title: Check C4 locale set differs from documented locale list
+    description: >
+      The SQL comment and runbook say C4 checks the locales en_US, ja_JP, zh_CN, but the query takes locales from category_details of the item's category, so a category lacking a locale row hides missing item descriptions.
+    traces:
+      - path: legacy-source/db/batch/catalog_check.sql
+        line_start: 11
+        line_end: 14
+        excerpt: |
+          -- C4: items missing a description for a locale the store serves (en_US, ja_JP, zh_CN)
+          SELECT 'C4' AS chk, i.itemid, l.locale FROM item i, category_details l
+           WHERE l.catid = (SELECT p.catid FROM product p WHERE p.productid = i.productid)
+  - capability_key: customer-account
+    record_keys: [CUSB-ENT-0004, CUSB-ENT-0005]
+    severity: high
+    category: other
+    title: Passwords and card numbers stored in clear text
+    description: >
+      Schema comments state the password is plain text and the card number is stored in clear.
+    traces:
+      - path: legacy-source/db/schema/petstore_oracle.sql
+        line_start: 103
+        line_end: 103
+        excerpt: |
+          -- CREDIT_CARD: Payment card. CARDNUMBER is stored in clear. EXPIRYDATE is text such as 04/04.
+  - capability_key: catalog-browsing
+    record_keys: [CATB-ENT-0002]
+    severity: low
+    category: other
+    title: No price-below-cost constraint; sample data violates it
+    description: >
+      Schema deliberately omits a check on listprice versus unitcost because sample item EST-26 (ja_JP) is priced below cost.
+    traces:
+      - path: legacy-source/db/schema/petstore_oracle.sql
+        line_start: 230
+        line_end: 231
+        excerpt: |
+          -- Business checks the schema cannot express as keys. No price check on ITEM_DETAILS:
+          -- the shipped sample data has an item priced below cost (EST-26, ja_JP), see batch/ps_catalog_check.sh.
+findings: []
