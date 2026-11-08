@@ -1,0 +1,203 @@
+records:
+  - record_key: LOC-REQ-0001
+    kind: requirement
+    capability_key: localization
+    requirement: >
+      The system SHALL allow a user to change the session locale by submitting a locale code, and SHALL reject the change with an error when the code cannot be parsed into a locale.
+    confidence: medium
+    confidence_basis: >
+      One clear place (the change-locale action) plus the demo JSP offering the choices; no test or document describes the action directly.
+    risk_class: presentational
+    basis: >
+      ChangeLocaleHTMLAction reads the locale parameter, parses it, stores it in the session and raises an exception when parsing returns null.
+    plain_text: >
+      A shopper can switch the language of the site; an unrecognised language choice is refused with an error.
+    technical_note: >
+      changelocale.do maps to ChangeLocaleHTMLAction (mappings.xml); stores a Locale in session attribute com.sun.j2ee.blueprints.waf.LOCALE and emits ChangeLocaleEvent for the EJB tier.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/waf/src/controller/com/sun/j2ee/blueprints/waf/controller/web/action/actions/ChangeLocaleHTMLAction.java
+        line_start: 68
+        line_end: 85
+        excerpt: |
+          String localeString = request.getParameter("locale");
+          Locale locale = I18nUtil.getLocaleFromString(localeString);
+          if (locale != null) {
+              session.setAttribute(LOCALE,locale);
+              return new ChangeLocaleEvent(locale);
+          } else {
+              throw new HTMLActionException("ChangeLocaleAction: Unable to change language to " + localeString);
+          }
+      - path: legacy-source/app/src/waf/src/docroot/WEB-INF/mappings.xml
+        line_start: 48
+        line_end: 50
+        excerpt: |
+          <url-mapping url="changelocale.do" screen="locale_change_success.screen" >
+              <web-action-class>com.sun.j2ee.blueprints.waf.controller.web.action.actions.ChangeLocaleHTMLAction</web-action-class>
+    stack_metadata:
+      framework: Sun Java Blueprints WAF
+      session.scope: session
+  - record_key: LOC-REQ-0002
+    kind: requirement
+    capability_key: localization
+    requirement: >
+      GIVEN a session with no locale set WHEN any request is processed THEN the system SHALL set the session locale to the configured default (en_US).
+    confidence: medium
+    confidence_basis: >
+      Enforced in the main controller with the default in web.xml configuration; two places, but both are in the same module and no test, so graded medium.
+    risk_class: presentational
+    basis: >
+      MainServlet initialises the session locale; web.xml default_locale is en_US.
+    plain_text: >
+      A visitor who has not chosen a language sees the site in US English.
+    technical_note: >
+      MainServlet.doProcess sets WebKeys.LOCALE to defaultLocale when absent; init-param default_locale=en_US in web.xml.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/waf/src/controller/com/sun/j2ee/blueprints/waf/controller/web/MainServlet.java
+        line_start: 110
+        line_end: 113
+        excerpt: |
+          if (request.getSession().getAttribute(WebKeys.LOCALE) == null) {
+              request.getSession().setAttribute(WebKeys.LOCALE, defaultLocale);
+          }
+      - path: legacy-source/app/src/waf/src/docroot/WEB-INF/web.xml
+        line_start: 57
+        line_end: 60
+        excerpt: |
+          <init-param>
+            <param-name>default_locale</param-name>
+            <param-value>en_US</param-value>
+          </init-param>
+    stack_metadata:
+      framework: Sun Java Blueprints WAF
+      session.scope: session
+  - record_key: LOC-REQ-0003
+    kind: business-rule
+    capability_key: localization
+    requirement: >
+      The system SHALL choose the screen language from an explicit locale request parameter if present, otherwise from the session locale, and SHALL fall back to the default locale when no screen definitions exist for the chosen locale.
+    confidence: medium
+    confidence_basis: >
+      One clear place (TemplateServlet); the admin guide describes per-locale screen definitions, which supports it but does not state the fallback.
+    risk_class: presentational
+    basis: >
+      TemplateServlet resolves the locale and checks it against the loaded screen definitions.
+    plain_text: >
+      A language named in the page request wins over the saved choice; if the site has no pages in that language it shows the default language.
+    technical_note: >
+      TemplateServlet.doGet logic: request parameter locale overrides session WebKeys.LOCALE; allScreens.get(localeString)==null falls back to defaultLocale. The deployed template servlet lists locales=en_US only in web.xml.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/waf/src/view/template/com/sun/j2ee/blueprints/waf/view/template/TemplateServlet.java
+        line_start: 158
+        line_end: 167
+        excerpt: |
+          String languageParam = request.getParameter("locale");
+          // The language when specified as a parameter overrides the language set in the session
+          if (languageParam != null) {
+              localeString = languageParam;
+          } else if (request.getSession().getAttribute(WebKeys.LOCALE) != null) {
+              localeString = ((Locale)request.getSession().getAttribute(WebKeys.LOCALE)).toString();
+          }
+          if (allScreens.get(localeString) == null) {
+             localeString = defaultLocale;
+          }
+      - path: legacy-analysis/sources/pdf/petstore-admin-guide/extracted.md
+        kind: document
+        anchor: p1
+        excerpt: "3.2 Adding a localization: Add screendefinitions_<locale.code>.xml to docroot/WEB-INF."
+    stack_metadata:
+      framework: Sun Java Blueprints WAF
+      session.scope: session
+  - record_key: LOC-REQ-0004
+    kind: requirement
+    capability_key: localization
+    requirement: >
+      The system SHALL format currency amounts and numbers according to the locale, using a caller-supplied number of fraction digits.
+    confidence: medium
+    confidence_basis: >
+      One clear place (I18nUtil); callers in other modules were not examined in this shard.
+    risk_class: presentational
+    basis: >
+      I18nUtil.formatCurrency and formatNumber use locale-specific NumberFormat with min and max fraction digits set to the precision.
+    plain_text: >
+      Prices and numbers are shown in the style of the shopper's language and region.
+    technical_note: >
+      I18nUtil.formatCurrency/formatNumber (with and without a pattern override).
+    interface: false
+    traces:
+      - path: legacy-source/app/src/waf/src/controller/com/sun/j2ee/blueprints/waf/util/I18nUtil.java
+        line_start: 100
+        line_end: 112
+        excerpt: |
+          public static String formatCurrency(double amount, int precision, Locale locale){
+              NumberFormat nf = NumberFormat.getCurrencyInstance(locale);
+              nf.setMinimumFractionDigits(precision);
+              nf.setMaximumFractionDigits(precision);
+              return nf.format(amount);
+          }
+    stack_metadata:
+      framework: Sun Java Blueprints WAF
+  - record_key: LOC-REQ-0005
+    kind: screen
+    capability_key: localization
+    requirement: >
+      The system SHALL present a locale-selection form offering US English (en_US), German (de_DE), Japanese (ja_JP) and Simplified Chinese (zh_CN), and show the resulting locale after the change.
+    confidence: low
+    confidence_basis: >
+      A WAF framework demo page; reachability from the storefront is not established and de_DE has no matching screen definitions seen (web.xml lists en_US only).
+    dispute:
+      reason: unresolved-reachability
+      detail: >
+        changelocale.jsp is a framework demo; whether the live storefront exposes it, and whether de_DE is supported (the user guide and runbook name only en, ja, zh), is unknown. A reviewer should check the storefront's own locale links.
+    risk_class: presentational
+    basis: >
+      changelocale.jsp lists four locales and posts to changelocale.do; changelocalesuccess.jsp prints the session locale.
+    plain_text: >
+      A page lets a user pick English, German, Japanese or Chinese and then confirms the choice.
+    technical_note: >
+      docroot/changelocale.jsp and changelocalesuccess.jsp.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/waf/src/docroot/changelocale.jsp
+        line_start: 48
+        line_end: 57
+        excerpt: |
+          <form action="changelocale.do">
+           Set Locale to:
+           <select name="locale">
+            <option value="en_US">US English</option>
+            <option value="de_DE">German</option>
+            <option value="ja_JP">Japanese</option>
+            <option value="zh_CN">Simplified Chinese</option>
+           </select>
+    stack_metadata:
+      jsp.page: changelocale.jsp
+suspected_defects:
+  - capability_key: localization
+    record_keys: [LOC-REQ-0001]
+    severity: low
+    category: other
+    title: Locale parser ignores variant and mis-parses some inputs
+    description: >
+      getLocaleFromString never assigns variantIndex, so a variant is never parsed, and a string such as en_US_x yields a country of null. Only language_country codes work.
+    traces:
+      - path: legacy-source/app/src/waf/src/controller/com/sun/j2ee/blueprints/waf/util/I18nUtil.java
+        line_start: 168
+        line_end: 196
+  - capability_key: localization
+    record_keys: [LOC-REQ-0003]
+    severity: low
+    category: contradicts-document
+    title: Deployed screen locales (en_US only) differ from documented en and ja support
+    description: >
+      The template servlet is configured with locales=en_US only, while the admin guide says English and Japanese are supplied.
+    traces:
+      - path: legacy-source/app/src/waf/src/docroot/WEB-INF/web.xml
+        line_start: 68
+        line_end: 71
+      - path: legacy-analysis/sources/pdf/petstore-admin-guide/extracted.md
+        kind: document
+        anchor: p1
+findings: []
