@@ -1,0 +1,161 @@
+records:
+  - record_key: CATB-ENT-0001
+    kind: entity
+    capability_key: catalog-browsing
+    requirement: The system SHALL organise the catalog as category, product and item, where each product belongs to exactly one category and each item belongs to exactly one product.
+    confidence: high
+    confidence_basis: Primary and foreign keys with NOT NULL on the parent references are declared across three tables; no code or test seen in this pass, so not graded beyond the schema itself.
+    risk_class: operational
+    basis: category, product and item tables with NOT NULL foreign keys to their parent.
+    plain_text: Every product sits in one category and every item is a variant of one product.
+    technical_note: pk_category, fk_product_1 (product.catid), fk_item_1 (item.productid); indexes ix_product_catid and ix_item_productid support lookups by parent.
+    interface: false
+    traces:
+      - {kind: db_object, path: petstore_oracle.sql, anchor: category, line_start: 13, line_end: 15, excerpt: "CREATE TABLE category ("}
+      - {kind: db_object, path: petstore_oracle.sql, anchor: product, line_start: 30, line_end: 34, excerpt: "constraint fk_product_1 foreign key (catid) references category (catid));"}
+      - {kind: db_object, path: petstore_oracle.sql, anchor: item, line_start: 49, line_end: 53, excerpt: "constraint fk_item_1 foreign key (productid) references product (productid));"}
+    stack_metadata: {db.object: "category,product,item", db.kind: table}
+  - record_key: CATB-ENT-0002
+    kind: entity
+    capability_key: localization
+    requirement: The system SHALL store category, product and item descriptive details (name, image, description) once per locale, keyed by the entity identifier and locale.
+    confidence: high
+    confidence_basis: Composite primary keys (id, locale) on three details tables with foreign keys to the parents; schema only.
+    risk_class: presentational
+    basis: category_details, product_details and item_details have composite keys including locale.
+    plain_text: Names, images and descriptions of categories, products and items are kept separately for each language.
+    technical_note: Filed under localization though the tables serve catalog browsing. Category and product name is NOT NULL; item image and description are NOT NULL; image/descn nullable on category and product.
+    interface: false
+    traces:
+      - {kind: db_object, path: petstore_oracle.sql, anchor: category_details, line_start: 26, line_end: 33, excerpt: "constraint pk_category_details primary key (catid, locale),"}
+      - {kind: db_object, path: petstore_oracle.sql, anchor: product_details, line_start: 59, line_end: 66, excerpt: "constraint pk_product_details primary key (productid, locale),"}
+      - {kind: db_object, path: petstore_oracle.sql, anchor: item_details, line_start: 92, line_end: 105, excerpt: "constraint pk_item_details primary key (itemid, locale),"}
+    stack_metadata: {db.object: "category_details,product_details,item_details", db.kind: table}
+  - record_key: CATB-BR-0003
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: The system SHALL require every item locale entry to carry a list price, a unit cost, an image and a description, each with two-decimal money precision up to 10 digits.
+    confidence: medium
+    confidence_basis: One clear place (NOT NULL and decimal(10,2) on item_details); no currency column seen.
+    risk_class: financial
+    basis: listprice and unitcost decimal(10,2) not null; image and descn not null.
+    plain_text: Every item must have a selling price, a cost, a picture and a description for each language.
+    technical_note: Price is per locale row, no currency column in this table. Up to five optional attributes attr1..attr5 of 80 characters.
+    interface: false
+    traces:
+      - {kind: db_object, path: petstore_oracle.sql, anchor: item_details, line_start: 93, line_end: 98, excerpt: "listprice decimal(10,2) not null,"}
+    stack_metadata: {db.object: item_details, db.kind: table}
+  - record_key: CUST-ENT-0004
+    kind: entity
+    capability_key: customer-account
+    requirement: The system SHALL record for each account a status, exactly one contact record (family name, given name, telephone, email, all mandatory) with a mandatory postal address, and exactly one credit card.
+    confidence: high
+    confidence_basis: NOT NULL columns and foreign keys across account, contact_info, address and credit_card tables; schema only.
+    risk_class: regulated
+    basis: account references contact_info and credit_card; contact_info references address; mandatory fields as declared.
+    plain_text: An account always has a status, a contact person with phone and email, a full address, and a credit card.
+    technical_note: Address mandatory fields are street_name1, city, state, zip_code, country; street_name2 optional. Card number is stored as varchar2(40) with no constraint or masking visible (personal data sensitivity).
+    interface: false
+    traces:
+      - {kind: db_object, path: petstore_oracle.sql, anchor: account, line_start: 114, line_end: 121, excerpt: "constraint fk_account_2 foreign key (card_id) references credit_card (card_id));"}
+      - {kind: db_object, path: petstore_oracle.sql, anchor: contact_info, line_start: 93, line_end: 101, excerpt: "email varchar2(120) not null,"}
+      - {kind: db_object, path: petstore_oracle.sql, anchor: address, line_start: 81, line_end: 89, excerpt: "zip_code varchar2(20) not null,"}
+      - {kind: db_object, path: petstore_oracle.sql, anchor: credit_card, line_start: 105, line_end: 110, excerpt: "card_number varchar2(40) not null,"}
+    stack_metadata: {db.object: "account,contact_info,address,credit_card", db.kind: table}
+  - record_key: CUST-ENT-0005
+    kind: entity
+    capability_key: customer-account
+    requirement: The system SHALL tie each customer to exactly one sign-on user, one account and one profile, with the user id as the customer's unique identifier.
+    confidence: high
+    confidence_basis: Primary key on user_id and three declared foreign keys; the referenced signon_user and profile tables are outside this unit.
+    risk_class: regulated
+    basis: customer.user_id is primary key and references signon_user.
+    plain_text: Each customer has one login, one account and one profile, and no login can belong to two customers.
+    technical_note: fk_customer_1 to signon_user(username), fk_customer_2 to account, fk_customer_3 to profile.
+    interface: false
+    traces:
+      - {kind: db_object, path: petstore_oracle.sql, anchor: customer, line_start: 135, line_end: 142, excerpt: "constraint fk_customer_1 foreign key (user_id) references signon_user (username),"}
+    stack_metadata: {db.object: customer, db.kind: table}
+  - record_key: CHK-ENT-0006
+    kind: entity
+    capability_key: order-checkout
+    requirement: The system SHALL require a credit card to have a card number, card type and expiry date, with the expiry date held as free text of up to 10 characters.
+    confidence: medium
+    confidence_basis: One clear place; expiry is plain text so no date validation is enforced by the database.
+    risk_class: financial
+    basis: credit_card columns all NOT NULL, expiry_date varchar2(10).
+    plain_text: A saved card must have a number, a type and an expiry date.
+    technical_note: No CHECK on expiry format or validity; any validation is in application code, not seen here.
+    interface: false
+    traces:
+      - {kind: db_object, path: petstore_oracle.sql, anchor: credit_card, line_start: 107, line_end: 109, excerpt: "expiry_date varchar2(10) not null,"}
+    stack_metadata: {db.object: credit_card, db.kind: table}
+  - record_key: FULF-ENT-0007
+    kind: entity
+    capability_key: order-fulfillment
+    requirement: The system SHALL record each purchase order line by order and line number, with category, product, item, quantity, unit price and quantity shipped all mandatory.
+    confidence: high
+    confidence_basis: Composite key, NOT NULL columns and a foreign key to purchase_order; table definition for purchase_order is outside this unit.
+    risk_class: financial
+    basis: po_line_item definition.
+    plain_text: Each supplier order line states what was ordered, how many, the price, and how many have been shipped.
+    technical_note: category_id, product_id and item_id carry no foreign keys, so referential integrity to the catalog is not enforced. unit_price number(12,2).
+    interface: false
+    traces:
+      - {kind: db_object, path: petstore_oracle.sql, anchor: po_line_item, line_start: 161, line_end: 171, excerpt: "quantity_shipped integer not null,"}
+    stack_metadata: {db.object: po_line_item, db.kind: table}
+  - record_key: FULF-ENT-0008
+    kind: entity
+    capability_key: order-fulfillment
+    requirement: The system SHALL keep one inventory quantity per item.
+    confidence: medium
+    confidence_basis: One clear place; no CHECK prevents negative stock and no foreign key to item.
+    risk_class: operational
+    basis: inventory primary key item_id with integer quantity not null.
+    plain_text: The stock on hand is tracked as a single number for each item.
+    technical_note: No non-negative constraint visible, so oversell prevention would be in application logic.
+    interface: false
+    traces:
+      - {kind: db_object, path: petstore_oracle.sql, anchor: inventory, line_start: 206, line_end: 209, excerpt: "constraint pk_inventory primary key (item_id));"}
+    stack_metadata: {db.object: inventory, db.kind: table}
+  - record_key: APPR-ENT-0009
+    kind: entity
+    capability_key: order-approval
+    requirement: The system SHALL keep one status per order in the order manager, and SHALL support finding orders by status.
+    confidence: medium
+    confidence_basis: Table and status index seen; the permitted status values are not constrained in the schema.
+    risk_class: operational
+    basis: order_manager(order_id, status) and ix_order_manager_status.
+    plain_text: Each order has a current processing status, and orders can be quickly listed by status, for example those awaiting approval.
+    technical_note: No CHECK on status values. Mapping to approval states is inferred from the capability list.
+    interface: false
+    traces:
+      - {kind: db_object, path: petstore_oracle.sql, anchor: order_manager, line_start: 175, line_end: 178, excerpt: "status varchar2(20) not null,"}
+      - {kind: db_object, path: petstore_oracle.sql, anchor: ix_order_manager_status, line_start: 223, line_end: 223, excerpt: "CREATE INDEX ix_order_manager_status ON order_manager (status);"}
+    stack_metadata: {db.object: "order_manager,ix_order_manager_status", db.kind: table}
+  - record_key: CHK-ENT-0010
+    kind: entity
+    capability_key: order-checkout
+    requirement: The system SHALL keep a named integer counter per name for generating sequential identifiers, and SHALL support looking up purchase orders by user and by date.
+    confidence: low
+    confidence_basis: Purpose of counter is inferred from its shape; no code seen using it in this pass.
+    risk_class: operational
+    basis: counter(name, counter) table and indexes ix_po_user, ix_po_date.
+    plain_text: The system numbers things such as orders from running counters, and past orders can be found by customer and by date.
+    technical_note: Counter filed under order-checkout as closest listed capability. Indexes ix_po_user (po_user_id) and ix_po_date (po_date) are on purchase_order.
+    traces:
+      - {kind: db_object, path: petstore_oracle.sql, anchor: counter, line_start: 213, line_end: 216, excerpt: "constraint pk_counter primary key (name));"}
+      - {kind: db_object, path: petstore_oracle.sql, anchor: ix_po_user, line_start: 221, line_end: 221, excerpt: "CREATE INDEX ix_po_user ON purchase_order (po_user_id);"}
+      - {kind: db_object, path: petstore_oracle.sql, anchor: ix_po_date, line_start: 222, line_end: 222, excerpt: "CREATE INDEX ix_po_date ON purchase_order (po_date);"}
+    stack_metadata: {db.object: "counter,ix_po_user,ix_po_date", db.kind: table}
+findings: []
+suspected_defects:
+  - capability_key: order-checkout
+    record_keys: [CHK-ENT-0006]
+    severity: medium
+    category: other
+    title: Card number stored in a plain text column with free-text expiry
+    description: >
+      credit_card holds card_number and a free-text expiry_date with no constraint or masking in the schema; sensitive card data handling and expiry validity are not enforced by the database.
+    traces:
+      - {kind: db_object, path: petstore_oracle.sql, anchor: credit_card, line_start: 105, line_end: 110}
