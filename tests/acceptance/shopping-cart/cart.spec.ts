@@ -68,7 +68,7 @@ test.describe("shopping cart", () => {
     const totalRow = page
       .locator("tr, li, [role=row], div, p, span")
       .filter({ hasText: /Total/ })
-      .filter({ hasNot: page.getByLabel(/^Quantity /) })
+      .filter({ hasNot: page.locator("input") })
       .last();
     await expect(totalRow).toContainText(usd(Number(cart.total)));
   });
