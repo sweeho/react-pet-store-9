@@ -102,6 +102,7 @@ testEvidence:
   testGlobs: ["src/**/*.test.ts", "src/**/*.test.tsx", "routes/**/*.test.ts", "e2e/**/*.spec.ts"]
   configFiles: ["vitest.config.ts", "vite.config.ts", "playwright.config.ts"]
   redScaffoldGlobs: ["db/schema.ts", "drizzle/**"]
+  stubSentinel: VortexNotImplemented
   timeoutSeconds: 900
   # The CI job that runs each level officially (.github/workflows/ci.yml).
   ciJobs:
