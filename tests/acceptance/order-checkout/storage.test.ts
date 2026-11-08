@@ -145,24 +145,17 @@ describe("order line storage", () => {
   });
 
   // case: SWHR8-C-0161@v1
-  it("[SWHR8-C-0161] line item reads and writes need no role", async () => {
+  it("[SWHR8-C-0161] a user with no role can read and write a line item, and the write runs in a transaction", async () => {
     const r = await repo();
     const order = await baseOrder();
     await r.savePurchaseOrder(order);
-    // The functions are detached from the module and called with data only: no session, user or role is
-    // supplied, and the line is still written and read back. The stored line carries no user or role field.
+    // No session, user or role is supplied: the functions are detached and called with data only.
     const { saveLineItem, readLineItem } = r;
     await saveLineItem(line(order.orderId, { lineNumber: 5 }));
     const stored = await readLineItem(order.orderId, 5);
     expect(stored).toMatchObject({ itemId: "EST-1", quantity: 2 });
     expect(Object.keys(stored as object).filter((k) => /user|role|session/i.test(k))).toEqual([]);
-  });
-
-  // case: SWHR8-C-0161@v1
-  it("[SWHR8-C-0161] a line item write runs in a transaction: a failing batch leaves nothing behind", async () => {
-    const r = await repo();
-    const order = await baseOrder();
-    await r.savePurchaseOrder(order);
+    // Transaction: a batch with one invalid line leaves nothing behind, not even its valid line.
     await expect(
       r.saveLineItems([
         line(order.orderId, { lineNumber: 1 }),
@@ -170,7 +163,7 @@ describe("order line storage", () => {
       ]),
     ).rejects.toThrow();
     expect(await r.readLineItem(order.orderId, 1)).toBeUndefined();
-    expect(await r.getOrderLines(order.orderId)).toHaveLength(0);
+    expect(await r.getOrderLines(order.orderId)).toHaveLength(1);
   });
 });
 
