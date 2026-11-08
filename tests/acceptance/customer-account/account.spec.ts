@@ -15,14 +15,14 @@ let n = 0;
 const fresh = () => `e2e${Date.now().toString(36)}${++n}`;
 
 async function signOn(page: Page, userName: string, password: string) {
-  await page.getByLabel("User name").fill(userName);
+  await page.getByLabel("User name", { exact: true }).fill(userName);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign on" }).click();
 }
 
 async function register(page: Page, userName: string, password: string) {
   await page.goto("/register");
-  await page.getByLabel("User name").fill(userName);
+  await page.getByLabel("User name", { exact: true }).fill(userName);
   if (password) await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
 }
@@ -65,8 +65,11 @@ test.describe("customer account", () => {
     await page.goto("/order");
     await expect(page).toHaveURL(/signon/);
     const name = fresh();
-    await page.getByRole("link", { name: /register|create/i }).click();
-    await page.getByLabel("User name").fill(name);
+    await page
+      .getByRole("link", { name: /register|create/i })
+      .first()
+      .click();
+    await page.getByLabel("User name", { exact: true }).fill(name);
     await page.getByLabel("Password").fill("pw");
     await page.getByRole("button", { name: "Create account" }).click();
     await expect(page).toHaveURL(/\/order/);
@@ -133,7 +136,7 @@ test.describe("customer account", () => {
     page,
   }) => {
     await page.goto("/account");
-    await expect(page.getByLabel("User name")).toBeVisible();
+    await expect(page.getByLabel("User name", { exact: true })).toBeVisible();
     await expect(page.getByLabel("Password")).toBeVisible();
     await expect(page.getByRole("button", { name: "Sign on" })).toBeVisible();
   });
