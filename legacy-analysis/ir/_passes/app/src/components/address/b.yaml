@@ -1,0 +1,180 @@
+records:
+  - record_key: ORDER-CHECKOUT-ENTITY-0001
+    kind: entity
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL hold a postal address as six persisted fields: street line 1, street line 2, city, state, zip code and country.
+    plain_text: >
+      An address consists of two street lines, a city, a state, a zip code and a country.
+    technical_note: >
+      Container-managed entity bean AddressEJB with six cmp-fields; no length, not-null or format constraint is declared anywhere.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Field list is stated in the abstract accessors, the ejb-jar cmp-field declarations and the Address value class.
+    risk_class: operational
+    basis: CMP field declarations and abstract getters/setters.
+    traces:
+      - path: legacy-source/app/src/components/address/src/com/sun/j2ee/blueprints/address/ejb/AddressEJB.java
+        line_start: 53
+        line_end: 69
+        excerpt: |
+          public abstract String getStreetName1();
+          public abstract void setStreetName1(String streetName1);
+          public abstract String getStreetName2();
+      - path: legacy-source/app/src/components/address/src/ejb-jar.xml
+        line_start: 57
+        line_end: 80
+        excerpt: |
+          <cmp-field>
+            <description>no description</description>
+            <field-name>zipCode</field-name>
+          </cmp-field>
+    stack_metadata:
+      framework: EJB 2.0 CMP
+      ejb.bean: AddressEJB
+      db.object: Address abstract schema
+  - record_key: ORDER-CHECKOUT-REQ-0002
+    kind: requirement
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL accept creation of an address from six field values, from another address object, or empty, and SHALL store the values as given without validation.
+    plain_text: >
+      An address can be saved exactly as entered; the address component itself does not check that any part is filled in or well formed.
+    technical_note: >
+      ejbCreate overloads copy values straight into CMP fields; no checks, throws no CreateException. Validation, if any, is in callers (outside this module).
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      One clear place (create methods); absence of validation is inferred from reading this module only.
+    risk_class: operational
+    basis: ejbCreate implementations.
+    traces:
+      - path: legacy-source/app/src/components/address/src/com/sun/j2ee/blueprints/address/ejb/AddressEJB.java
+        line_start: 73
+        line_end: 103
+        excerpt: |
+          public Object ejbCreate(String streetName1, String streetName2, String city,
+                                  String state, String zipCode, String country) throws CreateException {
+                                    setStreetName1(streetName1);
+    stack_metadata:
+      framework: EJB 2.0 CMP
+      ejb.bean: AddressEJB
+  - record_key: ORDER-CHECKOUT-REQ-0003
+    kind: requirement
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL allow any caller to create, read and remove addresses without role restriction, running under the caller's identity.
+    plain_text: >
+      Address data can be read and changed by any part of the application without a specific permission.
+    technical_note: >
+      ejb-jar method-permission is unchecked for local methods; security-identity is use-caller-identity. Only local interfaces exist, so access is in-container.
+    interface: false
+    confidence: medium
+    confidence_basis: One declarative place (ejb-jar.xml); not seen exercised by callers.
+    risk_class: operational
+    basis: Declarative method permissions.
+    traces:
+      - path: legacy-source/app/src/components/address/src/ejb-jar.xml
+        line_start: 81
+        line_end: 95
+        excerpt: |
+          <security-identity>
+            <description></description>
+            <use-caller-identity></use-caller-identity>
+          </security-identity>
+    stack_metadata:
+      framework: EJB 2.0 CMP
+      ejb.bean: AddressEJB
+  - record_key: ORDER-CHECKOUT-REQ-0004
+    kind: integration
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL serialize an address to an XML Address element containing street name, optional second street name (omitted when null or empty), city, state, zip code and country, in that order.
+    plain_text: >
+      When an address is sent to another system in an XML document, the second street line appears only if it has a value.
+    technical_note: >
+      Address.toDOM; element order StreetName, [StreetName], City, State, ZipCode, Country. Used by shared XML documents (e.g. purchase orders); callers outside this module.
+    interface: true
+    confidence: high
+    confidence_basis: Enforced in toDOM and described by the Address DTD.
+    risk_class: operational
+    basis: toDOM and DTD.
+    traces:
+      - path: legacy-source/app/src/components/address/src/com/sun/j2ee/blueprints/address/ejb/Address.java
+        line_start: 142
+        line_end: 153
+        excerpt: |
+          Element root = document.createElement(XML_ADDRESS);
+          XMLDocumentUtils.appendChild(document, root, XML_STREET_NAME, streetName1);
+          if (streetName2 != null && !streetName2.equals("")) {
+      - path: legacy-source/app/src/components/address/src/com/sun/j2ee/blueprints/address/rsrc/schemas/Address.dtd
+        line_start: 38
+        line_end: 43
+        excerpt: |
+          <!ELEMENT Address (StreetName, StreetName?, City, State, ZipCode, Country?)>
+    stack_metadata:
+      framework: XML DOM
+      db.object: Address DTD 1.1
+  - record_key: ORDER-CHECKOUT-REQ-0005
+    kind: integration
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL reject an incoming XML address whose root is not an Address element or which lacks street name, city, state, zip code or country in order, and SHALL treat the second street name as optional.
+    plain_text: >
+      An address received in an XML document is refused if it is not an address or if a required part, including country, is missing.
+    technical_note: >
+      Address.fromDOM throws XMLDocumentException; the Country lookup is passed optional=false.
+    interface: true
+    confidence: medium
+    confidence_basis: One clear place; strictness of the false flag inferred from the XMLDocumentUtils signature name, not read in this pass.
+    risk_class: operational
+    basis: fromDOM parsing.
+    traces:
+      - path: legacy-source/app/src/components/address/src/com/sun/j2ee/blueprints/address/ejb/Address.java
+        line_start: 155
+        line_end: 178
+        excerpt: |
+          child = XMLDocumentUtils.getNextSibling(child, XML_COUNTRY, false);
+          address.country = XMLDocumentUtils.getContentAsString(child, false);
+          return address;
+          }
+          throw new XMLDocumentException(XML_ADDRESS + " element expected.");
+    stack_metadata:
+      framework: XML DOM
+  - record_key: ORDER-CHECKOUT-REQ-0006
+    kind: requirement
+    capability_key: order-checkout
+    requirement: >
+      GIVEN an order is purged WHEN it is COMPLETED or DENIED and older than 180 days THEN the system SHALL delete its addresses together with the order.
+    plain_text: >
+      Addresses belonging to old completed or denied orders are deleted when those orders are purged.
+    technical_note: >
+      Documented in the operations runbook; the deletion is performed by the batch job, not by this module. Filed under order-checkout as the closest listed home (purge belongs to order-reporting-batch).
+    interface: false
+    confidence: low
+    confidence_basis: Document only; no code in this module implements it.
+    risk_class: regulated
+    basis: Runbook purge description.
+    traces:
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        anchor: p1
+        excerpt: |
+          Deletes COMPLETED and DENIED orders older than 180 days, with their order lines, supplier orders,
+          contact information, addresses and payment cards.
+suspected_defects:
+  - capability_key: order-checkout
+    record_keys: [ORDER-CHECKOUT-REQ-0004, ORDER-CHECKOUT-REQ-0005]
+    severity: low
+    category: other
+    title: DTD marks Country optional but parser requires it
+    description: >
+      The Address DTD declares Country optional, yet fromDOM reads it as mandatory, so a DTD-valid address without Country is rejected.
+    traces:
+      - path: legacy-source/app/src/components/address/src/com/sun/j2ee/blueprints/address/rsrc/schemas/Address.dtd
+        line_start: 38
+        line_end: 38
+      - path: legacy-source/app/src/components/address/src/com/sun/j2ee/blueprints/address/ejb/Address.java
+        line_start: 173
+        line_end: 174
+findings: []
