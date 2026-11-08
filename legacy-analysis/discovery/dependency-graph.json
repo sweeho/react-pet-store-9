@@ -1,0 +1,37 @@
+{
+  "nodes": [
+    "apps/petstore",
+    "apps/opc",
+    "apps/supplier",
+    "apps/admin",
+    "waf",
+    "components/*",
+    "db",
+    "batch"
+  ],
+  "edges": [
+    { "from": "apps/petstore", "to": "waf", "kind": "framework" },
+    { "from": "apps/petstore", "to": "components/cart" },
+    { "from": "apps/petstore", "to": "components/catalog" },
+    { "from": "apps/petstore", "to": "components/signon" },
+    { "from": "apps/petstore", "to": "components/customer" },
+    { "from": "apps/petstore", "to": "components/purchaseorder" },
+    { "from": "apps/petstore", "to": "apps/opc", "kind": "JMS order message" },
+    { "from": "apps/opc", "to": "components/processmanager" },
+    { "from": "apps/opc", "to": "components/purchaseorder" },
+    { "from": "apps/opc", "to": "components/mailer" },
+    { "from": "apps/opc", "to": "components/xmldocuments" },
+    { "from": "apps/opc", "to": "apps/supplier", "kind": "JMS supplier order" },
+    { "from": "apps/supplier", "to": "components/supplierpo" },
+    { "from": "apps/supplier", "to": "apps/opc", "kind": "JMS invoice" },
+    { "from": "apps/admin", "to": "apps/opc", "kind": "HTTP post order approvals" },
+    { "from": "components/purchaseorder", "to": "components/lineitem" },
+    { "from": "components/purchaseorder", "to": "components/contactinfo" },
+    { "from": "components/purchaseorder", "to": "components/creditcard" },
+    { "from": "components/contactinfo", "to": "components/address" },
+    { "from": "components/customer", "to": "components/contactinfo" },
+    { "from": "components/customer", "to": "components/creditcard" },
+    { "from": "components/*", "to": "components/servicelocator" },
+    { "from": "batch", "to": "db" }
+  ]
+}

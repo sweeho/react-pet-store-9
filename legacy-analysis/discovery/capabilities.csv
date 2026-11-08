@@ -1,0 +1,12 @@
+capability_key,name,summary
+catalog-browsing,Catalog browsing and search,Categories products items and search in the storefront plus catalog consistency checks
+shopping-cart,Shopping cart,Adding removing and updating items in a customer cart and empty-cart order rejection
+customer-account,Customer account and sign-on,Account creation profile editing duplicate accounts and sign-on and role security
+order-checkout,Order checkout and payment details,Order entry billing shipping and credit card capture and validation
+order-approval,Order approval,Region-specific limits that decide automatic approval versus waiting for an admin and approval or denial notification
+order-fulfillment,Order fulfillment and inventory,Supplier purchase order processing shipping from inventory and invoicing back to the order center
+order-notifications,Customer notifications,Mail sent on order receipt approval denial and completion
+localization,Localization,Locale selection and en ja zh screens and messages
+order-reporting-batch,Order batch jobs,Order extract aging report purge retention and the Control-M schedule
+inventory-reporting,Inventory and operations reporting,Inventory report catalog check database backup and health check jobs
+admin-order-management,Admin order management,Admin client listing and approving or denying pending orders
