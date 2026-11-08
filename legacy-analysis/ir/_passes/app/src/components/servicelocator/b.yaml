@@ -1,0 +1,152 @@
+records:
+  - record_key: ORDER-FULFILLMENT-REQ-0001
+    kind: requirement
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL resolve named infrastructure resources (EJB local and remote homes, JMS queue and topic connection factories, queues, topics, data sources, URL, boolean and string environment entries) by name from the naming service through a single lookup component.
+    plain_text: >
+      Every part of the application finds the shared services it needs (databases, message queues, other business components, configuration values) by name through one central lookup point.
+    technical_note: >
+      ServiceLocator (ejb and web variants) wraps a JNDI InitialContext and exposes typed getters, casting the lookup result. Remote homes are narrowed with PortableRemoteObject.narrow.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Same operations implemented in two classes (ejb and web), each read in full; no external tests or config seen.
+    risk_class: operational
+    basis: >
+      Fits no listed capability (infrastructure utility); filed under order-fulfillment as the closest, since supplier/JMS messaging relies on it.
+    traces:
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/ejb/ServiceLocator.java
+        line_start: 83
+        line_end: 243
+        excerpt: |
+          public EJBLocalHome getLocalHome(String jndiHomeName) throws ServiceLocatorException {
+          ...
+          public String getString(String envName) throws ServiceLocatorException {
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/web/ServiceLocator.java
+        line_start: 106
+        line_end: 300
+        excerpt: |
+          public EJBLocalHome getLocalHome(String jndiHomeName) throws ServiceLocatorException {
+    stack_metadata:
+      framework: J2EE JNDI
+  - record_key: ORDER-FULFILLMENT-BR-0002
+    kind: business-rule
+    capability_key: order-fulfillment
+    requirement: >
+      WHEN used from the web tier, the system SHALL provide a single shared locator instance and SHALL cache EJB homes, queue/topic connection factories, queues, topics and data sources by name after first lookup, reusing the cached object on later requests.
+    plain_text: >
+      On the website side, a service found once is remembered and reused, so repeated requests do not search again.
+    technical_note: >
+      web.ServiceLocator holds a static singleton and a synchronizedMap cache keyed by JNDI name. The EJB-tier variant has no cache and is instantiated per use (public constructor).
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Cache logic repeated in six getters and described in the class comment; contrasted with the uncached ejb variant.
+    risk_class: operational
+    basis: >
+      Class javadoc states singleton and caching strategy, web tier only. Filed under closest capability.
+    traces:
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/web/ServiceLocator.java
+        line_start: 59
+        line_end: 96
+        excerpt: |
+          This implementation uses the "singleton" strategy and also the "caching"
+          strategy.
+          ...
+          private Map cache;
+          ...
+          static public ServiceLocator getInstance() {
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/web/ServiceLocator.java
+        line_start: 106
+        line_end: 114
+        excerpt: |
+          if (cache.containsKey(jndiHomeName)) {
+              home = (EJBLocalHome) cache.get(jndiHomeName);
+          } else {
+              home = (EJBLocalHome) ic.lookup(jndiHomeName);
+              cache.put(jndiHomeName, home);
+    stack_metadata:
+      framework: J2EE JNDI
+      session.scope: application
+  - record_key: ORDER-FULFILLMENT-BR-0003
+    kind: business-rule
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL NOT cache URL, boolean and string environment entries; every call SHALL perform a fresh naming lookup, in both the web and EJB variants.
+    plain_text: >
+      Configuration values such as the on/off switch for confirmation mail are read fresh each time, so a changed setting is seen without a restart of the lookup.
+    technical_note: >
+      getUrl, getBoolean, getString bypass the cache map in web.ServiceLocator.
+    interface: false
+    confidence: medium
+    confidence_basis: >
+      Clear in code, but whether intentional is not documented.
+    risk_class: operational
+    basis: >
+      Javadoc for getBoolean cites SEND_CONFIRMATION_MAIL env entry.
+    traces:
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/web/ServiceLocator.java
+        line_start: 261
+        line_end: 300
+        excerpt: |
+          url = (URL)ic.lookup(envName);
+          ...
+          bool = (Boolean)ic.lookup(envName);
+          ...
+          envEntry = (String)ic.lookup(envName);
+  - record_key: ORDER-FULFILLMENT-BR-0004
+    kind: business-rule
+    capability_key: order-fulfillment
+    requirement: >
+      GIVEN any lookup fails for any reason (name not found or wrong type), WHEN the getter is called, THEN the system SHALL raise a ServiceLocatorException wrapping the original error, whose root cause can be retrieved and whose text is that of the wrapped error.
+    plain_text: >
+      If a needed service cannot be found, the caller receives a single kind of failure that carries the original reason.
+    technical_note: >
+      All getters catch NamingException and Exception and rethrow ServiceLocatorException. toString delegates to the wrapped exception; getRootCause recurses through nested ServiceLocatorExceptions.
+    interface: false
+    confidence: high
+    confidence_basis: >
+      Uniform in all getters of both classes and in the exception class.
+    risk_class: operational
+    basis: Exception wrapping in every getter.
+    traces:
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/ServiceLocatorException.java
+        line_start: 46
+        line_end: 104
+        excerpt: |
+          public Exception getRootCause() {
+            if (exception instanceof ServiceLocatorException) {
+              return ((ServiceLocatorException) exception).getRootCause();
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/ejb/ServiceLocator.java
+        line_start: 83
+        line_end: 93
+        excerpt: |
+          } catch (NamingException ne) {
+                throw new ServiceLocatorException(ne);
+           } catch (Exception e) {
+                throw new ServiceLocatorException(e);
+suspected_defects:
+  - capability_key: order-fulfillment
+    record_keys: [ORDER-FULFILLMENT-BR-0002]
+    severity: medium
+    category: error-swallowed
+    title: Singleton creation failure is only printed, leaving a null instance
+    description: >
+      If the static initialiser cannot create the locator, the error is printed to stderr and the instance stays null; getInstance() then returns null and callers fail later with a null reference.
+    traces:
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/web/ServiceLocator.java
+        line_start: 74
+        line_end: 96
+  - capability_key: order-fulfillment
+    record_keys: [ORDER-FULFILLMENT-BR-0003]
+    severity: low
+    category: other
+    title: getBoolean on a missing or null entry fails with a null reference
+    description: >
+      getBoolean unboxes the looked-up value outside the try block; a null result throws a raw NullPointerException instead of ServiceLocatorException.
+    traces:
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/ejb/ServiceLocator.java
+        line_start: 217
+        line_end: 227
+findings: []
