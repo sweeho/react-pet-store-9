@@ -1,0 +1,130 @@
+records:
+  - record_key: CUSTOMER-ACCOUNT-ENTITY-0001
+    kind: entity
+    capability_key: customer-account
+    requirement: >
+      The system SHALL store a contact record holding given name, family name, telephone and e-mail, linked to exactly one postal address.
+    confidence: high
+    confidence_basis: >
+      Stated in the bean's persistent fields, the deployment descriptor and the exchange DTD (three places).
+    risk_class: regulated
+    basis: >
+      Persistent fields and address relationship declared in code and descriptor; personal data.
+    plain_text: >
+      Each customer contact consists of a first name, a last name, a phone number, an e-mail address and one postal address.
+    technical_note: >
+      Container-managed entity bean with four persistent fields and a relationship to a separate address entity.
+    interface: false
+    stack_metadata:
+      framework: EJB 2.x CMP
+      ejb.bean: ContactInfoEJB
+    traces:
+      - path: legacy-source/app/src/components/contactinfo/src/com/sun/j2ee/blueprints/contactinfo/ejb/ContactInfoEJB.java
+        line_start: 59
+        line_end: 73
+        excerpt: |
+          public abstract String getFamilyName();
+          public abstract String getGivenName();
+          public abstract String getTelephone();
+          public abstract String getEmail();
+          public abstract AddressLocal getAddress();
+      - path: legacy-source/app/src/components/contactinfo/src/ejb-jar.xml
+        line_start: 57
+        line_end: 79
+        excerpt: |
+          <field-name>telephone</field-name> ... <field-name>familyName</field-name> ... <field-name>email</field-name> ... <field-name>givenName</field-name>
+          <ejb-ref-name>ejb/Address</ejb-ref-name>
+  - record_key: CUSTOMER-ACCOUNT-REQ-0001
+    kind: requirement
+    capability_key: customer-account
+    requirement: >
+      WHEN a contact record is created without supplied data, the system SHALL create an empty address for it; WHEN created from contact data, the system SHALL create the address from the supplied address data; WHEN created from explicit fields, the system SHALL link the supplied address.
+    confidence: medium
+    confidence_basis: >
+      Read in one class only (create/post-create methods); no test or doc.
+    risk_class: operational
+    basis: >
+      Three creation paths each establish the address relationship; failure to locate the address service fails creation.
+    plain_text: >
+      Whenever a contact is saved, it always gets a postal address, blank if none was given.
+    technical_note: >
+      ejbPostCreate variants; ServiceLocator failure raised as CreateException.
+    interface: false
+    stack_metadata:
+      ejb.bean: ContactInfoEJB
+    traces:
+      - path: legacy-source/app/src/components/contactinfo/src/com/sun/j2ee/blueprints/contactinfo/ejb/ContactInfoEJB.java
+        line_start: 81
+        line_end: 127
+        excerpt: |
+          AddressLocal address = adh.create();
+          setAddress(address);
+          ...
+          AddressLocal address = adh.create(contactInfo.getAddress());
+  - record_key: CUSTOMER-ACCOUNT-REQ-0002
+    kind: requirement
+    capability_key: customer-account
+    requirement: >
+      The system SHALL be able to return contact data (given name, family name, phone, e-mail and address data) as a transferable object, and SHALL exchange it in the document form FamilyName, GivenName, Address, Email, Phone.
+    confidence: high
+    confidence_basis: >
+      getData code plus the DTD define the same field set.
+    risk_class: operational
+    basis: >
+      getData copies fields and address; DTD fixes element order.
+    plain_text: >
+      A contact can be read out as a complete set of details, and its exported document layout is fixed.
+    technical_note: >
+      getData() builds a ContactInfo value object; ContactInfo.dtd defines the XML form.
+    interface: true
+    stack_metadata:
+      ejb.bean: ContactInfoEJB
+    traces:
+      - path: legacy-source/app/src/components/contactinfo/src/com/sun/j2ee/blueprints/contactinfo/ejb/ContactInfoEJB.java
+        line_start: 129
+        line_end: 137
+        excerpt: |
+          public ContactInfo getData() {
+            ... contactInfo.setAddress(getAddress().getData());
+      - path: legacy-source/app/src/components/contactinfo/src/com/sun/j2ee/blueprints/contactinfo/rsrc/schemas/ContactInfo.dtd
+        line_start: 38
+        line_end: 42
+        excerpt: |
+          <!ELEMENT ContactInfo (FamilyName, GivenName, Address, Email, Phone)>
+  - record_key: ORDER-REPORTING-BATCH-REQ-0001
+    kind: requirement
+    capability_key: order-reporting-batch
+    requirement: >
+      The weekly purge SHALL delete the contact information of COMPLETED and DENIED orders older than 180 days together with the order.
+    confidence: low
+    confidence_basis: >
+      Stated only in a document; the contactinfo module itself has no removal logic (ejbRemove is empty).
+    risk_class: regulated
+    basis: >
+      Runbook describes the purge deleting contact information; module has no purge code.
+    plain_text: >
+      Contact details of finished or denied orders are deleted after 180 days.
+    technical_note: >
+      Document only; ejbRemove in the bean is empty, so deletion is performed by the batch job outside this module.
+    interface: false
+    stack_metadata:
+      batch.trigger: PS_ORDER_PURGE
+    traces:
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        kind: document
+        anchor: p1 - 3.5 PS_ORDER_PURGE
+        excerpt: |
+          Deletes COMPLETED and DENIED orders older than 180 days, with their order lines, supplier orders, contact information, addresses and payment cards.
+suspected_defects:
+  - capability_key: customer-account
+    record_keys: [CUSTOMER-ACCOUNT-REQ-0001]
+    severity: low
+    category: other
+    title: No validation of contact fields
+    description: >
+      Name, telephone and e-mail are stored as given with no format or required checks in this module.
+    traces:
+      - path: legacy-source/app/src/components/contactinfo/src/com/sun/j2ee/blueprints/contactinfo/ejb/ContactInfoEJB.java
+        line_start: 93
+        line_end: 101
+findings: []
