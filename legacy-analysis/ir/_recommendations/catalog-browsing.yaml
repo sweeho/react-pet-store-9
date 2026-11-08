@@ -1,91 +1,111 @@
 recommendations:
   - record_key: CAT-REQ-0001
     recommendation: accept
-    confidence: medium
+    confidence: high
     reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
-  - record_key: CATBR-REQ-0002
+      Pass records and cited code or schema agree on the behaviour.
+  - record_key: CAT-REQ-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass records and cited code or schema agree on the behaviour.
+  - record_key: CAT-REQ-0003
     recommendation: accept
     confidence: medium
     reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
-  - record_key: CATBR-REQ-0008
+      Pass records and cited code or schema agree on the behaviour. Page size 2 and the unauthenticated /Populate endpoint are demo-like literals the Business Owner should confirm.
+  - record_key: CAT-REQ-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass records and cited code or schema agree on the behaviour.
+  - record_key: CATALOG-BROWSING-REQ-0001
     recommendation: accept
     confidence: medium
     reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
-  - record_key: CATBR-REQ-0003
+      Pass records and cited code or schema agree on the behaviour. Page size 2 and the unauthenticated /Populate endpoint are demo-like literals the Business Owner should confirm.
+  - record_key: CATALOG-BROWSING-REQ-0002
     recommendation: accept
-    confidence: medium
+    confidence: high
     reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
-  - record_key: CATBR-REQ-0007
+      Pass records and cited code or schema agree on the behaviour.
+  - record_key: CATALOG-BROWSING-REQ-0003
     recommendation: accept
-    confidence: medium
+    confidence: high
     reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
-  - record_key: CB-REQ-0002
-    recommendation: accept
-    confidence: low
-    reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
-  - record_key: CB-REQ-0003
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
-  - record_key: CATBR-REQ-0006
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
-  - record_key: CB-REQ-0004
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
+      Pass records and cited code or schema agree on the behaviour.
   - record_key: CATALOG-BROWSING-REQ-0004
     recommendation: accept
-    confidence: medium
+    confidence: high
     reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
-  - record_key: CATALOG-BROWSING-REQ-0005
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
+      Pass records and cited code or schema agree on the behaviour.
   - record_key: CATALOG-BROWSING-REQ-0006
     recommendation: accept
-    confidence: low
+    confidence: medium
     reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
+      Pass records and cited code or schema agree on the behaviour. Page size 2 and the unauthenticated /Populate endpoint are demo-like literals the Business Owner should confirm.
+  - record_key: CATALOG-BROWSING-REQUIREMENT-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Pass records and cited code or schema agree on the behaviour. Page size 2 and the unauthenticated /Populate endpoint are demo-like literals the Business Owner should confirm.
+  - record_key: CATBR-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass records and cited code or schema agree on the behaviour.
+  - record_key: CATBR-REQ-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass records and cited code or schema agree on the behaviour.
+  - record_key: CATBR-REQ-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass records and cited code or schema agree on the behaviour.
+  - record_key: CATBR-BR-0004
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Pass records and cited code or schema agree on the behaviour. Page size 2 and the unauthenticated /Populate endpoint are demo-like literals the Business Owner should confirm.
+  - record_key: CATBR-REQ-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass records and cited code or schema agree on the behaviour.
+  - record_key: CATBR-REQ-0006
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass records and cited code or schema agree on the behaviour.
+  - record_key: CATBR-REQ-0007
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass records and cited code or schema agree on the behaviour.
+  - record_key: CATBR-REQ-0008
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass records and cited code or schema agree on the behaviour.
   - record_key: CATBR-INT-0010
     recommendation: accept
-    confidence: medium
+    confidence: high
     reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
-  - record_key: CATB-REQ-0009
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
-  - record_key: CATB-REQ-0010
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
-  - record_key: CATB-ENT-0001
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
+      Pass records and cited code or schema agree on the behaviour.
   - record_key: CATB-ENT-0002
     recommendation: accept
-    confidence: medium
+    confidence: high
     reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
-  - record_key: CATB-BR-0003
+      Pass records and cited code or schema agree on the behaviour.
+  - record_key: CATB-RULE-0003
     recommendation: accept
-    confidence: medium
+    confidence: high
     reason: >
-      Pass records agree on the behaviour and cite code or schema; confirm against the user guide. Page-size 2 and /Populate are demo-like literals the Business Owner should confirm.
+      Pass records and cited code or schema agree on the behaviour.
+  - record_key: CATALOG-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass records and cited code or schema agree on the behaviour.

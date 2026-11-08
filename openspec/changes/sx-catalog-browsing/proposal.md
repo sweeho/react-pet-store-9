@@ -4,7 +4,7 @@ Recover the catalog browsing behaviour of the legacy Pet Store (category/product
 
 ## What Changes
 
-- Adds the `catalog-browsing` capability with 19 requirements.
+- Adds the `catalog-browsing` capability with 40 requirements (18 approved, 22 awaiting review).
 
 ## Impact
 
