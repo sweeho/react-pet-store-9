@@ -4,7 +4,7 @@ Recover the order-checkout behaviour of the legacy Pet Store: order and card per
 
 ## What Changes
 
-- Adds the order-checkout capability spec (26 requirements recovered from 27 IR records).
+- Adds the order-checkout capability spec (38 requirements, of which 27 are approved and carry keys).
 
 ## Impact
 

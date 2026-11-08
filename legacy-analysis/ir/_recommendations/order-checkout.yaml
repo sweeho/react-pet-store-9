@@ -1,121 +1,56 @@
 recommendations:
-  - record_key: CHKO-ENT-0002
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: CHKO-RULE-0003
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: CHKO-ENT-0001
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: ORDCHK-REQ-0001
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: ORDCHK-BR-0001
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: ORDCHK-BR-0002
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
   - record_key: CHK-REQ-0003
     recommendation: accept
-    confidence: medium
+    confidence: low
     reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+      Only one pass states it, from user-facing text; checkout actually uses a fixed card, so confirm the account-capture path exists with the Business Owner.
   - record_key: CUSTOMER-REQ-0004
     recommendation: accept
-    confidence: medium
+    confidence: low
     reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: OC-REQ-0001
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: ORDER-CHECKOUT-REQ-0002
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: OC-BR-0002
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: OC-REQ-0003
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: OC-INT-0004
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: OC-REQ-0005
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: ORDAPP-WORKFLOW-0001
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: ORDER-CHECKOUT-REQ-0001
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: ORDER-CHECKOUT-BR-0001
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: ORDER-CHECKOUT-BR-0002
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+      Single-source statement; conflicts with the checkout behaviour that never reads the stored card. Conflict goes to Intent.
   - record_key: CHECKOUT-REQ-0009
     recommendation: accept
     confidence: medium
     reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+      Counter table is declared in the DDL and the uidgen code uses it; the two agree.
   - record_key: ORDER-CHECKOUT-ENTITY-0001
     recommendation: accept
-    confidence: medium
+    confidence: high
     reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+      The six address fields are read directly from the address bean in both passes.
   - record_key: ORDER-CHECKOUT-REQ-0004
     recommendation: accept
     confidence: medium
     reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: ORDER-CHECKOUT-REQ-0005
-    recommendation: accept
-    confidence: medium
-    reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+      The XML output form is read from code; no document restates it.
   - record_key: ORDER-CHECKOUT-REQ-0006
     recommendation: accept
     confidence: medium
     reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
-  - record_key: ORDER-REQ-0002
+      Address removal with its order is visible in code; confirm with the Business Owner that it is intended.
+  - record_key: CHK-INT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass B reads the async send in code and it agrees with the approved submission record.
+  - record_key: CHK-REQ-0002
     recommendation: accept
     confidence: medium
     reason: >
-      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+      Matches the approved order stamping record from the other pass.
+  - record_key: CHK-RULE-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Matches the approved order total rule; note the legacy float arithmetic is a suspected defect for the Business Owner.
+  - record_key: ORDB-BR-0008
+    recommendation: accept
+    confidence: high
+    reason: >
+      Mirrors the DDL CHECK constraints and the approved line quantity rule.
+  - record_key: ORDB-ENT-0007
+    recommendation: accept
+    confidence: high
+    reason: >
+      DDL-derived and consistent with the approved purchase order and line records.

@@ -17,3 +17,9 @@
 
 - [ ] 3.1 Implement address and line item XML forms
 - [ ] 3.2 Implement order receipt as PENDING and address purge
+
+## 4. Additional records
+
+- [ ] 4.1 Confirm card mandatory fields and expiry text length at storage
+- [ ] 4.2 Implement order pricing, stamping and acknowledgement from cart lines
+- [ ] 4.3 Settle the order number start (1001 versus 0) with the Business Owner
