@@ -1,0 +1,153 @@
+records:
+  - record_key: ORDCHK-ENT-0001
+    kind: entity
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL represent a payment card as three attributes: card number, card type and expiry date, each held as text.
+    confidence: high
+    confidence_basis: >
+      Declared in the persistence descriptor, the bean class and the XML schema, three places agreeing.
+    risk_class: regulated
+    basis: >
+      Three persistent fields in descriptor, abstract accessors in the bean, and DTD element sequence.
+    plain_text: >
+      A payment card is recorded with its number, its type and its expiry date.
+    technical_note: >
+      CMP 2.x entity CreditCardEJB with cmp-fields cardNumber, cardType, expiryDate; the DTD defines the same three elements. No format, length or Luhn validation exists in this module.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/creditcard/src/ejb-jar.xml
+        line_start: 57
+        line_end: 71
+        excerpt: |
+          <cmp-field>
+            <description>no description</description>
+            <field-name>expiryDate</field-name>
+          </cmp-field>
+      - path: legacy-source/app/src/components/creditcard/src/com/sun/j2ee/blueprints/creditcard/ejb/CreditCardEJB.java
+        line_start: 50
+        line_end: 57
+        excerpt: |
+          public abstract String getCardNumber();
+          public abstract void setCardNumber(String cardNumber);
+          public abstract String getCardType();
+          public abstract void setCardType(String cardType);
+          public abstract String getExpiryDate();
+          public abstract void setExpiryDate(String expiryDate);
+      - path: legacy-source/app/src/components/creditcard/src/com/sun/j2ee/blueprints/creditcard/rsrc/schemas/CreditCard.dtd
+        line_start: 38
+        line_end: 41
+        excerpt: |
+          <!ELEMENT CreditCard (CardNumber, CardType, ExpiryDate)>
+          <!ELEMENT CardNumber (#PCDATA)>
+          <!ELEMENT CardType (#PCDATA)>
+          <!ELEMENT ExpiryDate (#PCDATA)>
+    stack_metadata:
+      framework: EJB 2.0 CMP
+      ejb.bean: CreditCardEJB
+  - record_key: ORDCHK-BR-0001
+    kind: business-rule
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL store the card expiry as a single "MM/YYYY"-style text with a slash separator, and SHALL derive the expiry month from the text before the slash and the expiry year from the text after it.
+    confidence: medium
+    confidence_basis: >
+      One clear place (the bean's accessor methods); the exact format is inferred from the slash parsing, no documentation or test.
+    risk_class: regulated
+    basis: >
+      getExpiryMonth/getExpiryYear split on the first slash.
+    plain_text: >
+      A card's expiry is kept as month and year separated by a slash, and the month and year are read from either side of it.
+    technical_note: >
+      CreditCardEJB.getExpiryMonth / getExpiryYear use indexOf("/"). No range or past-date check in this module.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/creditcard/src/com/sun/j2ee/blueprints/creditcard/ejb/CreditCardEJB.java
+        line_start: 88
+        line_end: 107
+        excerpt: |
+          int slashStart = dateString.indexOf("/");
+          if (slashStart != -1) return dateString.substring(0,slashStart);
+          ...
+          if (slashStart != -1) return dateString.substring(slashStart +1, dateString.length());
+    stack_metadata:
+      ejb.bean: CreditCardEJB
+  - record_key: ORDCHK-BR-0002
+    kind: business-rule
+    capability_key: order-checkout
+    requirement: >
+      GIVEN a stored expiry that is absent or has no slash WHEN the expiry month or year is requested THEN the system SHALL return month "01" and year "2010" respectively.
+    confidence: low
+    confidence_basis: >
+      Bare literal defaults with no comment, test or document; reachability from checkout not established in this module.
+    risk_class: regulated
+    basis: >
+      Fallback return values in the accessors; no authoritative source for the choice of values.
+    plain_text: >
+      If a card's expiry is missing or not in month/year form, it is treated as January 2010.
+    technical_note: >
+      Fallback literals "01" and "2010" in CreditCardEJB; callers are outside this module.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/creditcard/src/com/sun/j2ee/blueprints/creditcard/ejb/CreditCardEJB.java
+        line_start: 95
+        line_end: 106
+        excerpt: |
+          return "01";
+          ...
+          return "2010";
+    stack_metadata:
+      ejb.bean: CreditCardEJB
+  - record_key: ORDCHK-REQ-0001
+    kind: requirement
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL accept a card number, card type and expiry date at creation, from either separate values or a card data object, and SHALL store them without validating them.
+    confidence: medium
+    confidence_basis: >
+      One clear place: create methods copy values straight to fields; absence of validation is inferred from reading the whole module.
+    risk_class: regulated
+    basis: >
+      ejbCreate overloads copy inputs; no checks present.
+    plain_text: >
+      A payment card can be saved from the details entered at checkout, and whatever is given is kept as is.
+    technical_note: >
+      Three ejbCreate overloads (values, CreditCard data object, no-arg that leaves fields unset). Validation, if any, must be upstream of this component.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/creditcard/src/com/sun/j2ee/blueprints/creditcard/ejb/CreditCardEJB.java
+        line_start: 62
+        line_end: 86
+        excerpt: |
+          public Object ejbCreate(String cardNumber, String cardType,
+                                  String expiryDate) throws CreateException {
+            setCardNumber(cardNumber);
+    stack_metadata:
+      ejb.bean: CreditCardEJB
+      ejb.transaction: Required
+  - record_key: ORDRPT-REQ-0001
+    kind: requirement
+    capability_key: order-reporting-batch
+    requirement: >
+      The system SHALL delete stored payment cards together with an order when the weekly purge removes a COMPLETED or DENIED order older than 180 days.
+    confidence: low
+    confidence_basis: >
+      Stated only in the runbook; the purge code is outside this module so it was not verified here.
+    risk_class: regulated
+    basis: >
+      Operations runbook describes the purge deleting payment cards with the order.
+    plain_text: >
+      Saved payment cards are removed along with old completed or denied orders in the weekly clean-up.
+    technical_note: >
+      Batch PS_ORDER_PURGE (Sundays); this module only supplies the card entity.
+    interface: false
+    traces:
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        kind: document
+        anchor: p1
+        excerpt: |
+          3.5 PS_ORDER_PURGE
+          Sundays only. Deletes COMPLETED and DENIED orders older than 180 days, with their order lines, supplier orders,
+          contact information, addresses and payment cards.
+findings: []
+suspected_defects: []
