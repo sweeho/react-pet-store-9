@@ -2,6 +2,7 @@
 
 ### Requirement: Per-session cart structure
 
+ID: SWHR8-R-0159
 Recovered from: CART-REQ-0001
 
 The system SHALL hold each customer's cart for the length of their shopping session as a mapping of item identifiers to quantities, with at most one line per item.
@@ -14,6 +15,7 @@ The system SHALL hold each customer's cart for the length of their shopping sess
 
 ### Requirement: Add item to cart
 
+ID: SWHR8-R-0136
 Recovered from: CART-REQ-0002
 
 The system SHALL allow adding an item with quantity 1 by default or a specified quantity, and adding an item already in the cart SHALL replace its quantity rather than increase it.
@@ -32,7 +34,8 @@ The system SHALL allow adding an item with quantity 1 by default or a specified 
 
 ### Requirement: Remove item from cart
 
-Recovered from: SHOPPING-CART-REQ-0004
+ID: SWHR8-R-0137
+Recovered from: CART-REQ-0003
 
 The system SHALL allow an item to be removed from the cart, and removing an item not in the cart SHALL have no effect.
 
@@ -50,6 +53,7 @@ The system SHALL allow an item to be removed from the cart, and removing an item
 
 ### Requirement: Update item quantity
 
+ID: SWHR8-R-0158
 Recovered from: CART-BR-0001
 
 The system SHALL set an item's quantity to the new value when it is greater than zero, and SHALL remove the item from the cart when the new value is zero or less.
@@ -68,6 +72,7 @@ The system SHALL set an item's quantity to the new value when it is greater than
 
 ### Requirement: Empty cart and count
 
+ID: SWHR8-R-0138
 Recovered from: CART-REQ-0004
 
 The system SHALL allow the cart to be emptied and SHALL report the number of distinct item lines, not the sum of quantities.
@@ -86,6 +91,7 @@ The system SHALL allow the cart to be emptied and SHALL report the number of dis
 
 ### Requirement: Cart line presentation
 
+ID: SWHR8-R-0139
 Recovered from: CART-REQ-0005
 
 The system SHALL present each cart line with item id, product id, category, product name, attribute, quantity and the current catalog list price, resolved in the customer's locale (default US English), without snapshotting prices in the cart.
@@ -98,6 +104,7 @@ The system SHALL present each cart line with item id, product id, category, prod
 
 ### Requirement: Cart subtotal
 
+ID: SWHR8-R-0025
 Recovered from: CART-BR-0002
 
 The system SHALL compute the cart subtotal as the sum over lines of unit list cost multiplied by quantity, with no discount, tax or rounding applied.
@@ -110,6 +117,7 @@ The system SHALL compute the cart subtotal as the sum over lines of unit list co
 
 ### Requirement: Item missing from catalog
 
+ID: SWHR8-R-0226
 Recovered from: CART-BR-0003
 
 The system SHALL omit a cart line whose catalog lookup fails from the listed lines and from the subtotal, without informing the customer. This behaviour is disputed and awaits a Business Owner decision.
@@ -122,6 +130,7 @@ The system SHALL omit a cart line whose catalog lookup fails from the listed lin
 
 ### Requirement: Unrestricted cart access
 
+ID: SWHR8-R-0143
 Recovered from: SHOPPING-CART-REQ-0010
 
 The system SHALL make cart operations available to any caller without role restriction.
@@ -134,6 +143,7 @@ The system SHALL make cart operations available to any caller without role restr
 
 ### Requirement: Non-numeric quantity treated as zero
 
+ID: SWHR8-R-0140
 Recovered from: SC-BR-0002
 
 The system SHALL treat a quantity that is not a whole number, submitted on a cart update, as 0.
@@ -146,7 +156,8 @@ The system SHALL treat a quantity that is not a whole number, submitted on a car
 
 ### Requirement: Cart actions from the cart page
 
-Recovered from: SHOPPING-CART-REQ-0003
+ID: SWHR8-R-0161
+Recovered from: SC-REQ-0001
 
 The system SHALL let a customer add an item, remove an item, and update the quantity of each cart item from a single form.
 
@@ -158,7 +169,8 @@ The system SHALL let a customer add an item, remove an item, and update the quan
 
 ### Requirement: Empty cart rejects order
 
-Recovered from: SHOPPING-CART-REQ-0001
+ID: SWHR8-R-0160
+Recovered from: SC-BR-0004
 
 The system SHALL NOT create an order when the customer's cart has no items, and SHALL show an "Order Error" page stating the cart is empty.
 
@@ -170,6 +182,7 @@ The system SHALL NOT create an order when the customer's cart has no items, and 
 
 ### Requirement: Cart cleared after order hand-off
 
+ID: SWHR8-R-0142
 Recovered from: SHOPPING-CART-REQ-0002
 
 The system SHALL empty the customer's cart once an order has been handed off, so that re-submitting the same order is rejected as an empty-cart order.
@@ -182,7 +195,8 @@ The system SHALL empty the customer's cart once an order has been handed off, so
 
 ### Requirement: Cart page
 
-Recovered from: SHOPPING-CART-REQ-0004
+ID: SWHR8-R-0141
+Recovered from: SC-REQ-0003
 
 The cart page SHALL show "Your Shopping Cart is Empty." when the cart has no items, and otherwise SHALL list each item with a remove link, an editable quantity and a cart total formatted as US currency.
 

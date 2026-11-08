@@ -23,4 +23,4 @@ One screen record was extracted: the cart page (`cart.jsp`), captured as a requi
 
 - Silent dropping of unresolvable items (disputed, financial risk).
 - `cart.empty()` after a failed send loses the customer's cart.
-- Several IR records (CART-_, SHOPPING-CART-_, SC-\*) from different passes state the same behaviour; the spec uses one primary record per behaviour.
+- Records CART-REQ-0003 (remove vs. clear-after-order) and SHOPPING-CART-REQ-0004 (remove vs. cart page) share keys across passes; the spec states remove under CART-REQ-0003, clearing under SHOPPING-CART-REQ-0002 and the cart page under SC-REQ-0003.
