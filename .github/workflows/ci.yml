@@ -1,0 +1,83 @@
+# CI for the boilerplate ITSELF.
+#
+# This template ships four test tiers but, until this workflow existed, ran
+# none of them — so a defect in the harness could sit here indefinitely and be
+# inherited by every project generated from the template. That is not
+# hypothetical: the Playwright dev server was started in a way that silently
+# ran it under node instead of Bun, which broke every `bun:sqlite`-backed route
+# while leaving the static pages green. It shipped, and was only found weeks
+# later in a downstream project that had added CI of its own.
+#
+# Generated repositories inherit this file, so it is also the starting CI for
+# every new project.
+name: CI
+
+# Pushes run CI on dev and main only. An agent pushes to its ticket branch many
+# times, and Vortex reads the run on the ticket's pull request, so a push run on
+# `vortex/**` is paid for and read by nothing. Ticket and sprint branches are
+# covered by pull_request, which targets `vortex/**`.
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: ["vortex/**", dev, main]
+
+# A newer push to the same pull request or branch cancels the run it supersedes.
+# Vortex reads the run at the head only, and a sprint's close commits land seconds
+# apart, so without this each one ran the whole suite to the end.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    # Pinned: ubuntu-latest moved to Ubuntu 26.04, where Playwright 1.60 cannot install
+    # Chromium, so every run failed before a test ran. Move this with the Playwright pin.
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Doc links
+        run: node scripts/check-doc-links.mjs
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      # Each test step also writes a JUnit report under .vortex-results/. The
+      # last step uploads them as `vortex-test-results`, which is where Vortex
+      # reads the official result for each test case (testEvidence.ciJobs).
+      - name: Unit and integration tests
+        run: bun run test -- --reporter=default --reporter=junit --outputFile.junit=.vortex-results/unit.xml
+
+      - name: Build
+        run: bun run build
+
+      - name: Install Playwright's Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: E2E tests
+        run: bun run test:e2e -- --reporter=list,junit
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: .vortex-results/e2e.xml
+
+      - name: Upload test results for Vortex
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: vortex-test-results
+          path: .vortex-results/*.xml
+          # The reports live in a hidden directory, which upload-artifact skips by
+          # default: without this the step passes and uploads nothing, and Vortex
+          # finds no official result for any test case.
+          include-hidden-files: true
+          if-no-files-found: error
