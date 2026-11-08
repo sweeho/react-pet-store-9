@@ -15,14 +15,25 @@ test.describe("inventory update access", () => {
     await page.getByLabel("Password", { exact: true }).fill("customer-password");
     await page.getByRole("button", { name: /sign in|log in/i }).click();
 
+    // Prove the login worked: a signed-in user is offered a Logout control (assumed contract, as in admin-ui).
+    const logout = page
+      .getByRole("link", { name: /log ?out/i })
+      .or(page.getByRole("button", { name: /log ?out/i }))
+      .first();
+    await expect(logout).toBeVisible();
+
     const response = await page.goto("/admin/inventory");
     const refusedByStatus = response !== null && [401, 403].includes(response.status());
-    const refusedByPage = await page
-      .getByText(/access denied|forbidden|not authorized/i)
-      .first()
-      .isVisible()
-      .catch(() => false);
-    expect(refusedByStatus || refusedByPage).toBe(true);
+    if (!refusedByStatus) {
+      await expect(page.getByText(/access denied|forbidden|not authorized/i).first()).toBeVisible();
+    }
+    // Still signed in (refused for the role, not for being anonymous).
+    await expect(
+      page
+        .getByRole("link", { name: /log ?out/i })
+        .or(page.getByRole("button", { name: /log ?out/i }))
+        .first(),
+    ).toBeVisible();
     await expect(page.getByRole("button", { name: /update/i })).toHaveCount(0);
   });
 });

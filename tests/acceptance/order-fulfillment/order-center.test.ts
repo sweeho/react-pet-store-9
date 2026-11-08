@@ -61,10 +61,12 @@ describe("order center completion", () => {
     const { sendSupplierPurchaseOrder } = await load();
     const sent: unknown[] = [];
     sendSupplierPurchaseOrder({
-      order: mkOrder([line("A", 4)]),
+      order: { ...mkOrder([line("ZQX-77", 6)]), id: 4242 },
       queue: { send: (d: unknown) => sent.push(d) },
     });
     expect(sent).toHaveLength(1);
-    expect(JSON.stringify(sent[0])).toContain("A");
+    const doc = JSON.stringify(sent[0]);
+    expect(doc).toContain("4242");
+    expect(doc).toContain("ZQX-77");
   });
 });
