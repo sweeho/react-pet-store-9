@@ -102,28 +102,6 @@ The system SHALL return month '01' and year '2010' when the stored expiry is abs
 - **WHEN** month and year are requested
 - **THEN** month is '01' and year is '2010'
 
-### Requirement: Card capture on account
-
-Recovered from: CHK-REQ-0003
-The system SHALL capture a card number, type and expiry month and year when a customer account is created or updated, joining month and year with a slash.
-
-#### Scenario: Account created with card
-
-- **GIVEN** month 04 and year 2027
-- **WHEN** the account is saved
-- **THEN** the expiry is stored as '04/2027'
-
-### Requirement: Card required on file
-
-Recovered from: CUSTOMER-REQ-0004
-The system SHALL require a payment card on file to carry a card number, card type and expiry date.
-
-#### Scenario: Missing type
-
-- **GIVEN** a card with no card type
-- **WHEN** it is saved
-- **THEN** it is rejected
-
 ### Requirement: Required contact data at checkout
 
 ID: SWHR8-R-0206
@@ -250,39 +228,6 @@ The system SHALL fail the request with an error and return no identifier when a 
 - **WHEN** an identifier is requested
 - **THEN** an error is raised and no identifier is returned
 
-### Requirement: Identifier counter storage
-
-Recovered from: CHECKOUT-REQ-0009
-The system SHALL persist each counter as a unique name with a mandatory integer last-issued value.
-
-#### Scenario: Duplicate name
-
-- **GIVEN** a counter named '1001' exists
-- **WHEN** another named '1001' is stored
-- **THEN** it is rejected
-
-### Requirement: Postal address record
-
-Recovered from: ORDER-CHECKOUT-ENTITY-0001
-The system SHALL hold a postal address as six fields: street line 1, street line 2, city, state, zip code and country.
-
-#### Scenario: Address stored
-
-- **GIVEN** six field values
-- **WHEN** an address is created
-- **THEN** all six are stored as given
-
-### Requirement: Address XML output
-
-Recovered from: ORDER-CHECKOUT-REQ-0004
-The system SHALL serialize an address to an Address XML element containing street name, optional second street name (omitted when null or empty), city, state, zip code and country, in that order.
-
-#### Scenario: No second street
-
-- **GIVEN** street 2 empty
-- **WHEN** the address is serialized
-- **THEN** no second street element appears
-
 ### Requirement: Address XML input
 
 ID: SWHR8-R-0099
@@ -294,17 +239,6 @@ The system SHALL reject incoming XML whose root is not an Address element or whi
 - **GIVEN** XML with root Order
 - **WHEN** it is parsed as an address
 - **THEN** it is rejected
-
-### Requirement: Address purge with order
-
-Recovered from: ORDER-CHECKOUT-REQ-0006
-The system SHALL delete an order's addresses together with the order when the order is COMPLETED or DENIED and older than 180 days.
-
-#### Scenario: Old completed order
-
-- **GIVEN** a COMPLETED order 200 days old
-- **WHEN** purge runs
-- **THEN** the order and its addresses are deleted
 
 ### Requirement: Line item interchange
 
@@ -431,58 +365,3 @@ The system SHALL issue order numbers for the batch order extract from this count
 - **GIVEN** the runbook states the order counter starts at 1001 while the counter mechanism starts a new prefix at 0
 - **WHEN** an order number is issued
 - **THEN** the first number follows the confirmed start value (disputed, to be settled by the Business Owner)
-
-### Requirement: Order submission acknowledgement
-
-Recovered from: CHK-INT-0001
-The system SHALL send each accepted order to the Order Processing Center asynchronously as an XML purchase order message, then return the order id and billing email to the customer.
-
-#### Scenario: Order submission acknowledgement case 1
-
-- **GIVEN** an accepted order
-- **WHEN** it is submitted
-- **THEN** an XML purchase order is sent asynchronously and the order id and billing email are returned
-
-### Requirement: Order id and stamping at checkout
-
-Recovered from: CHK-REQ-0002
-The system SHALL assign each order a unique order id and stamp it with the user id, billing email, date, shipping info, billing info, credit card and session locale.
-
-#### Scenario: Order id and stamping at checkout case 1
-
-- **GIVEN** a signed-in shopper with a session locale
-- **WHEN** an order is placed
-- **THEN** the order carries a unique id, user id, billing email, date, shipping, billing, card and locale
-
-### Requirement: Order pricing from cart lines
-
-Recovered from: CHK-RULE-0001
-The system SHALL price an order as the sum over cart lines of unit (member) price times quantity, and SHALL record each line with category, product, item, line number, quantity and unit price.
-
-#### Scenario: Order pricing from cart lines case 1
-
-- **GIVEN** a cart with two lines
-- **WHEN** the order is priced
-- **THEN** the total is the sum of unit price times quantity and each line is numbered and recorded
-
-### Requirement: Order line quantity check at storage
-
-Recovered from: ORDB-BR-0008
-The system SHALL reject an order line whose quantity is not greater than zero, or whose quantity shipped exceeds the quantity ordered.
-
-#### Scenario: Order line quantity check at storage case 1
-
-- **GIVEN** a line with quantity 0 or quantity shipped above quantity
-- **WHEN** it is stored
-- **THEN** it is rejected
-
-### Requirement: Received order record
-
-Recovered from: ORDB-ENT-0007
-The system SHALL record each received order with identifier, user, e-mail, date (epoch milliseconds), locale, total value (two decimals), a contact and a payment card, and each order line with category, product, item, quantity, unit price and quantity shipped.
-
-#### Scenario: Received order record case 1
-
-- **GIVEN** a received order with two lines
-- **WHEN** it is stored
-- **THEN** the order and both lines are retrievable with all listed fields
