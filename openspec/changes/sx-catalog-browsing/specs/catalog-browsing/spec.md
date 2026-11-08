@@ -135,8 +135,9 @@ The system SHALL show a signed-in customer who has MyList enabled the products o
 
 ### Requirement: Seed data load
 
+The system SHALL load initial catalog, customer and account data from an XML seed file through an unauthenticated /Populate endpoint, for the configured database.
+
 Recovered from: CATALOG-BROWSING-REQ-0006
-The system SHALL be able to load initial catalog, customer and account data from an XML seed file through an unauthenticated /Populate endpoint, for the configured database.
 
 #### Scenario: Populate invoked
 
