@@ -42,7 +42,7 @@ test.describe("admin order management UI", () => {
   }) => {
     await page.goto("/admin");
 
-    await expect(page.getByLabel(/password/i)).toBeVisible();
+    await expect(page.getByLabel(/^password$/i)).toBeVisible();
     await expect(page.getByRole("button", { name: /log ?in|sign ?in/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /manage orders/i })).toHaveCount(0);
   });
