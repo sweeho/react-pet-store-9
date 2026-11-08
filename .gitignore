@@ -53,3 +53,7 @@ sqlite.db
 sqlite.db-journal
 sqlite.db-wal
 sqlite.db-shm
+
+# Stryker
+reports
+.stryker-tmp
