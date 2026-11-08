@@ -1,0 +1,137 @@
+records:
+  - record_key: ORDER-CHECKOUT-ENTITY-0001
+    kind: entity
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL represent a payment card as three text attributes: card number, card type and expiry date.
+    confidence: high
+    confidence_basis: >
+      Stated in the entity descriptor (three persistent fields), the bean accessors and the XML schema; three consistent places.
+    risk_class: regulated
+    basis: Persistent fields declared in the descriptor and mirrored in the bean and the DTD.
+    plain_text: A payment card holds a card number, a card type and an expiry date.
+    technical_note: CMP 2.x entity CreditCardEJB with cmp-fields cardNumber, cardType, expiryDate; CreditCard.dtd defines the same three elements.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/creditcard/src/ejb-jar.xml
+        line_start: 57
+        line_end: 68
+        excerpt: |
+          <cmp-field>
+            <description>no description</description>
+            <field-name>expiryDate</field-name>
+          </cmp-field>
+      - path: legacy-source/app/src/components/creditcard/src/com/sun/j2ee/blueprints/creditcard/rsrc/schemas/CreditCard.dtd
+        line_start: 38
+        line_end: 41
+        excerpt: |
+          <!ELEMENT CreditCard (CardNumber, CardType, ExpiryDate)>
+          <!ELEMENT CardNumber (#PCDATA)>
+          <!ELEMENT CardType (#PCDATA)>
+          <!ELEMENT ExpiryDate (#PCDATA)>
+    stack_metadata:
+      framework: EJB 2.0 CMP
+      ejb.bean: CreditCardEJB
+  - record_key: ORDER-CHECKOUT-REQ-0002
+    kind: business-rule
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL store a payment card exactly as supplied, with no validation of number, type or expiry date at creation.
+    confidence: medium
+    confidence_basis: >
+      One clear place (the create methods only copy values); absence of validation is inferred from reading, and validation may live in a caller outside this module.
+    risk_class: regulated
+    basis: Create methods assign the three values with no checks.
+    plain_text: Card details are saved as entered; this component itself does not check that a card is valid.
+    technical_note: ejbCreate(String,String,String) and ejbCreate(CreditCard) only call the setters. Card capture validation, if any, is elsewhere (checkout screens); not verified here.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/creditcard/src/com/sun/j2ee/blueprints/creditcard/ejb/CreditCardEJB.java
+        line_start: 62
+        line_end: 78
+        excerpt: |
+          public Object ejbCreate(String cardNumber, String cardType,
+                                  String expiryDate) throws CreateException {
+                                    setCardNumber(cardNumber);
+                                    setCardType(cardType);
+                                    setExpiryDate(expiryDate);
+                                    return null;
+          }
+    stack_metadata:
+      ejb.bean: CreditCardEJB
+  - record_key: ORDER-CHECKOUT-REQ-0003
+    kind: business-rule
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL expose the expiry month as the text before the "/" in the expiry date and the expiry year as the text after it.
+    confidence: medium
+    confidence_basis: One clear place; no test or document confirms the "MM/YYYY" format.
+    risk_class: operational
+    basis: Derived accessors split the expiry date on the first slash.
+    plain_text: The expiry date is entered as month/year, and the month and year are read from either side of the slash.
+    technical_note: getExpiryMonth/getExpiryYear use indexOf("/") on the expiryDate field.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/creditcard/src/com/sun/j2ee/blueprints/creditcard/ejb/CreditCardEJB.java
+        line_start: 88
+        line_end: 107
+        excerpt: |
+          int slashStart = dateString.indexOf("/");
+          if (slashStart != -1) return dateString.substring(0,slashStart);
+          ...
+          if (slashStart != -1) return dateString.substring(slashStart +1, dateString.length());
+    stack_metadata:
+      ejb.bean: CreditCardEJB
+  - record_key: ORDER-CHECKOUT-REQ-0004
+    kind: business-rule
+    capability_key: order-checkout
+    requirement: >
+      GIVEN an expiry date that is missing or has no "/" WHEN the expiry month or year is requested THEN the system SHALL return month "01" and year "2010".
+    confidence: low
+    confidence_basis: Bare literal defaults with no comment, test, configuration or document explaining them.
+    risk_class: financial
+    basis: Hard-coded fallback values in the accessors.
+    plain_text: If a card has no readable expiry date, it is treated as expiring January 2010, which is long past.
+    technical_note: Literals "01" and "2010" returned as fallbacks. No authoritative source found for the intent.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/creditcard/src/com/sun/j2ee/blueprints/creditcard/ejb/CreditCardEJB.java
+        line_start: 95
+        line_end: 106
+        excerpt: |
+          return "01";
+          ...
+          return "2010";
+    stack_metadata:
+      ejb.bean: CreditCardEJB
+  - record_key: ORDER-CHECKOUT-REQ-0005
+    kind: business-rule
+    capability_key: order-reporting-batch
+    requirement: >
+      The system SHALL delete stored payment cards together with an order when that order is purged (completed or denied orders older than 180 days).
+    confidence: medium
+    confidence_basis: Stated in the operations runbook only; the purge job is outside this module so not seen in code.
+    risk_class: regulated
+    basis: Runbook describes purge deleting payment cards with their order. Filed under the batch capability as the purge lives there.
+    plain_text: When old completed or denied orders are removed, their saved payment card details are removed too.
+    technical_note: Purge job PS_ORDER_PURGE (not in this module) removes payment cards; the card entity has no own removal logic (ejbRemove is empty).
+    interface: false
+    traces:
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        kind: document
+        anchor: p1
+        excerpt: |
+          3.5 PS_ORDER_PURGE ... Deletes COMPLETED and DENIED orders older than 180 days, with their order lines, supplier orders, contact information, addresses and payment cards.
+findings: []
+suspected_defects:
+  - capability_key: order-checkout
+    record_keys: [ORDER-CHECKOUT-REQ-0004]
+    severity: medium
+    category: other
+    title: Missing expiry date silently defaults to a past date
+    description: >
+      An absent or malformed expiry date yields January 2010 rather than an error, so such a card appears already expired.
+    traces:
+      - path: legacy-source/app/src/components/creditcard/src/com/sun/j2ee/blueprints/creditcard/ejb/CreditCardEJB.java
+        line_start: 95
+        line_end: 106
