@@ -1,0 +1,62 @@
+records:
+  - record_key: INVENTORY-REPORTING-REQ-0001
+    kind: requirement
+    capability_key: inventory-reporting
+    requirement: >
+      The system SHALL provide a shared diagnostic-output helper that writes debug messages and
+      exception details only when a build-time debugging switch is on, and SHALL ship with that
+      switch off so no diagnostic output is produced.
+    confidence: medium
+    confidence_basis: >
+      One clear place (Debug.java) shows the switch as a constant false and every print method
+      guarded by it. No test, config or document corroborates it; the module has no business rules.
+    risk_class: operational
+    basis: >
+      The module contains only a Debug helper class and an Ant build file. It fits no listed
+      capability; filed under inventory-reporting (operations) as the closest, as a
+      cross-cutting diagnostic utility.
+    plain_text: >
+      The application has an internal troubleshooting aid that can print diagnostic messages, but it
+      is switched off, so nothing is printed in normal operation.
+    technical_note: >
+      Debug.debuggingOn is a public static final boolean = false; print/println/print(Throwable)
+      only emit to System.err/System.out when it is true. Changing it requires recompilation.
+      println prefixes ">>".
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/util/tracer/src/com/sun/j2ee/blueprints/util/tracer/Debug.java
+        line_start: 44
+        line_end: 79
+        excerpt: |
+          public final class Debug {
+
+              public static final boolean debuggingOn = false;
+
+              public static void print(String msg) {
+                  if (debuggingOn) {
+                      System.err.print(msg);
+                  }
+              }
+    stack_metadata:
+      framework: plain Java utility
+suspected_defects:
+  - capability_key: inventory-reporting
+    record_keys: [INVENTORY-REPORTING-REQ-0001]
+    severity: low
+    category: other
+    title: Throwable diagnostics split across stdout and stderr
+    description: >
+      When enabled, the throwable overload writes its message line and the extra message to
+      System.out while the stack trace goes to System.err, and the String overloads write to
+      System.err. Diagnostics for one event land on different streams. Currently dormant because
+      the switch is off.
+    traces:
+      - path: legacy-source/app/src/components/util/tracer/src/com/sun/j2ee/blueprints/util/tracer/Debug.java
+        line_start: 68
+        line_end: 75
+findings:
+  - kind: ambiguity
+    path: legacy-source/app/src/components/util/tracer/src/build.xml
+    description: >
+      Ant build file for the tracer component; build mechanics only, no business rule extracted.
+      No document under legacy-analysis/sources mentions this module.
