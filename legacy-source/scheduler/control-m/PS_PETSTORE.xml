@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Java Pet Store 1.3.2 batch schedule, Control-M Workload Automation export.
+ Two folders:
+   PS_PETSTORE_DAILY   nightly chain: backup -> order extract -> aging report /
+                       inventory report / purge (Sundays), plus the 06:00 catalog check
+   PS_PETSTORE_CYCLIC  web module health check every 10 minutes, all day
+ Scripts live in /opt/petstore/batch (batch/ in the source tree).
+-->
+<DEFTABLE xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="Folder.xsd">
+
+  <FOLDER DATACENTER="DC_PS_PRD" VERSION="919" PLATFORM="UNIX" FOLDER_NAME="PS_PETSTORE_DAILY"
+          FOLDER_ORDER_METHOD="SYSTEM" REAL_FOLDER_ID="2001" TYPE="1" USED_BY_CODE="0">
+
+    <JOB JOBISN="1" APPLICATION="PETSTORE" SUB_APPLICATION="DATABASE" JOBNAME="PS_DB_BACKUP"
+         DESCRIPTION="Online backup of PetStoreDB, keep 7 days"
+         TASKTYPE="Job"
+         MEMLIB="/opt/petstore/batch" MEMNAME="ps_db_backup.sh"
+         RUN_AS="tomcat" NODEID="ps-app01" PRIORITY="AA" CRITICAL="1"
+         TIMEFROM="0100" WEEKDAYS="ALL" DAYSCAL="PS_CAL" MAXRERUN="2"
+         CREATED_BY="ps_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+      <OUTCOND NAME="PS_DB_BACKUP-OK" ODATE="ODAT" SIGN="+" />
+      <ON STMT="*" CODE="NOTOK">
+        <DOMAIL URGENCY="U" DEST="ps-ops@example.invalid" SUBJECT="PS_DB_BACKUP failed" MESSAGE="Petstore DB backup failed, order extract is held" />
+      </ON>
+    </JOB>
+
+    <JOB JOBISN="2" APPLICATION="PETSTORE" SUB_APPLICATION="ORDERS" JOBNAME="PS_ORDER_EXTRACT"
+         DESCRIPTION="Export yesterday purchase orders to orders_YYYYMMDD.csv for Finance"
+         TASKTYPE="Job"
+         MEMLIB="/opt/petstore/batch" MEMNAME="ps_order_extract.sh"
+         RUN_AS="tomcat" NODEID="ps-app01" PRIORITY="AB"
+         TIMEFROM="0130" WEEKDAYS="ALL" MAXRERUN="1"
+         CREATED_BY="ps_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+      <INCOND NAME="PS_DB_BACKUP-OK" ODATE="ODAT" AND_OR="A" />
+      <OUTCOND NAME="PS_DB_BACKUP-OK" ODATE="ODAT" SIGN="-" />
+      <OUTCOND NAME="PS_ORDER_EXTRACT-OK" ODATE="ODAT" SIGN="+" />
+      <ON STMT="*" CODE="NOTOK">
+        <DOMAIL URGENCY="R" DEST="ps-finance@example.invalid" SUBJECT="PS_ORDER_EXTRACT failed" MESSAGE="Order extract for Finance not produced" />
+      </ON>
+    </JOB>
+
+    <JOB JOBISN="3" APPLICATION="PETSTORE" SUB_APPLICATION="ORDERS" JOBNAME="PS_ORDER_AGING_REPORT"
+         DESCRIPTION="Orders stuck PENDING or APPROVED for more than 24 hours"
+         TASKTYPE="Job"
+         MEMLIB="/opt/petstore/batch" MEMNAME="ps_order_aging_report.sh"
+         RUN_AS="tomcat" NODEID="ps-app01" PRIORITY="AC"
+         TIMEFROM="0145" WEEKDAYS="ALL"
+         CREATED_BY="ps_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+      <INCOND NAME="PS_ORDER_EXTRACT-OK" ODATE="ODAT" AND_OR="A" />
+      <OUTCOND NAME="PS_ORDER_AGING_REPORT-OK" ODATE="ODAT" SIGN="+" />
+      <ON STMT="*" CODE="COMPSTAT=4">
+        <DOMAIL URGENCY="R" DEST="ps-ops@example.invalid" SUBJECT="Petstore stuck orders found" MESSAGE="See /var/petstore/extract/order_aging_YYYYMMDD.txt" />
+      </ON>
+    </JOB>
+
+    <JOB JOBISN="4" APPLICATION="PETSTORE" SUB_APPLICATION="INVENTORY" JOBNAME="PS_INVENTORY_REPORT"
+         DESCRIPTION="Supplier items with stock below 500 units"
+         TASKTYPE="Command"
+         CMDLINE="/opt/petstore/batch/ps_inventory_report.sh"
+         RUN_AS="tomcat" NODEID="ps-app01" PRIORITY="AC"
+         TIMEFROM="0150" WEEKDAYS="ALL"
+         CREATED_BY="ps_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+      <INCOND NAME="PS_ORDER_EXTRACT-OK" ODATE="ODAT" AND_OR="A" />
+      <OUTCOND NAME="PS_INVENTORY_REPORT-OK" ODATE="ODAT" SIGN="+" />
+    </JOB>
+
+    <JOB JOBISN="5" APPLICATION="PETSTORE" SUB_APPLICATION="ORDERS" JOBNAME="PS_ORDER_PURGE"
+         DESCRIPTION="Delete COMPLETED and DENIED orders older than 180 days (Sundays)"
+         TASKTYPE="Job"
+         MEMLIB="/opt/petstore/batch" MEMNAME="ps_order_purge.sh"
+         RUN_AS="tomcat" NODEID="ps-app01" PRIORITY="AD"
+         TIMEFROM="0200" WEEKDAYS="0"
+         CREATED_BY="ps_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+      <INCOND NAME="PS_ORDER_EXTRACT-OK" ODATE="ODAT" AND_OR="A" />
+      <OUTCOND NAME="PS_ORDER_PURGE-OK" ODATE="ODAT" SIGN="+" />
+    </JOB>
+
+    <JOB JOBISN="6" APPLICATION="PETSTORE" SUB_APPLICATION="CATALOG" JOBNAME="PS_CATALOG_CHECK"
+         DESCRIPTION="Catalog integrity check before the store opens; first load when empty"
+         TASKTYPE="Command"
+         CMDLINE="/opt/petstore/batch/ps_catalog_check.sh"
+         RUN_AS="tomcat" NODEID="ps-app01" PRIORITY="AA" CRITICAL="1"
+         TIMEFROM="0600" WEEKDAYS="ALL"
+         CREATED_BY="ps_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+      <OUTCOND NAME="PS_CATALOG_CHECK-OK" ODATE="ODAT" SIGN="+" />
+      <ON STMT="*" CODE="COMPSTAT=4">
+        <DOMAIL URGENCY="U" DEST="ps-catalog@example.invalid" SUBJECT="Petstore catalog integrity check failed" MESSAGE="See /var/petstore/log/catalog_check.log" />
+      </ON>
+    </JOB>
+  </FOLDER>
+
+  <FOLDER DATACENTER="DC_PS_PRD" VERSION="919" PLATFORM="UNIX" FOLDER_NAME="PS_PETSTORE_CYCLIC"
+          FOLDER_ORDER_METHOD="SYSTEM" REAL_FOLDER_ID="2002" TYPE="1" USED_BY_CODE="0">
+
+    <JOB JOBISN="1" APPLICATION="PETSTORE" SUB_APPLICATION="HEALTH" JOBNAME="PS_HEALTH_CHECK"
+         DESCRIPTION="HTTP check of the storefront, OPC, supplier and admin web modules"
+         TASKTYPE="Job"
+         MEMLIB="/opt/petstore/batch" MEMNAME="ps_health_check.sh"
+         RUN_AS="tomcat" NODEID="ps-app01" PRIORITY="AA"
+         TIMEFROM="0000" WEEKDAYS="ALL" TIMETO="2359" CYCLIC="1" CYCLIC_TYPE="Interval" INTERVAL="00010M" IND_CYCLIC="START"
+         CREATED_BY="ps_ops" CREATION_DATE="20031014" CHANGE_DATE="20260915">
+      <ON STMT="*" CODE="NOTOK">
+        <DOMAIL URGENCY="R" DEST="ps-ops@example.invalid" SUBJECT="Petstore web module down" MESSAGE="See /var/petstore/log/batch.log" />
+      </ON>
+    </JOB>
+  </FOLDER>
+
+</DEFTABLE>
