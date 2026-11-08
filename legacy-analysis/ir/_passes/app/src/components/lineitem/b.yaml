@@ -1,0 +1,138 @@
+records:
+  - record_key: ORDER-FULFILLMENT-ENTITY-0001
+    kind: entity
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL represent each order line as a record holding category id, product id, item id, line number, ordered quantity, unit price and quantity already shipped.
+    confidence: high
+    confidence_basis: >
+      The field list is declared in the bean's abstract accessors and again in the ejb-jar CMP field declarations; the DTD lists the six non-shipped fields.
+    risk_class: financial
+    basis: Persistent fields of the line item entity.
+    plain_text: >
+      Every order line records which category, product and item was ordered, its line number, how many were ordered, the unit price, and how many have been shipped.
+    technical_note: >
+      Container-managed entity LineItemEJB (abstract schema LineItem) with 7 CMP fields; unit price is a float, quantities int, ids and line number strings.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/lineitem/src/com/sun/j2ee/blueprints/lineitem/ejb/LineItemEJB.java
+        line_start: 58
+        line_end: 136
+        excerpt: |
+          public abstract String getCategoryId();
+          public abstract int getQuantity();
+          public abstract float getUnitPrice();
+          public abstract int getQuantityShipped();
+      - path: legacy-source/app/src/components/lineitem/src/ejb-jar.xml
+        line_start: 57
+        line_end: 78
+        excerpt: |
+          <abstract-schema-name>LineItem</abstract-schema-name>
+          <cmp-field>
+            <field-name>categoryId</field-name>
+          </cmp-field>
+    stack_metadata:
+      framework: EJB 2.x CMP
+      ejb.bean: LineItemEJB
+      ejb.transaction: Required
+  - record_key: ORDER-FULFILLMENT-REQ-0002
+    kind: requirement
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL allow a line item to be created either from explicit values or by copying an existing line item's category, product, item, line number, quantity and unit price, and in both cases SHALL set the shipped quantity from the supplied value.
+    confidence: medium
+    confidence_basis: >
+      Both create paths are clear in one class; callers are outside this module so use was not observed.
+    risk_class: operational
+    basis: Two ejbCreate overloads.
+    plain_text: >
+      An order line can be created from scratch or copied from an existing line, and the shipped count is always provided at creation.
+    technical_note: >
+      ejbCreate(catId, prodId, itemId, lineNo, qty, price, qtyShipped) and ejbCreate(LineItem, qty); in the copy form the second argument becomes quantityShipped, not quantity. No validation of values (negative quantity or price accepted).
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/lineitem/src/com/sun/j2ee/blueprints/lineitem/ejb/LineItemEJB.java
+        line_start: 141
+        line_end: 167
+        excerpt: |
+          public Object ejbCreate(LineItem lineItem, int qty) throws CreateException {
+            ...
+            setQuantity(lineItem.getQuantity());
+            setUnitPrice(lineItem.getUnitPrice());
+            setQuantityShipped(qty);
+    stack_metadata:
+      framework: EJB 2.x CMP
+      ejb.bean: LineItemEJB
+  - record_key: ORDER-FULFILLMENT-REQ-0003
+    kind: requirement
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL allow the quantity shipped of a line item to be updated after creation, and SHALL expose the line's category, product, item, line number, quantity and unit price as a data snapshot that omits the shipped quantity.
+    confidence: medium
+    confidence_basis: >
+      Transaction setting for setQuantityShipped is in ejb-jar and the snapshot is in code; the omission of shipped quantity may be intentional but no comment confirms it.
+    risk_class: operational
+    basis: getData and setQuantityShipped.
+    plain_text: >
+      The shipped count of an order line can be updated as goods go out; the line summary passed to other parts of the system shows what was ordered and the price, not how much has shipped.
+    technical_note: >
+      getData() builds a LineItem value object without quantityShipped; setQuantityShipped is a declared container-transaction method (Required) on the local interface.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/lineitem/src/com/sun/j2ee/blueprints/lineitem/ejb/LineItemEJB.java
+        line_start: 171
+        line_end: 180
+        excerpt: |
+          public LineItem getData() {
+            LineItem lineItem = new LineItem();
+            ...
+            lineItem.setUnitPrice(getUnitPrice());
+            return lineItem;
+          }
+      - path: legacy-source/app/src/components/lineitem/src/ejb-jar.xml
+        line_start: 156
+        line_end: 165
+        excerpt: |
+          <method-name>setQuantityShipped</method-name>
+          <method-params>
+            <method-param>int</method-param>
+    stack_metadata:
+      framework: EJB 2.x CMP
+      ejb.bean: LineItemEJB
+      ejb.transaction: Required
+  - record_key: ORDER-FULFILLMENT-REQ-0004
+    kind: integration
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL exchange a line item in XML as an element containing category id, product id, item id, line number, quantity and unit price, in that order.
+    confidence: medium
+    confidence_basis: >
+      DTD is the only statement; no parser or producer was seen in this module, so actual use is inferred.
+    risk_class: operational
+    basis: LineItem.dtd.
+    plain_text: >
+      When order lines are sent between systems as documents, each line carries category, product, item, line number, quantity and unit price.
+    technical_note: >
+      DTD element LineItem (CategoryId, ProductId, ItemId, LineNum, Quantity, UnitPrice), all PCDATA. Note LineNum vs lineNumber naming.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/lineitem/src/com/sun/j2ee/blueprints/lineitem/rsrc/schemas/LineItem.dtd
+        line_start: 38
+        line_end: 50
+        excerpt: |
+          <!ELEMENT LineItem (CategoryId, ProductId, ItemId, LineNum, Quantity, UnitPrice)>
+    stack_metadata:
+      framework: XML DTD
+findings: []
+suspected_defects:
+  - capability_key: order-fulfillment
+    record_keys: [ORDER-FULFILLMENT-ENTITY-0001]
+    severity: low
+    category: other
+    title: Unit price stored as binary float
+    description: >
+      Monetary unit price is a float, which can introduce rounding error in order totals.
+    traces:
+      - path: legacy-source/app/src/components/lineitem/src/com/sun/j2ee/blueprints/lineitem/ejb/LineItemEJB.java
+        line_start: 118
+        line_end: 124
