@@ -15,3 +15,5 @@ No screen records were extracted for this capability; its user interface is unsp
 - `OrderApproval.dtd` / `Mail.dtd` define the XML documents; `XMLDocumentUtils` validates against them via an overridable catalog.
 - The petstore web tier passes total and locale in the order message; the mail-on-order/approval/completion defaults are off in `petstore.properties`.
 - Source disagreements: the admin module (ADM-BR-0009) is marked contradicts-docs; `ADMIN-REQ-0002` (sales totals) and `INVENTORY-REPORTING-BUSINESS-RULE-0001` appear to belong to other capabilities.
+- Pass disagreement on ORDAPP-RULE-0002: pass A reads the not-PENDING guard in `OrderApprovalMDB`; pass B reads the other-locale hold. The spec states the guard; the locale hold is covered in the automatic approval requirement.
+- Records ADM-BR-0009 and OA-REQ-0001 are disputed against the user guide (exactly 500, zh_CN limit); the code says below 500 approves.
