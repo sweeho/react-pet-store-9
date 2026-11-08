@@ -81,8 +81,15 @@ test.describe("order checkout", () => {
     const profile = party({ lastName: "Profile", firstName: "Sam", city: "Shelbyville" });
     await page.route("**/api/account/profile", (route) => route.fulfill({ json: profile }));
     await page.goto("/checkout");
-    await expect(page.getByLabel("Last name").first()).toHaveValue("Profile");
-    await expect(page.getByLabel("First name").first()).toHaveValue("Sam");
-    await expect(page.getByLabel("City").first()).toHaveValue("Shelbyville");
+    // the label is shared by the billing set (first) and the shipping set (second)
+    await expect(page.getByLabel("Last name")).toHaveCount(2);
+    for (const i of [0, 1])
+      await expect(page.getByLabel("Last name").nth(i)).toHaveValue("Profile");
+    // the label is shared by the billing set (first) and the shipping set (second)
+    await expect(page.getByLabel("First name")).toHaveCount(2);
+    for (const i of [0, 1]) await expect(page.getByLabel("First name").nth(i)).toHaveValue("Sam");
+    // the label is shared by the billing set (first) and the shipping set (second)
+    await expect(page.getByLabel("City")).toHaveCount(2);
+    for (const i of [0, 1]) await expect(page.getByLabel("City").nth(i)).toHaveValue("Shelbyville");
   });
 });

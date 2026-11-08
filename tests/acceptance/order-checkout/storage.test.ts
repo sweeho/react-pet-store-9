@@ -17,8 +17,7 @@ import { describe, expect, it } from "vitest";
 //        saveLineItems is all-or-nothing (one transaction); no user or role is needed
 //   readLineItem(orderId, lineNumber) -> line | undefined
 //   nextIdentifier(prefix) -> string ; getCounter(prefix) -> number | undefined
-//   nextOrderNumber() -> number   counter named "1001"
-//   confirmedOrderNumberStart: number   (the start value the Business Owner confirms)
+//   nextOrderNumber() -> number   counter named "1001"; the first call returns 1001
 const repo = () => import("../../../server/checkout/repository");
 
 let seq = 0;
@@ -150,8 +149,14 @@ describe("order line storage", () => {
     const r = await repo();
     const order = await baseOrder();
     await r.savePurchaseOrder(order);
+    // No user, role or session parameter exists: the calls take only the data (line / order id + number).
+    expect(r.saveLineItem.length).toBeLessThanOrEqual(1);
+    expect(r.saveLineItems.length).toBeLessThanOrEqual(1);
+    expect(r.readLineItem.length).toBeLessThanOrEqual(2);
     await r.saveLineItem(line(order.orderId, { lineNumber: 0 }));
     expect(await r.readLineItem(order.orderId, 0)).toMatchObject({ itemId: "EST-1", quantity: 2 });
+    await r.saveLineItems([line(order.orderId, { lineNumber: 3 })]);
+    expect(await r.readLineItem(order.orderId, 3)).toMatchObject({ itemId: "EST-1" });
     // A batch with one invalid line leaves nothing behind: the write ran as one transaction.
     await expect(
       r.saveLineItems([
@@ -205,13 +210,10 @@ describe("identifier counters", () => {
   });
 
   // case: SWHR8-C-0170@v1
-  // DISPUTED: the runbook says the order counter starts at 1001, the counter mechanism starts a
-  // prefix at 0. This asserts the first order number is the confirmed start value and that
-  // numbering then continues by one; the reviewer must settle the value (1001 or the mechanism's own).
   it("[SWHR8-C-0170] the first order number follows the confirmed start value", async () => {
     const r = await repo();
     const first = await r.nextOrderNumber();
-    expect(first).toBe(r.confirmedOrderNumberStart);
-    expect(await r.nextOrderNumber()).toBe(first + 1);
+    expect(first).toBe(1001);
+    expect(await r.nextOrderNumber()).toBe(1002);
   });
 });
