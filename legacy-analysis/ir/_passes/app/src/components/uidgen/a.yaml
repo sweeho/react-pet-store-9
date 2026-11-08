@@ -1,0 +1,110 @@
+records:
+  - record_key: ORDER-CHECKOUT-REQ-0001
+    kind: requirement
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL return, for a given identifier prefix, a unique identifier formed by concatenating the prefix with the next integer in a per-prefix sequence.
+    confidence: medium
+    confidence_basis: >
+      One clear implementation (counter next-value method) called from the generator; no tests or docs seen that restate it. Callers (which prefixes are used) are outside this shard.
+    risk_class: operational
+    basis: >
+      The generator delegates to the counter named by the prefix; the counter increments and returns name + count.
+    plain_text: >
+      Each time a new reference number is needed for a kind of item, the system hands out the prefix followed by the next number in that kind's own sequence.
+    technical_note: >
+      UniqueIdGeneratorEJB.getUniqueId(prefix) calls CounterEJB.getNextValue(), which does count = getCounter()+1, stores it and returns getName()+String.valueOf(count). No separator between prefix and number.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/uidgen/src/com/sun/j2ee/blueprints/uidgen/ejb/UniqueIdGeneratorEJB.java
+        line_start: 67
+        line_end: 69
+        excerpt: |
+          public String getUniqueId(String idPrefix) {
+              return getCounter(idPrefix).getNextValue();
+          }
+      - path: legacy-source/app/src/components/uidgen/src/com/sun/j2ee/blueprints/uidgen/counter/ejb/CounterEJB.java
+        line_start: 67
+        line_end: 71
+        excerpt: |
+          public String getNextValue() {
+              int count = getCounter() + 1;
+              setCounter(count);
+              return getName() + String.valueOf(count);
+    stack_metadata:
+      framework: EJB 2.x
+      ejb.bean: UniqueIdGeneratorEJB, CounterEJB
+      ejb.transaction: Required
+  - record_key: ORDER-CHECKOUT-BR-0001
+    kind: business-rule
+    capability_key: order-checkout
+    requirement: >
+      GIVEN an identifier prefix with no existing counter, WHEN an identifier is requested, THEN the system SHALL create a counter for that prefix starting at 0, so the first identifier issued is the prefix followed by 1.
+    confidence: medium
+    confidence_basis: >
+      Explicit in two places in code (finder-miss fallback creates counter; create sets counter to 0), but no tests or docs.
+    risk_class: operational
+    basis: >
+      Lookup by prefix; on a not-found result a new counter is created with value 0 before incrementing.
+    plain_text: >
+      The first time a kind of reference number is requested, its numbering starts fresh and the first number issued ends in 1.
+    technical_note: >
+      UniqueIdGeneratorEJB.getCounter does findByPrimaryKey(name), catching FinderException and calling create(name); CounterEJB.ejbCreate sets name and counter=0. A CreateException is rethrown as EJBException. Two concurrent first requests for the same prefix could both miss and race on create; isolation relies on the container.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/uidgen/src/com/sun/j2ee/blueprints/uidgen/ejb/UniqueIdGeneratorEJB.java
+        line_start: 74
+        line_end: 86
+        excerpt: |
+          private CounterLocal getCounter(String name) {
+              try {
+                  CounterLocal counter = null;
+                  try {
+                      counter = clh.findByPrimaryKey(name);
+                  } catch (FinderException fe) {
+                      counter = clh.create(name);
+                  }
+                  return counter;
+      - path: legacy-source/app/src/components/uidgen/src/com/sun/j2ee/blueprints/uidgen/counter/ejb/CounterEJB.java
+        line_start: 58
+        line_end: 62
+        excerpt: |
+          public String ejbCreate(String name) throws CreateException {
+              setName(name);
+              setCounter(0);
+              return null;
+    stack_metadata:
+      framework: EJB 2.x
+      ejb.bean: UniqueIdGeneratorEJB, CounterEJB
+      db.object: Counter (CMP entity, fields name, counter)
+  - record_key: ORDER-CHECKOUT-ENT-0001
+    kind: entity
+    capability_key: order-checkout
+    requirement: >
+      The system SHALL persist one counter per identifier prefix, holding the prefix name (the key) and the last integer issued.
+    confidence: medium
+    confidence_basis: >
+      CMP fields declared in code and ejb-jar.xml; schema DDL not examined in this shard.
+    risk_class: operational
+    basis: >
+      Abstract accessors getName/getCounter and CMP field declaration in the deployment descriptor.
+    plain_text: >
+      The system remembers, for each kind of reference number, the last number it handed out so numbering continues across restarts.
+    technical_note: >
+      Container-managed entity Counter (abstract schema Counter), fields name (String, primary key by usage of findByPrimaryKey(name)) and counter (int). Counter is an int, so it overflows past 2^31-1.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/uidgen/src/ejb-jar.xml
+        line_start: 47
+        line_end: 60
+        excerpt: |
+          <display-name>CounterEB</display-name>
+          <ejb-name>CounterEJB</ejb-name>
+          ... <abstract-schema-name>Counter</abstract-schema-name>
+          ... <field-name>counter</field-name>
+    stack_metadata:
+      framework: EJB 2.x
+      ejb.bean: CounterEJB
+      ejb.transaction: Required
+findings: []
+suspected_defects: []
