@@ -1,0 +1,176 @@
+records:
+  - record_key: ORDER-APPROVAL-INTEGRATION-0001
+    kind: integration
+    capability_key: order-approval
+    requirement: >
+      The system SHALL exchange order approval/denial results as an OrderApproval document containing one or more Order entries, each with an OrderId and an OrderStatus.
+    confidence: high
+    confidence_basis: >
+      Structure is declared in the DTD and mirrored by the serialising class, two places. Meaning of status values is not defined here.
+    risk_class: operational
+    basis: DTD requires Order+ and (OrderId, OrderStatus); ChangedOrder reads and writes exactly those two children.
+    plain_text: >
+      When orders are approved or denied, the result is sent to other parts of the system as a list of orders, each with an order number and its new status.
+    technical_note: >
+      OrderApproval.dtd and ChangedOrder/OrderApproval DOM (de)serialisation. Status is free text (PCDATA); allowed values not constrained here.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/rsrc/schemas/OrderApproval.dtd
+        line_start: 38
+        line_end: 45
+        excerpt: |
+          <!ELEMENT OrderApproval (Order+)>
+
+          <!ELEMENT Order (OrderId, OrderStatus)>
+
+          <!ELEMENT OrderId (#PCDATA)>
+
+          <!-- FIXME should be attribute -->
+          <!ELEMENT OrderStatus (#PCDATA)>
+      - path: legacy-source/app/src/components/xmldocuments/src/com/sun/j2ee/blueprints/xmldocuments/ChangedOrder.java
+        line_start: 73
+        line_end: 78
+        excerpt: |
+          public Node toDOM(Document document) {
+            Element root = document.createElement(XML_ORDER);
+            XMLDocumentUtils.appendChild(document, root, XML_ORDERID, orderId);
+            XMLDocumentUtils.appendChild(document, root, XML_ORDERSTATUS, orderStatus);
+            return root;
+          }
+    stack_metadata:
+      framework: DOM/JAXP
+      db.object: n/a
+  - record_key: ORDER-APPROVAL-BUSINESS-RULE-0002
+    kind: business-rule
+    capability_key: order-approval
+    requirement: >
+      GIVEN an incoming OrderApproval document, WHEN its root element is not OrderApproval or it fails DTD validation, THEN the system SHALL reject it with an error.
+    confidence: medium
+    confidence_basis: One clear place (fromDOM and VALIDATING=true default); the validation machinery in the utils class was not traced.
+    risk_class: operational
+    basis: Default parsing validates; fromDOM throws if the root element is wrong.
+    plain_text: An approval result message that is malformed is refused rather than processed.
+    technical_note: OrderApproval.fromXML defaults validating=true; fromDOM throws XMLDocumentException.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/com/sun/j2ee/blueprints/xmldocuments/OrderApproval.java
+        line_start: 156
+        line_end: 169
+        excerpt: |
+          public static OrderApproval fromDOM(Node node) throws XMLDocumentException {
+            Element element;
+            if (node.getNodeType() == Node.ELEMENT_NODE && (element = ((Element) node)).getTagName().equals(XML_ORDERAPPROVAL)) {
+              Element child;
+              OrderApproval orderApproval = new OrderApproval();
+              orderApproval.orderList = new ArrayList();
+              for (child = XMLDocumentUtils.getFirstChild(element, ChangedOrder.XML_ORDER, false);
+                   child != null;
+                   child = XMLDocumentUtils.getNextSibling(child, ChangedOrder.XML_ORDER, true)) {
+                orderApproval.orderList.add(ChangedOrder.fromDOM(child));
+              }
+              return orderApproval;
+            }
+            throw new XMLDocumentException(XML_ORDERAPPROVAL + " element expected.");
+          }
+    stack_metadata:
+      framework: DOM/JAXP
+  - record_key: ORDER-FULFILLMENT-INTEGRATION-0003
+    kind: integration
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL send each supplier order as a SupplierOrder document containing order id, order date (yyyy-MM-dd), a shipping address (first name, last name, street, city, state, country, zip code, email, phone) and line items.
+    confidence: high
+    confidence_basis: Declared in schema files (DTD and XSD exist) and built by the editor class.
+    risk_class: operational
+    basis: TPASupplierOrderXDE assembles the elements in a fixed order and serialises against DTD or XSD.
+    plain_text: Orders placed with a supplier carry the order number, date, customer shipping details and the items wanted.
+    technical_note: TPASupplierOrderXDE with namespace http://blueprints.j2ee.sun.com/TPASupplierOrder; XSD validation optional via constructor flag.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/com/sun/j2ee/blueprints/xmldocuments/tpa/TPASupplierOrderXDE.java
+        line_start: 119
+        line_end: 126
+        excerpt: |
+          public void copyDocument(Result result) throws XMLDocumentException {
+            Element supplierOrderElement = supplierOrderDocument.createElementNS(XML_NAMESPACE, XML_SUPPLIERORDER);
+            supplierOrderElement.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:" + XML_PREFIX, XML_NAMESPACE);
+            supplierOrderElement.appendChild(orderIdElement);
+            supplierOrderElement.appendChild(orderDateElement);
+            supplierOrderElement.appendChild(shippingAddressElement);
+            supplierOrderElement.appendChild(lineItemsElement);
+            supplierOrderDocument.appendChild(supplierOrderElement);
+    stack_metadata:
+      framework: DOM/JAXP
+  - record_key: ORDER-FULFILLMENT-INTEGRATION-0004
+    kind: integration
+    capability_key: order-fulfillment
+    requirement: >
+      The system SHALL report invoices back to the order center as an Invoice document containing order id, user id, order date, shipping date and line items.
+    confidence: high
+    confidence_basis: Both the DTD and the editor class state the same field set.
+    risk_class: financial
+    basis: Invoice.dtd requires (OrderId, UserId, OrderDate, ShippingDate, LineItem+) with locale default en_US; TPAInvoiceXDE builds the same.
+    plain_text: When an order ships, an invoice is returned listing the order, customer, dates and items; locale defaults to US English.
+    technical_note: Invoice.dtd locale attribute default "en_US"; TPAInvoiceXDE namespace http://blueprints.j2ee.sun.com/TPAInvoice.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/rsrc/schemas/Invoice.dtd
+        line_start: 89
+        line_end: 93
+        excerpt: |
+          <!ELEMENT Invoice (OrderId, UserId, OrderDate, ShippingDate, LineItem+)>
+
+          <!ATTLIST Invoice
+          	locale CDATA "en_US"
+          >
+      - path: legacy-source/app/src/components/xmldocuments/src/com/sun/j2ee/blueprints/xmldocuments/tpa/TPAInvoiceXDE.java
+        line_start: 113
+        line_end: 121
+        excerpt: |
+          public void copyDocument(Result result) throws XMLDocumentException {
+            Element invoiceElement = invoiceDocument.createElementNS(XML_NAMESPACE, XML_INVOICE);
+            invoiceElement.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:" + XML_PREFIX, XML_NAMESPACE);
+            invoiceElement.appendChild(orderIdElement);
+            invoiceElement.appendChild(userIdElement);
+            invoiceElement.appendChild(orderDateElement);
+            invoiceElement.appendChild(shippingDateElement);
+            invoiceElement.appendChild(lineItemsElement);
+            invoiceDocument.appendChild(invoiceElement);
+    stack_metadata:
+      framework: DOM/JAXP
+  - record_key: ORDER-NOTIFICATIONS-INTEGRATION-0005
+    kind: integration
+    capability_key: order-notifications
+    requirement: >
+      The system SHALL represent a customer notification mail as a Mail document with an Address, a Subject and a Content, in that order.
+    confidence: medium
+    confidence_basis: One place (DTD); no Java class for Mail was seen in this module, so use is inferred.
+    risk_class: operational
+    basis: Mail.dtd defines the element structure.
+    plain_text: Each customer email has a recipient address, a subject line and a body.
+    technical_note: Mail.dtd only; consumer lives outside this module.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/rsrc/schemas/Mail.dtd
+        line_start: 38
+        line_end: 41
+        excerpt: |
+          <!ELEMENT Mail (Address, Subject, Content)>
+          <!ELEMENT Address (#PCDATA)>
+          <!ELEMENT Subject (#PCDATA)>
+          <!ELEMENT Content (#PCDATA)>
+    stack_metadata:
+      framework: DTD
+findings: []
+suspected_defects:
+  - capability_key: order-approval
+    record_keys: [ORDER-APPROVAL-INTEGRATION-0001]
+    severity: low
+    category: other
+    title: OrderStatus modelled as element with a FIXME to make it an attribute
+    description: >
+      The schema carries an unresolved developer note that OrderStatus should be an attribute; status values are unconstrained text.
+    traces:
+      - path: legacy-source/app/src/components/xmldocuments/src/rsrc/schemas/OrderApproval.dtd
+        line_start: 44
+        line_end: 45
