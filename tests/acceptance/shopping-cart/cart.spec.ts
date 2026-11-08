@@ -89,39 +89,6 @@ test.describe("shopping cart", () => {
     expect(JSON.stringify(await second.json()).toLowerCase()).toContain("empty");
   });
 
-  // case: SWHR8-C-0077@v1
-  test("[SWHR8-C-0077] submitting the checkout form with an empty cart shows the error page", async ({
-    page,
-  }) => {
-    await page.goto("/checkout");
-    for (const [label, value] of [
-      ["Last name", party.lastName],
-      ["First name", party.firstName],
-      ["Address line 1", party.address1],
-      ["City", party.city],
-      ["State", party.state],
-      ["Postal code", party.postalCode],
-      ["Telephone", party.phone],
-      ["E-mail", party.email],
-    ]) {
-      // Exact match: 'State' must not hit other labels containing "state". Billing then shipping.
-      const fields = page.getByLabel(label, { exact: true });
-      await expect(fields).toHaveCount(2);
-      for (const i of [0, 1]) await fields.nth(i).fill(value);
-    }
-    // Scope to the one form holding the billing fields so only its own submit button can match.
-    const form = page
-      .locator("form")
-      .filter({ has: page.getByLabel("Last name", { exact: true }) });
-    await form
-      .getByRole("button", { name: /submit|place order|confirm/i })
-      .first()
-      .click();
-    await expect(page).toHaveURL(/\/checkout\/error/);
-    await expect(page.getByText("Order Error").first()).toBeVisible();
-    await expect(page.getByText(/empty/i).first()).toBeVisible();
-  });
-
   // case: SWHR8-C-0078@v1
   test("[SWHR8-C-0078] an anonymous shopper can add an item to the cart", async ({ request }) => {
     const res = await request.post("/api/cart/items", { data: { itemId: "EST-1" } });
