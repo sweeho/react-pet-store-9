@@ -1,0 +1,19 @@
+recommendations:
+  - {record_key: ORDER-NOTIFICATIONS-INT-0001, recommendation: accept, confidence: high, reason: "Passes agree and the code, descriptors and guides concur."}
+  - {record_key: ORDER-NOTIFICATIONS-REQ-0002, recommendation: accept, confidence: medium, reason: "Pass B (high) and A (medium) agree on the content; sender comes from the mail session default."}
+  - {record_key: ORDER-NOTIFICATIONS-BR-0003, recommendation: accept, confidence: high, reason: "Passes agree and the code, descriptors and guides concur."}
+  - {record_key: ORDER-NOTIFICATIONS-BR-0004, recommendation: accept, confidence: medium, reason: "Single place (MDB catch clauses); redelivery depends on the container."}
+  - {record_key: ORDER-NOTIFICATIONS-BR-0005, recommendation: accept, confidence: low, reason: "Only the admin and user guides state it; the switches are in the OPC module. Confirm against ORDNOT-RULE-0001, which cites the code."}
+  - {record_key: ORDER-NOTIFICATIONS-INTEGRATION-0005, recommendation: accept, confidence: medium, reason: "DTD only; duplicate of INT-0001 structure. Keep one of the Mail document records."}
+  - {record_key: ORDNOT-WORKFLOW-0007, recommendation: reject, confidence: low, reason: "Mail.dtd only, duplicate of the Mail structure in INT-0001; not a workflow."}
+  - {record_key: ORDNOT-REQ-0007, recommendation: reject, confidence: low, reason: "Duplicates the Mail document records; reachability unresolved (Mail.dtd only). Merge into INT-0001 rather than keep separate."}
+  - {record_key: ORDNOT-RULE-0001, recommendation: accept, confidence: high, reason: "Passes agree and the code, descriptors and guides concur."}
+  - {record_key: ORDNOT-RULE-0002, recommendation: accept, confidence: high, reason: "Passes agree and the code, descriptors and guides concur."}
+  - {record_key: ON-REQ-0001, recommendation: accept, confidence: medium, reason: "Storefront code is read; whether mail is sent is configured in the other application."}
+  - {record_key: ORN-BR-0001, recommendation: accept, confidence: medium, reason: "Defaults in petstore.properties; no override seen. Matches the admin guide."}
+  - {record_key: ONOT-INT-0001, recommendation: accept, confidence: high, reason: "Passes agree and the code, descriptors and guides concur."}
+  - {record_key: ONOT-RULE-0002, recommendation: accept, confidence: medium, reason: "Single bean; failure propagation and connection close are in AsyncSenderEJB."}
+  - {record_key: ONOT-RULE-0003, recommendation: accept, confidence: medium, reason: "Transaction attribute is an implementation detail the rebuild may satisfy differently."}
+  - {record_key: ORDNOT-REQ-0001, recommendation: accept, confidence: high, reason: "Passes agree and the code, descriptors and guides concur."}
+  - {record_key: ORDNOT-REQ-0002, recommendation: accept, confidence: high, reason: "Passes agree and the code, descriptors and guides concur."}
+  - {record_key: ORDER-NOTIFICATIONS-REQUIREMENT-0001, recommendation: accept, confidence: high, reason: "Passes agree and the code, descriptors and guides concur."}
