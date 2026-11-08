@@ -33,7 +33,7 @@ async function stubOrders(
 }
 
 const statusOf = (page: Page, id: string) =>
-  page.locator(`[data-order-id="${id}"]`).getByLabel("Status");
+  page.locator(`[data-order-id="${id}"]`).getByLabel("Status", { exact: true });
 
 test.describe("admin order management UI", () => {
   // case: SWHR8-C-0252@v1
