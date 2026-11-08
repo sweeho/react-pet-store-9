@@ -70,6 +70,31 @@ jobs:
         env:
           PLAYWRIGHT_JUNIT_OUTPUT_NAME: .vortex-results/e2e.xml
 
+      # TODO: remove `continue-on-error` once the Build phase has made the
+      # acceptance suite green. It is red until then and must not fail CI.
+      - name: Acceptance tests
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: bun run test:acceptance -- --reporter=default --reporter=junit --outputFile.junit=.vortex-results/acceptance/junit.xml
+
+      # TODO: remove `continue-on-error` once the Build phase has made the
+      # acceptance suite green.
+      - name: Acceptance e2e tests
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: bun run test:acceptance:e2e
+        env:
+          CI: "true"
+
+      - name: Upload acceptance test results for Vortex
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vortex-test-results-acceptance
+          path: .vortex-results/acceptance/*.xml
+          include-hidden-files: true
+          if-no-files-found: ignore
+
       - name: Upload test results for Vortex
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4

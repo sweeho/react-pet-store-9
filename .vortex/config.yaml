@@ -103,6 +103,19 @@ testEvidence:
   configFiles: ["vitest.config.ts", "vite.config.ts", "playwright.config.ts"]
   redScaffoldGlobs: ["db/schema.ts", "drizzle/**"]
   timeoutSeconds: 900
+  # How the locked acceptance tests run for a ticket; {files} is the locked files.
+  acceptance:
+    suites:
+      - kind: unit
+        command: >-
+          bun run test:acceptance --reporter=default --reporter=junit
+          --outputFile.junit=.vortex-results/acceptance/junit.xml {files}
+        junitPath: .vortex-results/acceptance/junit.xml
+        testGlobs: ["tests/acceptance/**/*.test.ts"]
+      - kind: browser
+        command: CI=true bun run test:acceptance:e2e {files}
+        junitPath: .vortex-results/acceptance/e2e-junit.xml
+        testGlobs: ["tests/acceptance/**/e2e/**/*.spec.ts"]
   # The CI job that runs each level officially (.github/workflows/ci.yml).
   ciJobs:
     unit: build-and-test
