@@ -1,0 +1,166 @@
+records:
+  - record_key: ORDER-APPROVAL-ENTITY-0001
+    kind: entity
+    capability_key: order-approval
+    requirement: >
+      The system SHALL keep one process-status record per order, keyed by order id, holding the order id and a status string.
+    confidence: high
+    confidence_basis: >
+      Declared in the deployment descriptor (persistent fields, primary key) and in the bean's abstract accessors and create method: two places.
+    risk_class: operational
+    basis: Container-managed entity with fields orderId (primary key) and status.
+    plain_text: Every order has exactly one workflow status entry, identified by the order number.
+    technical_note: ManagerEJB CMP 2.x entity; primkey-field orderId; ejbCreate stores both fields. The primary key is not validated.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/processmanager/src/ejb-jar.xml
+        line_start: 57
+        line_end: 65
+        excerpt: |
+          <cmp-field>
+            <description>no description</description>
+            <field-name>status</field-name>
+          </cmp-field>
+          <cmp-field>
+            <description>no description</description>
+            <field-name>orderId</field-name>
+          </cmp-field>
+          <primkey-field>orderId</primkey-field>
+      - path: legacy-source/app/src/components/processmanager/src/com/sun/j2ee/blueprints/processmanager/manager/ejb/ManagerEJB.java
+        line_start: 61
+        line_end: 64
+        excerpt: |
+          public String ejbCreate(String orderId, String status) throws CreateException {
+              setOrderId(orderId);
+              setStatus(status);
+    stack_metadata:
+      framework: EJB 2.0 CMP
+      ejb.bean: ManagerEJB
+      ejb.transaction: Required
+  - record_key: ORDER-APPROVAL-BR-0001
+    kind: business-rule
+    capability_key: order-approval
+    requirement: >
+      The system SHALL recognise exactly five order statuses: PENDING, APPROVED, DENIED, SHIPPED_PART and COMPLETED.
+    confidence: medium
+    confidence_basis: >
+      One clear place (constants class). The entity does not enforce the set, so any string can be stored; the set is a convention.
+    risk_class: operational
+    basis: Status constants with comments describing each.
+    plain_text: An order is either pending, approved, denied, partly shipped or completed.
+    technical_note: OrderStatusNames string constants. ProcessManagerEJB/ManagerEJB accept any string without checking against these.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/processmanager/src/com/sun/j2ee/blueprints/processmanager/ejb/OrderStatusNames.java
+        line_start: 50
+        line_end: 65
+        excerpt: |
+          public static final String PENDING = "PENDING";
+          public  static final String APPROVED = "APPROVED";
+          public  static final String DENIED = "DENIED";
+          public  static final String SHIPPED_PART = "SHIPPED_PART";
+          public  static final String COMPLETED = "COMPLETED";
+    stack_metadata:
+      framework: Java constants
+  - record_key: ORDER-APPROVAL-REQ-0001
+    kind: requirement
+    capability_key: order-approval
+    requirement: >
+      The system SHALL allow a status record to be created for an order with an initial status, and its status to be updated and read by order id.
+    confidence: high
+    confidence_basis: >
+      Session bean methods plus the descriptor listing them with Required transactions; callers are outside this module so reachability of each is not seen here.
+    risk_class: operational
+    basis: createManager, updateStatus and getStatus delegate to the entity.
+    plain_text: The workflow can register a new order with a starting status, change it later and look it up.
+    technical_note: >
+      ProcessManagerEJB (stateless session, container transactions) looks up ManagerLocalHome. updateStatus and getStatus throw FinderException for an unknown order id. No check of allowed state transitions is made.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/processmanager/src/com/sun/j2ee/blueprints/processmanager/ejb/ProcessManagerEJB.java
+        line_start: 66
+        line_end: 91
+        excerpt: |
+          public void createManager(String orderId, String status) throws CreateException {
+            ManagerLocal manager = mlh.create(orderId, status);
+          public void updateStatus(String orderId, String status) throws FinderException {
+            ManagerLocal manager = mlh.findByPrimaryKey(orderId);
+            manager.setStatus(status);
+          public String getStatus(String orderId) throws FinderException {
+    stack_metadata:
+      framework: EJB 2.0
+      ejb.bean: ProcessManagerEJB
+      ejb.transaction: Required
+  - record_key: ORDER-APPROVAL-REQ-0002
+    kind: requirement
+    capability_key: admin-order-management
+    requirement: >
+      The system SHALL return all orders whose status equals a given value.
+    confidence: high
+    confidence_basis: >
+      Declared EJB-QL query plus session method calling the finder; consumers (e.g. admin pending list) not visible in this module.
+    risk_class: operational
+    basis: findOrdersByStatus query supports listing pending orders for admin; filed under admin-order-management as closest home.
+    plain_text: Staff can list every order that currently has a given status, such as all pending orders.
+    technical_note: EJB-QL SELECT DISTINCT OBJECT(a) FROM Manager a WHERE a.status = ?1; exact match, case-sensitive.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/processmanager/src/ejb-jar.xml
+        line_start: 70
+        line_end: 79
+        excerpt: |
+          <query-method>
+            <method-name>findOrdersByStatus</method-name>
+          <ejb-ql>SELECT DISTINCT OBJECT(a) FROM Manager a WHERE a.status = ?1</ejb-ql>
+      - path: legacy-source/app/src/components/processmanager/src/com/sun/j2ee/blueprints/processmanager/ejb/ProcessManagerEJB.java
+        line_start: 89
+        line_end: 91
+        excerpt: |
+          public Collection getOrdersByStatus(String status) throws FinderException {
+              return mlh.findOrdersByStatus(status);
+    stack_metadata:
+      framework: EJB 2.0 CMP finder
+      db.object: Manager
+  - record_key: ORDER-APPROVAL-WF-0001
+    kind: workflow
+    capability_key: order-approval
+    requirement: >
+      The system SHALL instantiate a pluggable transition handler by configured class name and pass it an XML message or batch of messages to perform a workflow transition.
+    confidence: low
+    confidence_basis: >
+      Only the interface, factory and info holder exist in this module; no implementer or caller seen here, so reachability is unknown.
+    dispute:
+      reason: unresolved-reachability
+      detail: >
+        No TransitionDelegate implementation or caller in this module. A search of other modules for getTransitionDelegate would settle whether it is live.
+    risk_class: operational
+    basis: TransitionDelegate.setup/doTransition, TransitionInfo carries xml message(s), factory uses reflection.
+    plain_text: Workflow steps can be plugged in by name and are handed the incoming order message to process.
+    technical_note: Class.forName(className).newInstance(); any failure wrapped in TransitionException.
+    traces:
+      - path: legacy-source/app/src/components/processmanager/src/com/sun/j2ee/blueprints/processmanager/transitions/TransitionDelegateFactory.java
+        line_start: 48
+        line_end: 55
+        excerpt: |
+          public TransitionDelegate getTransitionDelegate(String className) throws TransitionException {
+            TransitionDelegate td = null;
+            try {
+              td = (TransitionDelegate)Class.forName(className).newInstance();
+            } catch(Exception e) {
+              throw new TransitionException(e);
+            }
+    stack_metadata:
+      framework: Java reflection
+suspected_defects:
+  - capability_key: order-approval
+    record_keys: [ORDER-APPROVAL-BR-0001, ORDER-APPROVAL-REQ-0001]
+    severity: low
+    category: other
+    title: Status values and transitions are not validated
+    description: >
+      Any string can be stored as a status and any status can follow any other; the five names are not enforced.
+    traces:
+      - path: legacy-source/app/src/components/processmanager/src/com/sun/j2ee/blueprints/processmanager/ejb/ProcessManagerEJB.java
+        line_start: 73
+        line_end: 76
+findings: []
