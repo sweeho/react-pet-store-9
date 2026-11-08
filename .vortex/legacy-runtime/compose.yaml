@@ -1,0 +1,21 @@
+# Legacy Java Pet Store 1.3.2 on the J2EE 1.3.1 Reference Implementation (Java 1.4).
+# Start: docker compose -f .vortex/legacy-runtime/compose.yaml up --build
+# See README.md for the two inputs that are not in the repository.
+services:
+  legacy-petstore:
+    build:
+      context: .
+      additional_contexts:
+        # The legacy source (legacy-source/ on the legacy-spec branch). Override with a
+        # local checkout path: LEGACY_SOURCE_CONTEXT=/path/to/legacy-source
+        legacy-source: ${LEGACY_SOURCE_CONTEXT:-https://github.com/sweeho/react-pet-store-9.git#vortex/legacy-spec/sx-0001:legacy-source}
+        # Directory holding j2sdk-1_4_2-linux-i586.tar.gz-style JDK 1.4 and j2sdkee-1_3_1.zip.
+        vendor: ${LEGACY_VENDOR_DIR:-./vendor}
+    ports:
+      - "${LEGACY_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/petstore/main.screen"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
