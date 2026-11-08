@@ -145,3 +145,123 @@ recommendations:
     confidence: high
     reason: >
       ejb-jar, DDL and both passes agree. The XML contact interchange and creation variants from the contactinfo pass are described in design.md.
+  - record_key: IR-INT-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Data-load endpoint is read from the petstore pass only; confirm with the Business Owner that the rebuild keeps a seed endpoint.
+  - record_key: AOM-REQ-0006
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Java Web Start delivery is legacy technology; keep the access intent (administrators only) and decide the delivery mechanism in the rebuild.
+  - record_key: ACCT-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass B agrees with Pass A (CA-REQ-0003) and the protected-screen configuration.
+  - record_key: ACCT-REQ-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Agrees with CA-BR-0002 and the C-pass duplicate-account rule.
+  - record_key: ACCT-REQ-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Same mandatory-field set as CA-BR-0007 in Pass A.
+  - record_key: ACCT-REQ-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      Same behaviour as CA-REQ-0005; the passes agree.
+  - record_key: LOC-REQ-0001
+    recommendation: reject
+    confidence: medium
+    reason: >
+      Belongs to the localization capability, not customer-account; keep it there.
+  - record_key: CATALOG-BROWSING-REQ-0006
+    recommendation: reject
+    confidence: medium
+    reason: >
+      Seed-load endpoint duplicates IR-INT-0001 and is mis-assigned to this capability; the unauthenticated endpoint is a suspected legacy defect for the defect register.
+  - record_key: ORDER-REPORTING-BATCH-REQ-0001
+    recommendation: reject
+    confidence: medium
+    reason: >
+      Purge of old orders belongs to order-reporting-batch.
+  - record_key: CUSTACCT-ENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Duplicates CUSTA-ENT-0001; both passes agree.
+  - record_key: CUSTACCT-RULE-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Duplicates CUSTA-BR-0002; both passes agree.
+  - record_key: CUSTACCT-ENT-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Duplicates CUSTA-ENT-0003 without the status values.
+  - record_key: CUSTACCT-RULE-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Duplicates CUSTA-ENT-0005 defaults.
+  - record_key: CUST-WF-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass B detail of CUST-REQ-0004 in the sign-on filter; the passes agree.
+  - record_key: CUST-WF-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass B detail of sign-on success and failure; agrees with CUST-REQ-0005.
+  - record_key: CUST-WF-0007
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Pass B restates CUST-REQ-0003 as a workflow.
+  - record_key: CUST-ENT-0008
+    recommendation: accept
+    confidence: high
+    reason: >
+      Agrees with the sign-on table DDL. Clear-text password storage is a suspected legacy defect; confirm what the code does.
+  - record_key: CUSB-ENT-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      DDL keys and foreign keys agree with CUST-ENT-0005.
+  - record_key: INVB-BR-0016
+    recommendation: reject
+    confidence: medium
+    reason: >
+      Database backup is operational, belongs to inventory/reporting, not customer-account.
+  - record_key: ADMO-ENT-0001
+    recommendation: reject
+    confidence: medium
+    reason: >
+      Order status view belongs to admin order management.
+  - record_key: CUSTOMER-ENT-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      DDL pass B agrees with CUST-ENT-0004.
+  - record_key: CUSTOMER-ENT-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      DDL pass B agrees with CUST-ENT-0005.
+  - record_key: ORDC-REQ-0001
+    recommendation: reject
+    confidence: medium
+    reason: >
+      Order status listing belongs to order approval/admin, not customer-account.
+  - record_key: CUSTOMER-ACCOUNT-ENTITY-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      DDL pass B agrees with CUST-ENT-0002; adds the 10 character language limit.

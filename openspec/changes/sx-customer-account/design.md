@@ -17,3 +17,7 @@ No screen records were extracted for this capability; its user interface is unsp
 - Form makes e-mail optional; DDL makes contact e-mail NOT NULL and address country mandatory.
 - Account status "disabled" exists but no code path setting it was found.
 - Session timeout configured in two places.
+
+## Record key collisions
+
+Several record keys are reused by different passes or modules for different behaviour (CUST-ENT-0001, CUST-ENT-0002, CUST-REQ-0002, CUST-REQ-0004 to CUST-REQ-0006, CUST-RULE-0002, CUSTOMER-ACCOUNT-REQ-0001, CUSTOMER-ACCOUNT-REQ-0002, CUSTOMER-ACCOUNT-ENTITY-0001). Each key is written once in spec.md. The sign-on and database-schema readings were used; the contact-information readings (address removal with contact, empty address on creation, XML contact exchange, address service lookup failure) share those keys and are not separately stated. The platform should give them distinct keys.
