@@ -1,0 +1,76 @@
+%% EXTRACTED FROM LEGACY SOURCE — evidence of what exists, not a build target. Where this disagrees with a capability delta spec, the delta spec wins.
+%% Source: legacy-source/db/schema/petstore_oracle.sql
+erDiagram
+  CATEGORY ||--o{ CATEGORY_DETAILS : localised
+  CATEGORY ||--o{ PRODUCT : contains
+  PRODUCT ||--o{ PRODUCT_DETAILS : localised
+  PRODUCT ||--o{ ITEM : has
+  ITEM ||--o{ ITEM_DETAILS : localised
+  SIGNON_USER ||--o| CUSTOMER : "user_id = username"
+  CUSTOMER }o--|| ACCOUNT : has
+  CUSTOMER }o--|| PROFILE : has
+  ACCOUNT }o--|| CONTACT_INFO : contact
+  ACCOUNT }o--|| CREDIT_CARD : card
+  CONTACT_INFO }o--|| ADDRESS : at
+  PURCHASE_ORDER }o--|| CONTACT_INFO : contact
+  PURCHASE_ORDER }o--|| CREDIT_CARD : card
+  PURCHASE_ORDER ||--o{ PO_LINE_ITEM : lines
+  PURCHASE_ORDER ||--o| ORDER_MANAGER : "po_id = order_id (no FK)"
+  SUPPLIER_ORDER }o--|| CONTACT_INFO : contact
+  SUPPLIER_ORDER ||--o{ SUPPLIER_LINE_ITEM : lines
+  INVENTORY {
+    varchar item_id PK
+    int quantity
+  }
+  COUNTER {
+    varchar name PK
+    int counter
+  }
+  ORDER_MANAGER {
+    varchar order_id PK
+    varchar status "PENDING APPROVED DENIED COMPLETED"
+  }
+  PURCHASE_ORDER {
+    varchar po_id PK
+    varchar po_user_id
+    varchar po_email_id
+    bigint po_date
+    varchar po_locale
+    decimal po_value
+    varchar contact_id FK
+    varchar card_id FK
+  }
+  PO_LINE_ITEM {
+    varchar po_id PK
+    varchar line_number PK
+    varchar item_id
+    int quantity
+    decimal unit_price
+    int quantity_shipped
+  }
+  SUPPLIER_ORDER {
+    varchar po_id PK
+    bigint po_date
+    varchar po_status "PENDING COMPLETED"
+    varchar contact_id FK
+  }
+  SUPPLIER_LINE_ITEM {
+    varchar po_id PK
+    varchar line_number PK
+    varchar item_id
+    int quantity
+    decimal unit_price
+    int quantity_shipped
+  }
+  CREDIT_CARD {
+    varchar card_id PK
+    varchar card_number
+    varchar card_type
+    varchar expiry_date
+  }
+  ITEM_DETAILS {
+    varchar itemid PK
+    varchar locale PK
+    decimal listprice
+    decimal unitcost
+  }

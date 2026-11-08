@@ -1,0 +1,375 @@
+schemaVersion: 1
+program:
+  key: java-pet-store-rebuild
+  title: Java Pet Store 1.3.2 rebuild
+  source: extraction
+  generator: vortex-spec-extraction
+  sourceRef: vortex/legacy-spec/sx-0001
+capabilities:
+  - slug: localization
+    title: Localization
+    order: 1
+    dependsOn: []
+    priority: 0
+    change:
+      dir: openspec/changes/sx-localization
+      specCapabilities:
+        - localization
+    canvas:
+      problem: The storefront serves shoppers in en_US, ja_JP and zh_CN; locale selection, per-locale catalog text, formatting, encoding and notification language are spread over several legacy modules.
+      solution: Build session locale handling with a default, locale change, screen-language fallback, locale-keyed catalog text, UTF-8 request decoding and locale-aware formatting.
+      userStories:
+        - "As a shopper, I want to browse in English, Japanese or Chinese, so that I can read the store in my language."
+        - "As a shopper, I want my preferred language applied when I sign in, so that I do not choose it every visit."
+      acceptanceCriteria:
+        - "Supported storefront locales — en_US, ja_JP and zh_CN are supported: each is available for screens and catalog text."
+        - "Default session locale — a new session: the default locale en_US is applied."
+        - "Change session locale — a valid locale code is submitted: the session locale changes and subsequent screens use it."
+        - "Reject unparseable locale code — a malformed code is submitted: the locale is not changed."
+        - "Screen language selection and fallback — a screen has no definition for the locale: the fallback language screen is shown."
+        - "Order e-mail language — an order e-mail is sent: it is written in the order's locale."
+      outOfScope:
+        - Languages beyond en_US, ja_JP and zh_CN unless the Business Owner decides otherwise.
+        - Session timeout ownership, which belongs to session management.
+      risksAssumptions:
+        - The admin guide documents only English and Japanese while code ships zh_CN too; the code is treated as authoritative.
+        - The locale selection screen is a framework demo whose reachability is unresolved and which offers de_DE without screens.
+      techStack: []
+      affectedCode: []
+      screens:
+        - "Locale selection screen: a form offering US English (en_US), German (de_DE), Japanese (ja_JP) and Simplified Chinese (zh_CN) that posts the choice, then shows the resulting session locale; disputed reachability, de_DE has no matching screen definitions"
+    evidence:
+      irRefs: [LOC-REQ-0001, LOC-REQ-0005, LOC-REQ-0006, LOC-REQ-0008, LOCALIZATION-REQ-0001, LOCALIZATION-REQ-0002]
+      reviewedBy: null
+      reviewedAt: null
+  - slug: catalog-browsing
+    title: Catalog browsing and search
+    order: 2
+    dependsOn: [localization]
+    priority: 0
+    change:
+      dir: openspec/changes/sx-catalog-browsing
+      specCapabilities:
+        - catalog-browsing
+    canvas:
+      problem: Shoppers need to find pets by category, product, item and keyword, and operations need the catalog kept consistent.
+      solution: Build locale-specific category, product and item listing with paging, keyword search, item prices, the catalog schema and a catalog consistency check.
+      userStories:
+        - "As a shopper, I want to browse categories, products and items, so that I can find a pet to buy."
+        - "As a shopper, I want to search by keyword, so that I can find items quickly."
+      acceptanceCriteria:
+        - "Locale-specific catalog listing — a locale is active: names, descriptions and prices come from that locale's records."
+        - "Paged lists — a list exceeds the page size: it is split into pages."
+        - "Out-of-range page — a page beyond the last is requested: the request is handled without error per the spec."
+        - "Keyword search — keywords are entered: matching items are listed."
+        - "Empty search — no keyword is given: the spec's empty-search outcome applies."
+        - "Catalog consistency check — the check runs: inconsistent rows, such as an item priced below cost, are reported."
+      outOfScope:
+        - Cart, checkout and account behaviour.
+        - Database-specific SQL dialect handling of the legacy DAO as an implementation detail.
+      risksAssumptions:
+        - Sample data contains an item priced below cost (EST-26, ja_JP); no price check is enforced by the schema.
+      techStack: []
+      affectedCode: []
+    evidence:
+      irRefs: [CB-REQ-0001, CB-REQ-0002, CB-REQ-0003, CB-REQ-0004, CATBR-REQ-0002, CATB-REQ-0009]
+      reviewedBy: null
+      reviewedAt: null
+  - slug: customer-account
+    title: Customer account and sign-on
+    order: 3
+    dependsOn: [localization]
+    priority: 0
+    change:
+      dir: openspec/changes/sx-customer-account
+      specCapabilities:
+        - customer-account
+    canvas:
+      problem: Customers need accounts with contact, card and profile data, and secure sign-on, with administrator and supplier roles protected.
+      solution: Build account creation with duplicate detection, profile editing, sign-on and sign-off with session binding and timeout, remember-user-name cookie and role-based access.
+      userStories:
+        - "As a shopper, I want to create an account, so that I can place orders."
+        - "As a shopper, I want to sign on and off, so that my data is protected."
+        - "As an administrator, I want restricted access to admin tools, so that only authorised staff use them."
+      acceptanceCriteria:
+        - "Customer creation defaults — a customer is created: default profile values are applied."
+        - "Duplicate-account screen — a user name already exists: the duplicate-account outcome is shown."
+        - "Authentication — valid credentials are submitted: the customer is signed on."
+        - "Sign-on failure — invalid credentials are submitted: the sign-on failed outcome is shown."
+        - "Protected resource redirect — an unauthenticated user requests a protected page: they are redirected to sign on."
+        - "Session inactivity timeout — the session is idle past the limit: it expires."
+        - "Cascade removal — a customer is removed: its account and profile parts are removed."
+      outOfScope:
+        - Order placement and payment capture.
+        - Password hashing improvements, since legacy stores plain text and the spec decides the rebuild behaviour.
+      risksAssumptions:
+        - Most requirements in this capability await SME review.
+        - Overlaps with admin and supplier access rules in other capabilities.
+      techStack: []
+      affectedCode: []
+    evidence:
+      irRefs: [CUST-REQ-0001, CUST-REQ-0002, CUST-REQ-0003, CUST-REQ-0004, CUSTOMER-ACCOUNT-REQ-0001, CUSTOMER-ACCOUNT-REQ-0005, AOM-REQ-0005]
+      reviewedBy: null
+      reviewedAt: null
+  - slug: shopping-cart
+    title: Shopping cart
+    order: 4
+    dependsOn: [catalog-browsing]
+    priority: 0
+    change:
+      dir: openspec/changes/sx-shopping-cart
+      specCapabilities:
+        - shopping-cart
+    canvas:
+      problem: Shoppers need a per-session cart to collect items before ordering.
+      solution: Build a session cart supporting add, remove, quantity update, empty, line presentation, subtotal and empty-cart order rejection.
+      userStories:
+        - "As a shopper, I want to add and remove items, so that I control what I buy."
+        - "As a shopper, I want to see line totals and a subtotal, so that I know the cost."
+      acceptanceCriteria:
+        - "Add item to cart — an item is added without a quantity: it is held with quantity 1."
+        - "Add item to cart — an item already in the cart is added: its quantity is replaced, not increased."
+        - "Update item quantity — a new quantity is submitted: the line shows it."
+        - "Non-numeric quantity treated as zero — a non-numeric quantity is submitted: it is treated as zero."
+        - "Cart subtotal — lines exist: the subtotal is the sum of line totals."
+        - "Empty cart rejects order — an order is submitted with an empty cart: it is rejected."
+        - "Cart cleared after order hand-off — an order is handed off: the cart is emptied."
+      outOfScope:
+        - Payment and order entry details.
+        - Persistence of the cart beyond the session.
+      risksAssumptions:
+        - Items missing from the catalog are silently dropped in legacy; this is disputed and awaits a Business Owner decision.
+      techStack: []
+      affectedCode: []
+    evidence:
+      irRefs: [CART-REQ-0001, CART-REQ-0002, CART-REQ-0004, CART-REQ-0005, CART-BR-0001, SHOPPING-CART-REQ-0003]
+      reviewedBy: null
+      reviewedAt: null
+  - slug: order-checkout
+    title: Order checkout and payment details
+    order: 5
+    dependsOn: [shopping-cart, customer-account]
+    priority: 0
+    change:
+      dir: openspec/changes/sx-order-checkout
+      specCapabilities:
+        - order-checkout
+    canvas:
+      problem: Customers must convert a cart into an order with billing, shipping and card details that order processing can receive.
+      solution: Build order and card persistence, checkout validation, order numbering, address handling and asynchronous submission to order processing.
+      userStories:
+        - "As a shopper, I want to enter billing, shipping and card details, so that I can place my order."
+        - "As the business, I want each order uniquely identified and submitted asynchronously, so that no order is lost or duplicated."
+      acceptanceCriteria:
+        - "Required contact data at checkout — required contact fields are missing: the order is not accepted."
+        - "Order line quantity limits — a line quantity is outside the allowed range: it is rejected."
+        - "Order total — lines are priced: the order total is computed per the spec."
+        - "Unique identifier generation — orders are created: each gets a unique identifier from the counter."
+        - "Asynchronous order submission — an order is placed: it is sent to order processing as a message."
+        - "Card expiry month and year — a card expiry is entered: it is read as month and year with the documented fallback."
+      outOfScope:
+        - Approval decisions and fulfilment.
+        - Real payment authorisation, which legacy does not perform.
+      risksAssumptions:
+        - Card numbers are stored in clear in legacy; the rebuild must decide protection under the spec.
+      techStack: []
+      affectedCode: []
+    evidence:
+      irRefs: [OC-REQ-0001, OC-REQ-0003, OC-REQ-0005, ORDER-CHECKOUT-REQ-0001, ORDER-CHECKOUT-REQ-0004, ORDCHK-REQ-0001, CHK-REQ-0003]
+      reviewedBy: null
+      reviewedAt: null
+  - slug: order-approval
+    title: Order approval
+    order: 6
+    dependsOn: [order-checkout]
+    priority: 0
+    change:
+      dir: openspec/changes/sx-order-approval
+      specCapabilities:
+        - order-approval
+    canvas:
+      problem: Newly received orders must be approved automatically or held for an administrator based on region-specific limits.
+      solution: Build automatic approval by locale and total, administrator hold, a per-order status record, the PENDING-only decision guard and approval messaging.
+      userStories:
+        - "As the business, I want small orders approved automatically, so that fulfilment is fast."
+        - "As an administrator, I want larger orders held, so that I can review them."
+      acceptanceCriteria:
+        - "Automatic approval by locale and total — an en_US order total is within 500 or a ja_JP total within 50000: the order is approved automatically."
+        - "Other locales held pending — an order from any other locale arrives: it is held PENDING."
+        - "Administrator hold — an order exceeds its limit: it waits PENDING for an administrator."
+        - "Decisions apply only to pending orders — a decision targets a non-pending order: it is not applied."
+        - "Order status vocabulary — a status is recorded: it is one of PENDING, APPROVED, DENIED, COMPLETED."
+      outOfScope:
+        - The admin client UI.
+        - Supplier shipping.
+      risksAssumptions:
+        - Limits are bare configuration values with no authoritative business source.
+      techStack: []
+      affectedCode: []
+    evidence:
+      irRefs: [ORDER-APPROVAL-REQ-0001, ORDC-REQ-0001, ORDFUL-REQ-0008, ORN-BR-0001, ADM-BR-0009]
+      reviewedBy: null
+      reviewedAt: null
+  - slug: order-notifications
+    title: Customer notifications
+    order: 7
+    dependsOn: [order-approval]
+    priority: 0
+    change:
+      dir: openspec/changes/sx-order-notifications
+      specCapabilities:
+        - order-notifications
+    canvas:
+      problem: Customers are mailed on order receipt, approval, denial and completion, gated by administrator switches.
+      solution: Build queued mail requests, delivery with discard-on-failure, per-notification enablement and status e-mail subject, recipient and language.
+      userStories:
+        - "As a customer, I want e-mail about my order status, so that I know what happens to it."
+        - "As an administrator, I want to switch each notification on or off, so that I control outgoing mail."
+      acceptanceCriteria:
+        - "Three independent default-off switches — default configuration: no mail is sent."
+        - "Mail request consumption — a mail request is queued: it is consumed and delivered."
+        - "Delivery failure is discarded — delivery fails: the failure is discarded without retry."
+        - "Malformed request is an error — a malformed request arrives: it is treated as an error."
+        - "Status e-mail subject, recipient and language — a status mail is composed: it uses the order's bill-to e-mail and locale."
+      outOfScope:
+        - Order status decisions.
+        - Marketing or other mail.
+      risksAssumptions:
+        - Failed deliveries are silently discarded in legacy.
+      techStack: []
+      affectedCode: []
+    evidence:
+      irRefs: [ON-REQ-0001, ORDNOT-REQ-0001, ORDNOT-REQ-0002, ORDNOT-REQ-0007, ORDER-NOTIFICATIONS-BR-0003]
+      reviewedBy: null
+      reviewedAt: null
+  - slug: order-fulfillment
+    title: Order fulfillment and inventory
+    order: 8
+    dependsOn: [order-approval]
+    priority: 0
+    change:
+      dir: openspec/changes/sx-order-fulfillment
+      specCapabilities:
+        - order-fulfillment
+    canvas:
+      problem: Approved orders must be fulfilled by a supplier from stock and invoiced back so the order is completed.
+      solution: Build supplier order intake, stock-based shipping, invoicing to the order center, pending-order retry on stock update, stock clerk inventory update and the exchanged documents.
+      userStories:
+        - "As the business, I want approved orders sent to the supplier and shipped from stock, so that customers receive pets."
+        - "As a stock clerk, I want to set inventory quantities, so that pending orders can ship."
+      acceptanceCriteria:
+        - "Ship a line only with sufficient stock — stock is below the line quantity: the line is not shipped."
+        - "Complete only if every line fulfilled — all lines shipped: the order is completed."
+        - "Reprocess pending orders on stock update — stock is updated: pending orders are re-attempted."
+        - "Accept only non-negative integer quantities — a negative or non-integer quantity is entered: it is rejected."
+        - "Inventory update restricted to administrators — a non-administrator updates inventory: access is denied."
+        - "Completion on invoice receipt — an invoice reaches the order center: the order becomes COMPLETED."
+      outOfScope:
+        - Approval decisions.
+        - Customer e-mail content.
+      risksAssumptions:
+        - Many requirements overlap across records; the spec is the arbiter.
+      techStack: []
+      affectedCode: []
+    evidence:
+      irRefs: [ORDER-FULFILLMENT-REQ-0001, ORDER-FULFILLMENT-REQ-0002, ORD-FUL-REQ-0001, ORDFUL-REQ-0004, ORDF-REQ-0002, FULFILL-REQ-0008]
+      reviewedBy: null
+      reviewedAt: null
+  - slug: admin-order-management
+    title: Admin order management
+    order: 9
+    dependsOn: [order-approval, customer-account]
+    priority: 0
+    change:
+      dir: openspec/changes/sx-admin-order-management
+      specCapabilities:
+        - admin-order-management
+    canvas:
+      problem: Administrators must review orders by status and approve or deny pending orders.
+      solution: Build restricted administrator access with session expiry, order listing by status, approve or deny of pending orders relayed asynchronously, and sales totals.
+      userStories:
+        - "As an administrator, I want to list orders by status, so that I can find those needing attention."
+        - "As an administrator, I want to approve or deny pending orders, so that fulfilment can proceed."
+      acceptanceCriteria:
+        - "Administrator-only access — a non-administrator requests the admin tools: access is denied."
+        - "Find orders by status — a status is chosen: orders in that status are listed with details."
+        - "Approve or deny pending orders — a pending order is decided: the decision is published asynchronously."
+        - "Order Approval rejection rules — an invalid approval document is received: it is rejected."
+        - "Sales totals by category or item — a date range is given: totals are returned."
+      outOfScope:
+        - The automatic approval rules.
+        - Inventory updates by the stock clerk.
+      risksAssumptions: []
+      techStack: []
+      affectedCode: []
+    evidence:
+      irRefs: [ADM-REQ-0001, ADM-REQ-0002, ADM-REQ-0004, ADMIN-REQ-0001, OAPP-REQ-0003, ORDAPP-REQ-0001]
+      reviewedBy: null
+      reviewedAt: null
+  - slug: order-reporting-batch
+    title: Order batch jobs
+    order: 10
+    dependsOn: [order-fulfillment]
+    priority: 0
+    change:
+      dir: openspec/changes/sx-order-reporting-batch
+      specCapabilities:
+        - order-reporting-batch
+    canvas:
+      problem: Finance and Operations depend on scheduled jobs for the order extract, stuck-order aging report and purge of old orders.
+      solution: Build the nightly extract with trailer and failure mail, the aging report, the weekly purge, and the batch chain with schedule, settings and exit codes.
+      userStories:
+        - "As Finance, I want a nightly order extract, so that I can reconcile sales."
+        - "As Operations, I want a stuck-order aging report, so that I can chase stalled orders."
+      acceptanceCriteria:
+        - "Daily order extract for Finance — the nightly job runs: an extract file with a trailer is produced."
+        - "Extract trailer and failure notification — the extract fails: a failure mail is sent."
+        - "Stuck-order aging report — orders are stuck: they are listed with counts per status."
+        - "Weekly purge of finished orders — COMPLETED or DENIED orders past retention exist: they and their personal data are purged."
+        - "Open orders never purged — an order is not finished: it is kept."
+        - "Batch settings and exit codes — a job ends: it returns the documented exit code."
+      outOfScope:
+        - Inventory and catalog jobs.
+      risksAssumptions:
+        - Retention periods and thresholds are bare literals with low confidence.
+      techStack: []
+      affectedCode: []
+    evidence:
+      irRefs: [ORDB-REQ-0001, ORDB-REQ-0002, ORDB-REQ-0003, ORDB-REQ-0004, ORDB-REQ-0005, SWHR8-R-0015]
+      reviewedBy: null
+      reviewedAt: null
+  - slug: inventory-reporting
+    title: Inventory and operations reporting
+    order: 11
+    dependsOn: [catalog-browsing, order-fulfillment]
+    priority: 0
+    change:
+      dir: openspec/changes/sx-inventory-reporting
+      specCapabilities:
+        - inventory-reporting
+    canvas:
+      problem: Operations need unattended jobs for low-stock reporting, catalog integrity, database backup and web health probing, plus a data-load endpoint and admin sales reports.
+      solution: Build the daily low-stock report, catalog integrity checks, daily backup with retention, health probe, sample data load endpoint and admin revenue and quantity reports.
+      userStories:
+        - "As Operations, I want a daily low-stock report, so that we restock in time."
+        - "As Operations, I want daily backups with retention, so that data can be recovered."
+      acceptanceCriteria:
+        - "Daily low-stock inventory report — the job runs: items below the threshold are reported."
+        - "Catalog integrity checks — the job runs: inconsistencies are reported."
+        - "Daily database backup with retention — the job runs: a backup is taken and old backups are removed beyond retention."
+        - "Web module health probe — the probe runs: the module state is reported."
+        - "Admin data request error handling — an admin data request fails: an error reply is returned."
+      outOfScope:
+        - Order extract, aging and purge jobs.
+      risksAssumptions: []
+      techStack: []
+      affectedCode: []
+    evidence:
+      irRefs: [INVR-REQ-0001, INVR-REQ-0002, INVR-REQ-0003, INVR-REQ-0004, INVR-REQ-0005, ADM-REQ-0007]
+      reviewedBy: null
+      reviewedAt: null
+artifacts:
+  openapi: api/openapi.yaml
+  erd: architecture/erd.mermaid
+  schema: architecture/schema.sql
+  agents: architecture/rebuild-guidance.md
