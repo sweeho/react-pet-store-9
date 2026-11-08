@@ -1,0 +1,121 @@
+recommendations:
+  - record_key: CHKO-ENT-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: CHKO-RULE-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: CHKO-ENT-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: ORDCHK-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: ORDCHK-BR-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: ORDCHK-BR-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: CHK-REQ-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: CUSTOMER-REQ-0004
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: OC-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: ORDER-CHECKOUT-REQ-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: OC-BR-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: OC-REQ-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: OC-INT-0004
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: OC-REQ-0005
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: ORDAPP-WORKFLOW-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: ORDER-CHECKOUT-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: ORDER-CHECKOUT-BR-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: ORDER-CHECKOUT-BR-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: CHECKOUT-REQ-0009
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: ORDER-CHECKOUT-ENTITY-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: ORDER-CHECKOUT-REQ-0004
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: ORDER-CHECKOUT-REQ-0005
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: ORDER-CHECKOUT-REQ-0006
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
+  - record_key: ORDER-REQ-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Written from the pass records; verify the source trace. Keys repeat across pass files, so confirm the right record.
