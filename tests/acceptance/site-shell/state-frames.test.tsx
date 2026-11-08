@@ -33,8 +33,12 @@ describe("shared state frames", () => {
 
     const { container } = renderPage();
 
-    // The empty frame shows a visible message; no failure is reported and nothing offers a retry.
-    await waitFor(() => expect(container.textContent?.trim().length).toBeGreaterThan(0));
+    // The empty frame carries an explicit empty-state message (not a loading text or only a heading);
+    // no failure is reported and nothing offers a retry.
+    await waitFor(() =>
+      expect(container.textContent ?? "").toMatch(/\b(no|nothing|empty|none|not available)\b/i),
+    );
+    expect(container.textContent ?? "").not.toMatch(/loading/i);
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.queryByRole("button", { name: /retry|try again/i })).toBeNull();
   });
