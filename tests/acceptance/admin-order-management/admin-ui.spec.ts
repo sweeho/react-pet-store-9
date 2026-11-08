@@ -58,7 +58,19 @@ test.describe("admin order management UI", () => {
       .first()
       .click();
 
-    await expect(page.getByText(/logged out|logout/i).first()).toBeVisible();
+    // The logout control itself must be gone, so it cannot satisfy the text check.
+    await expect(page.getByRole("link", { name: /log ?out/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /log ?out/i })).toHaveCount(0);
+    await expect(
+      page
+        .getByRole("heading", { name: /logged out|logout|signed out/i })
+        .or(
+          page.getByText(
+            /you (have|are|were) (been )?(logged|signed) out|logged out|logout (page|complete|successful)/i,
+          ),
+        )
+        .first(),
+    ).toBeVisible();
     await expect(page.locator("[data-order-id]")).toHaveCount(0);
   });
 
