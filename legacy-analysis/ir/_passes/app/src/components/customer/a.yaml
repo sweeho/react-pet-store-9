@@ -1,0 +1,165 @@
+records:
+  - record_key: CUSTA-ENT-0001
+    kind: entity
+    capability_key: customer-account
+    requirement: >
+      The system SHALL represent a customer as an identified record keyed by a user id, owning exactly one account and exactly one profile.
+    confidence: high
+    confidence_basis: >
+      Declared in the CMP bean class and in the ejb-jar relationships (two places).
+    risk_class: operational
+    basis: Customer entity has userId plus one-to-one links to account and profile; finder returns all customers.
+    plain_text: >
+      Every customer has a user id, one account and one set of preferences.
+    technical_note: >
+      CustomerEJB CMP bean, CMR fields account/profile, finder findAllCustomers (EJB-QL select all).
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/customer/src/com/sun/j2ee/blueprints/customer/ejb/CustomerEJB.java
+        line_start: 57
+        line_end: 65
+        excerpt: |
+          public abstract String getUserId();
+          public abstract void setUserId(String userId);
+          public abstract AccountLocal getAccount();
+          public abstract ProfileLocal getProfile();
+      - path: legacy-source/app/src/components/customer/src/ejb-jar.xml
+        line_start: 81
+        line_end: 87
+        excerpt: |
+          <ejb-ql>Select OBJECT(a) From Customer a</ejb-ql>
+    stack_metadata:
+      framework: EJB 2.0 CMP
+      ejb.bean: CustomerEJB
+  - record_key: CUSTA-BR-0002
+    kind: business-rule
+    capability_key: customer-account
+    requirement: >
+      WHEN a customer is created, the system SHALL automatically create an account with status "active", and SHALL create a profile with default preferences.
+    confidence: medium
+    confidence_basis: One clear place (ejbPostCreate); the user guide only says a new user is created on sign-up, not these defaults.
+    risk_class: operational
+    basis: ejbPostCreate creates Account with Active status and Profile with defaults.
+    plain_text: >
+      A newly registered customer starts with an active account and default preferences.
+    technical_note: >
+      CustomerEJB.ejbPostCreate looks up Account and Profile local homes via JNDI; NamingException becomes CreateException.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/customer/src/com/sun/j2ee/blueprints/customer/ejb/CustomerEJB.java
+        line_start: 74
+        line_end: 88
+        excerpt: |
+          AccountLocal account = alh.create(AccountLocalHome.Active);
+          setAccount(account);
+          ProfileLocal profile = plh.create(ProfileLocalHome.DefaultPreferredLanguage,
+          ProfileLocalHome.DefaultFavoriteCategory, ProfileLocalHome.DefaultMyListPreference,
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        kind: document
+        anchor: "2.4 Creating a new user"
+        excerpt: "Fill out the form \"I would like to sign up for an account\" and click Create New Account."
+    stack_metadata:
+      framework: EJB 2.0 CMP
+      ejb.bean: CustomerEJB
+      ejb.transaction: container-managed
+  - record_key: CUSTA-ENT-0003
+    kind: entity
+    capability_key: customer-account
+    requirement: >
+      The system SHALL hold for each account a status of either "active" or "disabled", one contact-information record and one credit-card record; a new account has empty contact and credit-card records created with it.
+    confidence: medium
+    confidence_basis: Status constants and creation in one bean plus relationship config; no code in this module that acts on "disabled".
+    risk_class: operational
+    basis: AccountLocalHome defines Active/Disabled; AccountEJB.ejbPostCreate creates blank contact info and credit card.
+    plain_text: >
+      An account is either active or disabled and holds the customer's contact details and payment card.
+    technical_note: >
+      AccountEJB CMP; CMR contactInfo and creditCard with cascade-delete in ejb-jar.xml. Disabled value is declared but not enforced in this module.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/customer/src/com/sun/j2ee/blueprints/customer/account/ejb/AccountLocalHome.java
+        line_start: 48
+        line_end: 49
+        excerpt: |
+          public static final String Active = "active";
+          public static final String Disabled = "disabled";
+      - path: legacy-source/app/src/components/customer/src/com/sun/j2ee/blueprints/customer/account/ejb/AccountEJB.java
+        line_start: 182
+        line_end: 194
+        excerpt: |
+          ContactInfoLocal contactInfo = cih.create();
+          setContactInfo(contactInfo);
+          CreditCardLocal creditCard = cch.create();
+          setCreditCard(creditCard);
+    stack_metadata:
+      framework: EJB 2.0 CMP
+      ejb.bean: AccountEJB
+  - record_key: CUSTA-BR-0004
+    kind: business-rule
+    capability_key: customer-account
+    requirement: >
+      WHEN a customer, account or profile is removed, the system SHALL also remove its dependent account, profile, contact information, address and credit card.
+    confidence: medium
+    confidence_basis: Declared cascade-delete in relationship config only; the bean ejbRemove methods are empty.
+    risk_class: operational
+    basis: Relationship roles on Account, Profile, ContactInfo and CreditCard carry cascade-delete.
+    plain_text: >
+      Deleting a customer deletes everything stored about them.
+    technical_note: >
+      ejb-jar.xml ejb-relation entries with cascade-delete on the dependent side.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/customer/src/ejb-jar.xml
+        line_start: 277
+        line_end: 285
+        excerpt: |
+          <ejb-relationship-role-name>AccountEJB</ejb-relationship-role-name>
+          <multiplicity>One</multiplicity>
+          <cascade-delete />
+    stack_metadata:
+      framework: EJB 2.0 CMP
+  - record_key: CUSTA-ENT-0005
+    kind: entity
+    capability_key: customer-account
+    requirement: >
+      The system SHALL hold for each customer a profile with preferred language, favorite category, a "my list" display preference and a banner display preference; a new profile SHALL default to language en_US, no favorite category, my list on and banner on.
+    confidence: medium
+    confidence_basis: Defaults are named constants in one interface; used by CustomerEJB. The user guide does not mention them.
+    risk_class: presentational
+    basis: ProfileLocalHome default constants and ProfileEJB CMP fields.
+    plain_text: >
+      Each customer has preferences for language, favourite category, and whether to show their personal list and the banner; new customers get English (US), no favourite, and both shown.
+    technical_note: >
+      ProfileEJB CMP fields; defaults in ProfileLocalHome. Language default feeds localization.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/customer/src/com/sun/j2ee/blueprints/customer/profile/ejb/ProfileLocalHome.java
+        line_start: 44
+        line_end: 47
+        excerpt: |
+          public static final String DefaultPreferredLanguage = "en_US";
+          public static final String DefaultFavoriteCategory = null;
+          public static final boolean DefaultMyListPreference = true;
+          public static final boolean DefaultBannerPreference = true;
+      - path: legacy-source/app/src/components/customer/src/com/sun/j2ee/blueprints/customer/profile/ejb/ProfileEJB.java
+        line_start: 283
+        line_end: 290
+        excerpt: |
+          public Object ejbCreate(String preferredLanguage, String favoriteCategory,
+          boolean myListPreference, boolean bannerPreference) throws CreateException {
+    stack_metadata:
+      framework: EJB 2.0 CMP
+      ejb.bean: ProfileEJB
+suspected_defects:
+  - capability_key: customer-account
+    record_keys: [CUSTA-ENT-0003]
+    severity: low
+    category: other
+    title: Account status "disabled" is declared but nothing in this module enforces it
+    description: >
+      The disabled status exists as a constant but no code here checks it, so a disabled account may still sign in or order; enforcement, if any, is elsewhere.
+    traces:
+      - path: legacy-source/app/src/components/customer/src/com/sun/j2ee/blueprints/customer/account/ejb/AccountLocalHome.java
+        line_start: 48
+        line_end: 49
+findings: []
