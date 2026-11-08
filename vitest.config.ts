@@ -39,7 +39,16 @@ export default defineConfig({
           environment: "jsdom",
           setupFiles: ["./src/test/setup.ts"],
           css: false,
-          exclude: ["node_modules", "dist", ".output", "e2e", "routes/**"],
+          exclude: [
+            "node_modules",
+            "dist",
+            ".output",
+            "e2e",
+            "routes/**",
+            // Written before the product code, so red until Build; run by
+            // `test:acceptance` instead. Includes its Playwright e2e/ specs.
+            "tests/acceptance/**",
+          ],
         },
       },
       {
