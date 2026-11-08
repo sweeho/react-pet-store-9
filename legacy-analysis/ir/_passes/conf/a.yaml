@@ -1,0 +1,249 @@
+records:
+  - record_key: OBA-BR-0001
+    kind: business-rule
+    capability_key: order-approval
+    requirement: The system SHALL automatically approve an order whose total is under the region limit of 500 for en_US and 50000 for ja_JP, and SHALL hold other orders as pending until an administrator approves or denies them.
+    confidence: high
+    confidence_basis: Configured in properties and stated in the operations runbook and user guide (two places); the exact-limit boundary is not stated in the configuration.
+    risk_class: financial
+    basis: Per-locale auto-approve limits in configuration, matching the runbook order-flow diagram.
+    plain_text: An order below a regional spending limit (500 for US, 50,000 for Japan) is approved automatically; larger orders wait for an administrator.
+    technical_note: Keys opc.autoApprove.limit.en_US and .ja_JP in conf/petstore.properties (documented as OPC ejb-jar.xml env-entries). The ejb-jar itself was not in this shard.
+    interface: false
+    stack_metadata:
+      db.object: opc.autoApprove.limit
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 29
+        line_end: 31
+        excerpt: |
+          # Order Processing Center (ejb-jar.xml of opc)
+          opc.autoApprove.limit.en_US=500
+          opc.autoApprove.limit.ja_JP=50000
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        anchor: p1 - 1.1 Order flow
+        excerpt: |
+          total under limit (US 500, JP 50000)  --> APPROVED automatically
+  - record_key: ORB-BR-0001
+    kind: business-rule
+    capability_key: order-reporting-batch
+    requirement: The system SHALL purge completed and denied orders older than 180 days, with their dependent records, and SHALL read the retention period from the batch environment.
+    confidence: high
+    confidence_basis: Value in both env.sh and petstore.properties, plus runbook and purge script usage.
+    risk_class: regulated
+    basis: Retention setting used to compute the purge cutoff.
+    plain_text: Finished or denied orders are kept 180 days and then deleted.
+    technical_note: PS_ORDER_RETENTION_DAYS in conf/env.sh, used by batch/ps_order_purge.sh; mirrored as batch.order.retentionDays.
+    interface: false
+    stack_metadata:
+      batch.trigger: Sundays only (per runbook)
+    traces:
+      - path: legacy-source/conf/env.sh
+        line_start: 15
+        line_end: 15
+        excerpt: |
+          PS_ORDER_RETENTION_DAYS=180
+      - path: legacy-source/conf/petstore.properties
+        line_start: 57
+        line_end: 57
+        excerpt: |
+          batch.order.retentionDays=180
+      - path: legacy-source/batch/ps_order_purge.sh
+        line_start: 8
+        line_end: 9
+        excerpt: |
+          CUTOFF_MS=$(ps_midnight_ms "$PS_ORDER_RETENTION_DAYS")
+  - record_key: ORB-BR-0002
+    kind: business-rule
+    capability_key: order-reporting-batch
+    requirement: The system SHALL report orders that remain pending or approved for more than 24 hours as stuck.
+    confidence: high
+    confidence_basis: Value in env.sh and properties, used by the aging script and stated in the runbook.
+    risk_class: operational
+    basis: Stuck-order threshold in hours drives the aging report cutoff.
+    plain_text: Orders still waiting or approved but not completed after 24 hours are flagged in a report.
+    technical_note: PS_STUCK_ORDER_HOURS in conf/env.sh; batch/ps_order_aging_report.sh computes CUTOFF_MS.
+    interface: false
+    traces:
+      - path: legacy-source/conf/env.sh
+        line_start: 17
+        line_end: 17
+        excerpt: |
+          PS_STUCK_ORDER_HOURS=24
+      - path: legacy-source/batch/ps_order_aging_report.sh
+        line_start: 10
+        line_end: 10
+        excerpt: |
+          CUTOFF_MS=$(( $(date '+%s') * 1000 - PS_STUCK_ORDER_HOURS * 3600000 ))
+  - record_key: INR-BR-0001
+    kind: business-rule
+    capability_key: inventory-reporting
+    requirement: The system SHALL list supplier items with stock below 500 units in the daily inventory extract.
+    confidence: high
+    confidence_basis: Value in env.sh, properties, runbook, and bound into the report script.
+    risk_class: operational
+    basis: Low-stock threshold parameter of the inventory report.
+    plain_text: Items with fewer than 500 units in stock appear on a daily low-stock report.
+    technical_note: PS_LOW_STOCK_QTY in conf/env.sh bound into inventory_report.sql by batch/ps_inventory_report.sh.
+    interface: false
+    traces:
+      - path: legacy-source/conf/env.sh
+        line_start: 18
+        line_end: 18
+        excerpt: |
+          PS_LOW_STOCK_QTY=500
+      - path: legacy-source/batch/ps_inventory_report.sh
+        line_start: 9
+        line_end: 10
+        excerpt: |
+          ps_log "start threshold=$PS_LOW_STOCK_QTY"
+          ps_sql_bind "$PS_SQL/inventory_report.sql" "$SQL" LOW_QTY="$PS_LOW_STOCK_QTY"
+  - record_key: INR-BR-0002
+    kind: business-rule
+    capability_key: inventory-reporting
+    requirement: The system SHALL delete database backups older than 7 days.
+    confidence: high
+    confidence_basis: Value in env.sh, properties and runbook, enforced by the backup script.
+    risk_class: operational
+    basis: Backup retention period.
+    plain_text: Database backups are kept for 7 days and older ones are removed.
+    technical_note: PS_BACKUP_KEEP_DAYS used in find -mtime in batch/ps_db_backup.sh.
+    interface: false
+    traces:
+      - path: legacy-source/conf/env.sh
+        line_start: 16
+        line_end: 16
+        excerpt: |
+          PS_BACKUP_KEEP_DAYS=7
+      - path: legacy-source/batch/ps_db_backup.sh
+        line_start: 11
+        line_end: 11
+        excerpt: |
+          find "$PS_BACKUP_DIR" -maxdepth 1 -name 'PetStoreDB_*' -mtime +$PS_BACKUP_KEEP_DAYS -exec rm -rf {} \;
+  - record_key: CUA-BR-0001
+    kind: business-rule
+    capability_key: customer-account
+    requirement: The system SHALL require sign-on before a customer can reach the customer profile screen and action, the order information entry screen, and the sign-on welcome screen.
+    confidence: medium
+    confidence_basis: One declarative place (signon-config.xml); the enforcing filter was not read in this shard.
+    risk_class: regulated
+    basis: Four security-constraint entries list protected resources, with sign-on form and error pages.
+    plain_text: Customers must sign in before viewing or editing their profile or entering order details.
+    technical_note: signon-config.xml in the storefront WEB-INF lists protected url-patterns; form login page signon.screen, error page signon_error.screen. No roles are listed.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/docroot/WEB-INF/signon-config.xml
+        line_start: 38
+        line_end: 79
+        excerpt: |
+          <signon-form-login-page>
+           signon.screen
+          </signon-form-login-page>
+          <url-pattern>customer.screen</url-pattern>
+          <url-pattern>customer.do</url-pattern>
+          <url-pattern>enter_order_information.screen</url-pattern>
+          <url-pattern>signon_welcome.screen</url-pattern>
+  - record_key: LOC-BR-0001
+    kind: business-rule
+    capability_key: localization
+    requirement: The system SHALL support the locales en_US, ja_JP and zh_CN, with en_US as the default.
+    confidence: medium
+    confidence_basis: One clear configuration place; the consuming code was not read.
+    risk_class: presentational
+    basis: Locale list and default in storefront settings.
+    plain_text: The store is offered in English (US), Japanese and Chinese, defaulting to English.
+    technical_note: catalog.locales and catalog.defaultLocale in conf/petstore.properties.
+    interface: false
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 23
+        line_end: 24
+        excerpt: |
+          catalog.locales=en_US,ja_JP,zh_CN
+          catalog.defaultLocale=en_US
+  - record_key: CAB-BR-0001
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: The system SHALL show catalog listings in pages of 2 items.
+    confidence: low
+    confidence_basis: Bare configuration literal with no comment or documentation; the value 2 looks like a demo setting.
+    risk_class: presentational
+    basis: Page size setting.
+    plain_text: Product lists are shown two at a time.
+    technical_note: catalog.pageSize in conf/petstore.properties; no authoritative source found.
+    interface: false
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 25
+        line_end: 25
+        excerpt: |
+          catalog.pageSize=2
+  - record_key: CUA-BR-0002
+    kind: business-rule
+    capability_key: customer-account
+    requirement: The system SHALL expire a signed-on session after 15 minutes.
+    confidence: low
+    confidence_basis: Bare configuration literal; no enforcing code or document was read.
+    risk_class: regulated
+    basis: Session timeout setting.
+    plain_text: A signed-in customer is signed out after 15 minutes.
+    technical_note: signon.session.timeoutMinutes in conf/petstore.properties; no authoritative source found.
+    interface: false
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 26
+        line_end: 27
+        excerpt: |
+          signon.session.timeoutMinutes=15
+          signon.rememberUsernameCookie=bp_signon
+  - record_key: ORN-BR-0001
+    kind: business-rule
+    capability_key: order-notifications
+    requirement: GIVEN the default configuration WHEN an order is received, approved or completed THEN the system SHALL NOT send the corresponding mail.
+    confidence: medium
+    confidence_basis: Three flags set false in one file; whether another source overrides them was not seen.
+    risk_class: operational
+    basis: Mail flags are all disabled, so notifications are off as configured.
+    plain_text: As configured, confirmation, approval and completion emails are switched off.
+    technical_note: opc.mail.sendConfirmation, sendApproval, sendCompletedOrder are false in conf/petstore.properties.
+    interface: true
+    traces:
+      - path: legacy-source/conf/petstore.properties
+        line_start: 36
+        line_end: 38
+        excerpt: |
+          opc.mail.sendConfirmation=false
+          opc.mail.sendApproval=false
+          opc.mail.sendCompletedOrder=false
+findings: []
+suspected_defects:
+  - capability_key: order-approval
+    record_keys: [OBA-BR-0001]
+    severity: low
+    category: contradicts-document
+    title: Approval boundary wording differs between documents
+    description: >
+      The runbook says orders "under" the limit are approved automatically; the user guide says orders "greater than" 500 are pending. An order of exactly the limit is not covered by either.
+    traces:
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        line_start: 65
+        line_end: 65
+        excerpt: |
+          An order is pending if its total value is greater than $500.
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        anchor: p1 - 1.1 Order flow
+        excerpt: |
+          total under limit (US 500, JP 50000)  --> APPROVED automatically
+  - capability_key: inventory-reporting
+    record_keys: [INR-BR-0002]
+    severity: low
+    category: other
+    title: Batch database credentials and hosts inconsistent between config files
+    description: >
+      env.sh embeds a database user and password in plain text in the JDBC URL and uses host psl-app01, while petstore.properties uses ps-app01 and a different password entry (redacted). Which is live is unclear.
+    traces:
+      - path: legacy-source/conf/env.sh
+        line_start: 12
+        line_end: 12
+        excerpt: |
+          PS_DB_URL="jdbc:derby://localhost:1527//var/petstore/db/PetStoreDB;user=estoreuser;password=estore"
