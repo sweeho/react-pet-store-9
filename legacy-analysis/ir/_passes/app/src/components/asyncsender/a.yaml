@@ -1,0 +1,120 @@
+records:
+  - record_key: ORDER-APPROVAL-INTEGRATION-0001
+    kind: integration
+    capability_key: order-approval
+    requirement: >
+      The system SHALL provide a shared service that accepts a text message (order or approval XML) from any caller and publishes it as one text message to a single configured asynchronous queue.
+    confidence: high
+    confidence_basis: >
+      Send logic in the bean, the resource declarations in the deployment descriptor and the JNDI name constants agree; callers in petstore and admin were seen passing order XML. The downstream consumer was not in this module.
+    risk_class: operational
+    basis: >
+      sendAMessage creates a text message, sets the text and sends to the queue obtained from the service locator at bean creation. Callers pass purchaseOrder.toXML() and oa.toXML(), so the module carries order and approval traffic. Filed under order-approval as the closest listed capability (it also carries new-order messages, which is order-fulfillment/checkout traffic).
+    plain_text: >
+      Whenever the storefront or the admin application needs to hand an order or an approval decision to the back-end for later processing, a shared sender puts that message on one common waiting line so the back-end can pick it up on its own time.
+    technical_note: >
+      Stateless session EJB AsyncSenderEJB.sendAMessage(String) opens a QueueConnection from jms/QueueConnectionFactory, creates a transacted QueueSession, a sender on jms/AsyncSenderQueue, sends a TextMessage, and closes the connection in finally (close errors ignored). Queue and factory are looked up once in ejbCreate via ServiceLocator. Callers: petstore OrderEJBAction (line 153) and admin AdminRequestBD (line 120).
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/asyncsender/src/com/sun/j2ee/blueprints/asyncsender/ejb/AsyncSenderEJB.java
+        line_start: 68
+        line_end: 90
+        excerpt: |
+          public void sendAMessage(String msg)  {
+            QueueSession session = null;
+            QueueConnection qConnect = null;
+            QueueSender qSender = null;
+
+            try {
+              qConnect = qFactory.createQueueConnection();
+              session = qConnect.createQueueSession(true,0);
+              qSender = session.createSender(q);
+              TextMessage jmsMsg = session.createTextMessage();
+              jmsMsg.setText(msg);
+              qSender.send(jmsMsg);
+    stack_metadata:
+      framework: EJB 2.0
+      ejb.bean: AsyncSenderEJB (stateless)
+      jms.queue: java:comp/env/jms/AsyncSenderQueue
+  - record_key: ORDER-APPROVAL-BUSINESS-RULE-0002
+    kind: business-rule
+    capability_key: order-approval
+    requirement: >
+      GIVEN a message is being sent, WHEN the queue or connection fails, THEN the system SHALL raise an error to the caller and SHALL NOT report the message as sent.
+    confidence: medium
+    confidence_basis: >
+      One clear place (the catch block); no test or documentation seen.
+    risk_class: operational
+    basis: >
+      Any exception during send is wrapped in an EJBException and rethrown after printing the stack trace.
+    plain_text: >
+      If the message cannot be put on the waiting line, the requesting action fails visibly instead of silently losing the order or approval.
+    technical_note: >
+      catch(Exception) prints the stack trace and throws EJBException; also ejbCreate throws EJBException if the queue or factory lookup fails. Connection is closed in finally.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/asyncsender/src/com/sun/j2ee/blueprints/asyncsender/ejb/AsyncSenderEJB.java
+        line_start: 80
+        line_end: 89
+        excerpt: |
+          }catch  (Exception e) {
+            e.printStackTrace();
+            throw new EJBException("askMDBToSendAMessage: Error!",e);
+          } finally {
+            try {
+                      if( qConnect != null ) {
+                qConnect.close();
+                      }
+            } catch(Exception e) {}
+              }
+    stack_metadata:
+      framework: EJB 2.0
+      ejb.bean: AsyncSenderEJB
+  - record_key: ORDER-APPROVAL-BUSINESS-RULE-0003
+    kind: business-rule
+    capability_key: order-approval
+    requirement: >
+      The system SHALL perform the send within the caller's transaction, so that the queued message is committed or discarded together with the caller's work.
+    confidence: medium
+    confidence_basis: >
+      Declared in the descriptor (Required) but the session is created with transacted=true; effective behaviour depends on the container, not seen here.
+    risk_class: operational
+    basis: >
+      Container-managed transaction attribute Required on sendAMessage.
+    plain_text: >
+      A message is only released to the back-end if the surrounding order or approval step completes successfully.
+    technical_note: >
+      ejb-jar.xml container-transaction trans-attribute Required on Local sendAMessage(String); method permission is unchecked (no role required).
+    interface: true
+    traces:
+      - path: legacy-source/app/src/components/asyncsender/src/ejb-jar.xml
+        line_start: 122
+        line_end: 132
+        excerpt: |
+          <container-transaction>
+            <method>
+              <ejb-name>AsyncSenderEJB</ejb-name>
+              <method-intf>Local</method-intf>
+              <method-name>sendAMessage</method-name>
+              <method-params>
+                <method-param>java.lang.String</method-param>
+              </method-params>
+            </method>
+            <trans-attribute>Required</trans-attribute>
+          </container-transaction>
+    stack_metadata:
+      framework: EJB 2.0
+      ejb.transaction: Required
+findings: []
+suspected_defects:
+  - capability_key: order-approval
+    record_keys: [ORDER-APPROVAL-BUSINESS-RULE-0002]
+    severity: low
+    category: error-swallowed
+    title: Connection close errors are silently ignored
+    description: >
+      Failures while closing the queue connection are swallowed with an empty catch; send errors are only printed to standard error before being rethrown.
+    traces:
+      - path: legacy-source/app/src/components/asyncsender/src/com/sun/j2ee/blueprints/asyncsender/ejb/AsyncSenderEJB.java
+        line_start: 84
+        line_end: 88
