@@ -1,0 +1,92 @@
+records:
+  - record_key: INVR-REQ-0001
+    kind: requirement
+    capability_key: inventory-reporting
+    requirement: >
+      The system SHALL provide a diagnostic output helper whose print, println and exception-reporting
+      operations emit nothing unless a compile-time debugging switch is on, and the switch SHALL be off in the delivered build.
+    confidence: high
+    confidence_basis: >
+      The switch is a literal constant checked in every output method (several places in one file), but no other
+      source (document, test, config) mentions it, so only the code is available to confirm intent.
+    risk_class: operational
+    basis: >
+      Debug.debuggingOn is a final false constant; print, println and print(Throwable, String) are all guarded by it.
+      No capability fits exactly; filed under the closest operations-oriented capability.
+    plain_text: >
+      Developer diagnostic messages are available in the application but switched off, so normal operation produces no diagnostic output.
+    technical_note: >
+      Debug (util/tracer) is a final helper with static methods. When on, println prefixes ">>" and writes to stderr,
+      print writes unprefixed to stderr. Packaged as tracer.jar by the Ant build.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/util/tracer/src/com/sun/j2ee/blueprints/util/tracer/Debug.java
+        line_start: 44
+        line_end: 58
+        excerpt: |
+          public final class Debug {
+
+              public static final boolean debuggingOn = false;
+
+              public static void print(String msg) {
+                  if (debuggingOn) {
+                      System.err.print(msg);
+                  }
+              }
+
+              public static void println(String msg) {
+                  if (debuggingOn) {
+                      System.err.println(">>" + msg);
+                  }
+              }
+    stack_metadata:
+      framework: plain Java utility
+  - record_key: INVR-REQ-0002
+    kind: requirement
+    capability_key: inventory-reporting
+    requirement: >
+      GIVEN debugging is on WHEN an exception is reported with an optional message THEN the system SHALL write the exception's message,
+      then the optional message if present, then the full stack trace.
+    confidence: medium
+    confidence_basis: >
+      One clear place, and unreachable in the delivered build because the switch is off; no test or document.
+    risk_class: operational
+    basis: >
+      print(Throwable, String) body; print(Exception...) overloads delegate to it.
+    plain_text: >
+      When diagnostics are enabled, errors are reported with their message and a detailed trace to help developers find the cause.
+    technical_note: >
+      Header and optional message go to System.out while the stack trace goes to System.err, unlike the string helpers which use stderr only.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/util/tracer/src/com/sun/j2ee/blueprints/util/tracer/Debug.java
+        line_start: 60
+        line_end: 79
+        excerpt: |
+          public static void print(Exception e, String msg) {
+              print((Throwable)e, msg);
+          }
+          public static void print(Throwable t, String msg) {
+              if (debuggingOn) {
+                  System.out.println("Received throwable with Message: "+t.getMessage());
+                  if (msg != null)
+                      System.out.print(msg);
+                  t.printStackTrace();
+              }
+          }
+    stack_metadata:
+      framework: plain Java utility
+findings: []
+suspected_defects:
+  - capability_key: inventory-reporting
+    record_keys: [INVR-REQ-0002]
+    severity: low
+    category: other
+    title: Exception diagnostics split across standard output and standard error
+    description: >
+      When enabled, the exception header and message are written to standard output while the stack trace goes to standard error,
+      so the pieces can be separated or interleaved in logs. Also, print(Exception) delegates with a null message through an overload cast, harmless.
+    traces:
+      - path: legacy-source/app/src/components/util/tracer/src/com/sun/j2ee/blueprints/util/tracer/Debug.java
+        line_start: 68
+        line_end: 75
