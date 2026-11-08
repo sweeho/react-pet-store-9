@@ -81,3 +81,46 @@ jobs:
           # finds no official result for any test case.
           include-hidden-files: true
           if-no-files-found: error
+
+  # Replays each ticket's red and green commits on its pull request into a sprint
+  # branch, where the merge gate reads the result. A sprint's own pull request (into
+  # dev) has nothing to replay. The script always exits 0; the platform judges it.
+  tdd-verify:
+    if: github.event_name == 'pull_request' && startsWith(github.base_ref, 'vortex/sprint/')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright's Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Replay red and green commits
+        run: sh .vortex/tdd-verify.sh "$BASE_REF" "$TEST_COMMAND" "$JUNIT_PATH"
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          JUNIT_PATH: .vortex-results/junit.xml
+          TEST_COMMAND: >-
+            mkdir -p .vortex-results && rm -f .vortex-results/*.xml;
+            NODE_ENV=test bun --bun vitest run --reporter=junit --outputFile=.vortex-results/unit.xml; u=$?;
+            PLAYWRIGHT_JUNIT_OUTPUT_NAME=.vortex-results/e2e.xml bunx playwright test --reporter=junit; e=$?;
+            { echo '<?xml version="1.0" encoding="UTF-8"?>'; echo '<testsuites>';
+            cat .vortex-results/unit.xml .vortex-results/e2e.xml 2>/dev/null | sed -e '/<?xml/d' -e 's#</\{0,1\}testsuites[^>]*>##g';
+            echo '</testsuites>'; } > .vortex-results/junit.xml;
+            [ $u -eq 0 ] && [ $e -eq 0 ]
+
+      - name: Upload replay results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vortex-tdd-replay
+          path: vortex-replay/
+          if-no-files-found: ignore
