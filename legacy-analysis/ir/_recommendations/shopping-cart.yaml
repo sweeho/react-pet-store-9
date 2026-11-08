@@ -1,0 +1,70 @@
+recommendations:
+  - record_key: CART-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Bean declaration and deployment descriptor agree; passes A and B state the same.
+  - record_key: CART-REQ-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Passes A and B agree that re-adding replaces the quantity. Whether zero or negative on add should be allowed is a Business Owner question.
+  - record_key: SHOPPING-CART-REQ-0004
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Pass B reads remove as a no-op when absent; pass C's record with the same key is the cart page screen, so the key collides across passes and the SME should confirm which is meant.
+  - record_key: CART-BR-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Passes A and B agree. The add-when-absent side effect on update is noted in design.md.
+  - record_key: CART-REQ-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Passes A and B agree on clear and distinct-line count.
+  - record_key: CART-REQ-0005
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Code shows live catalog lookup, so prices are not snapshotted; pass B agrees.
+  - record_key: CART-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Three code paths compute the same sum. Floating-point use with no rounding is kept as-is; the order total uses float, which may differ.
+  - record_key: CART-BR-0003
+    recommendation: edit
+    confidence: low
+    reason: >
+      Code clearly drops the line silently, but whether that is intended is undocumented and affects money shown to the customer. Confirm what the code does and send the intent to the Business Owner via the defect register.
+    edited_requirement: >
+      The system SHALL omit a cart line whose catalog lookup fails from the listing and subtotal (current behaviour, disputed pending Business Owner decision).
+  - record_key: SHOPPING-CART-REQ-0010
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Unrestricted access is read from the deployment descriptor; the transaction clause is an implementation detail and is left out of the spec.
+    edited_requirement: >
+      The system SHALL make cart operations available to any caller without role restriction.
+  - record_key: SC-BR-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Pass B and pass C both read the NumberFormatException fallback to 0 in the web action; the cart bean then removes the line.
+  - record_key: SHOPPING-CART-REQ-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Web action, EJB action and cart form agree.
+  - record_key: SHOPPING-CART-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Code check, exception mapping and error page agree. The order id is consumed by a rejected attempt; that is a legacy quirk for Intent.
+  - record_key: SHOPPING-CART-REQ-0002
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Code and error-page copy agree. The cart is also cleared when sending failed, a suspected defect for the Business Owner to rule on.
