@@ -237,3 +237,75 @@ The system SHALL request the entry page of the storefront, order center, supplie
 - **GIVEN** the admin module answers HTTP 503
 - **WHEN** the check runs
 - **THEN** the admin module is logged as down and the job ends with code 8
+
+### Requirement: Low-stock listing with stock totals
+
+Recovered from: INVR-RULE-0001
+The system SHALL list supplier items whose stock is below the low-stock limit (500 units) with item, product, English description and quantity, lowest quantity first, and SHALL report the number of items tracked and total units in stock.
+
+#### Scenario: Item below the limit
+
+- **GIVEN** supplier items with quantities 20 and 600 and a limit of 500
+- **WHEN** the report runs
+- **THEN** only the item with 20 is listed, followed by the items-tracked count and total units
+
+### Requirement: Daily backup with seven-day retention
+
+Recovered from: INVR-RULE-0002
+The system SHALL take an online backup of the database daily, keep dated copies, and delete copies older than 7 days.
+
+#### Scenario: Old copy pruned
+
+- **GIVEN** a backup copy 8 days old
+- **WHEN** the backup job completes
+- **THEN** that copy is deleted and newer copies remain
+
+### Requirement: Retention and low-stock settings
+
+Recovered from: INVENTORY-REPORTING-BUSINESS-RULE-0001
+The system SHALL keep database backups for 7 days and SHALL flag inventory as low stock at 500 units. Whether stock of exactly 500 counts as low is not settled by this record; INVR-RULE-0001 states "below".
+
+#### Scenario: Configured values
+
+- **GIVEN** the backup keep-days setting is 7 and the low-stock setting is 500
+- **WHEN** the backup and inventory jobs run
+- **THEN** backups older than 7 days are removed and the low-stock limit used is 500
+
+### Requirement: Low-stock report ordering and description
+
+Recovered from: INVB-BR-0015
+The system SHALL report items whose supplier stock is below the low-stock threshold (500 units), lowest first then by item id, with the English description, followed by the count of items tracked and total units in stock.
+
+#### Scenario: Equal quantities
+
+- **GIVEN** two items with quantity 10 and item ids A and B
+- **WHEN** the report runs
+- **THEN** A is listed before B
+
+#### Scenario: No English description
+
+- **GIVEN** an item below the threshold with no en_US description
+- **WHEN** the report runs
+- **THEN** the item is silently omitted
+
+### Requirement: Daily database backup job
+
+Recovered from: INVB-BR-0016
+The system SHALL take a daily online backup of the database, keep it in a dated folder, and delete backups older than 7 days.
+
+#### Scenario: Nightly backup
+
+- **GIVEN** the database is online at 01:00
+- **WHEN** the backup job runs
+- **THEN** a dated backup folder exists and backups older than 7 days are deleted
+
+### Requirement: Daily catalog consistency job
+
+Recovered from: CATBR-REQ-0011
+The system SHALL be checkable by a daily catalog consistency job (checks C1 to C5) for categories without products, products without items, items priced below cost, items missing a description in a served locale, and items the supplier does not stock. Documented only in the runbook; the check SQL was not read, so confidence is low.
+
+#### Scenario: Category without products
+
+- **GIVEN** a category that has no products
+- **WHEN** the catalog check runs
+- **THEN** the category is reported under check C1
