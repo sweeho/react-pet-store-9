@@ -28,8 +28,8 @@ test.describe("shopping cart", () => {
   test('[SWHR8-C-0074] entering "abc" as a quantity removes the item', async ({ page }) => {
     await page.request.post("/api/cart/items", { data: { itemId: "EST-1", quantity: 2 } });
     await page.goto("/cart");
-    await page.getByLabel("Quantity EST-1").fill("abc");
-    await page.getByRole("button", { name: "Update" }).click();
+    await page.getByLabel("Quantity EST-1", { exact: true }).fill("abc");
+    await page.getByRole("button", { name: "Update", exact: true }).click();
     await expect(page.getByText("Your Shopping Cart is Empty.")).toBeVisible();
     const cart = await (await page.request.get("/api/cart")).json();
     expect(cart.items).toHaveLength(0);
@@ -48,9 +48,9 @@ test.describe("shopping cart", () => {
     await page.request.post("/api/cart/items", { data: { itemId: "EST-1", quantity: 2 } });
     await page.request.post("/api/cart/items", { data: { itemId: "EST-6", quantity: 1 } });
     await page.goto("/cart");
-    await expect(page.getByRole("link", { name: "Remove" })).toHaveCount(2);
-    await expect(page.getByLabel("Quantity EST-1")).toHaveValue("2");
-    await expect(page.getByLabel("Quantity EST-6")).toHaveValue("1");
+    await expect(page.getByRole("link", { name: "Remove", exact: true })).toHaveCount(2);
+    await expect(page.getByLabel("Quantity EST-1", { exact: true })).toHaveValue("2");
+    await expect(page.getByLabel("Quantity EST-6", { exact: true })).toHaveValue("1");
     const usd = (n: number) =>
       `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const cart = await (await page.request.get("/api/cart")).json();
@@ -58,23 +58,23 @@ test.describe("shopping cart", () => {
     for (const item of cart.items as { itemId: string; listPrice: number }[]) {
       const row = page
         .locator("tr, li, [role=row]")
-        .filter({ has: page.getByLabel(`Quantity ${item.itemId}`) })
+        .filter({ has: page.getByLabel(`Quantity ${item.itemId}`, { exact: true }) })
         .last();
       await expect(row).toContainText(item.itemId);
       await expect(row).toContainText(usd(Number(item.listPrice)));
-      await expect(row.getByRole("link", { name: "Remove" })).toHaveCount(1);
+      await expect(row.getByRole("link", { name: "Remove", exact: true })).toHaveCount(1);
     }
     // The total sits in the element labelled "Total", which is not an item row.
     const totalRow = page
       .locator("tr, li, [role=row], div, p, span")
-      .filter({ hasText: /Total/ })
+      .filter({ hasText: /^\s*Total\b/ })
       .filter({ hasNot: page.locator("input") })
       .last();
     await expect(totalRow).toContainText(usd(Number(cart.total)));
   });
 
   // case: SWHR8-C-0077@v1
-  test("[SWHR8-C-0077] submitting the same order twice shows the empty-cart error page", async ({
+  test("[SWHR8-C-0077] a second identical checkout is rejected as an empty cart", async ({
     page,
   }) => {
     await page.request.post("/api/cart/items", { data: { itemId: "EST-1", quantity: 1 } });
@@ -87,7 +87,12 @@ test.describe("shopping cart", () => {
     });
     expect(second.ok()).toBe(false);
     expect(JSON.stringify(await second.json()).toLowerCase()).toContain("empty");
-    // Reach the error page by submitting the checkout form again with the now-empty cart.
+  });
+
+  // case: SWHR8-C-0077@v1
+  test("[SWHR8-C-0077] submitting the checkout form with an empty cart shows the error page", async ({
+    page,
+  }) => {
     await page.goto("/checkout");
     for (const [label, value] of [
       ["Last name", party.lastName],
@@ -132,8 +137,8 @@ test.describe("shopping cart", () => {
     await page.request.post("/api/cart/items", { data: { itemId: "EST-1", quantity: 1 } });
     await page.request.post("/api/cart/items", { data: { itemId: "EST-6", quantity: 1 } });
     await page.goto("/cart");
-    await page.getByLabel("Quantity EST-1").fill("3");
-    await page.getByLabel("Quantity EST-6").fill("5");
+    await page.getByLabel("Quantity EST-1", { exact: true }).fill("3");
+    await page.getByLabel("Quantity EST-6", { exact: true }).fill("5");
     await page.getByRole("button", { name: "Update", exact: true }).click();
     // Wait for the update to be applied: poll the cart until it reflects the new quantities.
     await expect
