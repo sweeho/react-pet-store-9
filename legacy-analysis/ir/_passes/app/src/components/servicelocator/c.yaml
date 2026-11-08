@@ -1,0 +1,97 @@
+records:
+  - record_key: ORDF-INT-0001
+    kind: integration
+    capability_key: order-fulfillment
+    requirement: The system SHALL resolve named platform resources (EJB local and remote homes, JMS queue and topic connection factories, queues, topics, data sources) by name from the application server's directory service on behalf of callers, and SHALL report any lookup or type-cast failure to the caller as a single locator error that wraps the original cause.
+    confidence: high
+    confidence_basis: Same behaviour is implemented in two classes (web and ejb tiers) with identical lookup and wrapping logic; no tests or docs seen.
+    risk_class: operational
+    basis: No listed capability fits infrastructure lookup; filed under order-fulfillment as the closest (JMS queues and data sources used by order processing). Cross-cutting utility.
+    plain_text: Whenever any part of the application needs a shared resource such as a database connection source or a message queue, it asks for it by name, and if it cannot be found the caller is told with a single, uniform error.
+    technical_note: JNDI InitialContext.lookup with catch NamingException and catch Exception both rethrown as ServiceLocatorException. Remote homes are narrowed with PortableRemoteObject.narrow.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/ejb/ServiceLocator.java
+        line_start: 83
+        line_end: 113
+        excerpt: |
+          public EJBLocalHome getLocalHome(String jndiHomeName) throws ServiceLocatorException {
+            ... home = (EJBLocalHome) ic.lookup(jndiHomeName);
+          } catch (NamingException ne) { throw new ServiceLocatorException(ne); }
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/web/ServiceLocator.java
+        line_start: 150
+        line_end: 255
+        excerpt: |
+          getQueueConnectionFactory / getQueue / getTopicConnectionFactory / getTopic / getDataSource all lookup via ic.lookup and wrap exceptions
+    stack_metadata:
+      framework: J2EE service locator pattern
+      jms.queue: resolved by caller-supplied name
+  - record_key: ORDF-INT-0002
+    kind: integration
+    capability_key: order-fulfillment
+    requirement: The system SHALL provide configuration values (URL, boolean and string environment entries, e.g. whether to send a confirmation mail) to callers by name from the server's environment entries, without caching them.
+    confidence: medium
+    confidence_basis: One clear implementation in each of two classes; actual entry names are defined elsewhere and not seen in this module.
+    risk_class: operational
+    basis: Javadoc cites SEND_CONFIRMATION_MAIL as an example. Filed under order-fulfillment as closest; relates to order-notifications.
+    plain_text: Settings such as "send a confirmation email" are read by name from the server's configuration each time they are needed.
+    technical_note: getUrl, getBoolean, getString call ic.lookup directly in both variants; the web variant does not use its cache for these.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/web/ServiceLocator.java
+        line_start: 257
+        line_end: 304
+        excerpt: |
+          public boolean getBoolean(String envName) ... bool = (Boolean)ic.lookup(envName); ... return bool.booleanValue();
+    stack_metadata:
+      framework: J2EE env-entry lookup
+  - record_key: ORDF-BR-0003
+    kind: business-rule
+    capability_key: order-fulfillment
+    requirement: The system SHALL, on the web tier, provide a single shared resource locator instance that caches EJB homes, queue and topic connection factories, queues, topics and data sources after first lookup and returns the cached object on later requests for the same name.
+    confidence: high
+    confidence_basis: Singleton and cache logic are repeated across six methods in one class and documented in the class comment.
+    risk_class: operational
+    basis: Class javadoc states singleton and caching strategies for the web tier only; the ejb-tier variant creates a fresh lookup each call and is not a singleton.
+    plain_text: On the website side, once a shared resource has been found it is remembered and reused rather than looked up again.
+    technical_note: static singleton created in a static initializer; cache is Collections.synchronizedMap(HashMap) keyed by JNDI name only (one namespace for all resource types). Check-then-put is not atomic, so concurrent first lookups may both hit JNDI.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/web/ServiceLocator.java
+        line_start: 67
+        line_end: 96
+        excerpt: |
+          private Map cache; private static ServiceLocator me;
+          static { try { me = new ServiceLocator(); } catch(ServiceLocatorException se) { System.err.println(se); ...
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/web/ServiceLocator.java
+        line_start: 106
+        line_end: 120
+        excerpt: |
+          if (cache.containsKey(jndiHomeName)) { home = (EJBLocalHome) cache.get(jndiHomeName); } else { home = (EJBLocalHome) ic.lookup(jndiHomeName); cache.put(jndiHomeName, home); }
+    stack_metadata:
+      framework: J2EE service locator (singleton, caching strategy)
+      session.scope: application
+suspected_defects:
+  - capability_key: order-fulfillment
+    record_keys: [ORDF-BR-0003]
+    severity: medium
+    category: error-swallowed
+    title: Failure creating the web-tier locator is only printed, leaving a null instance
+    description: >
+      If the static initializer fails, the error is written to stderr and the instance stays null; getInstance() then returns null and callers hit a NullPointerException instead of the locator error.
+    traces:
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/web/ServiceLocator.java
+        line_start: 74
+        line_end: 96
+  - capability_key: order-fulfillment
+    record_keys: [ORDF-INT-0002]
+    severity: low
+    category: other
+    title: Boolean env entry lookup can fail with a null pointer
+    description: >
+      getBoolean dereferences the looked-up value; a null value would raise NullPointerException, which is wrapped by the generic catch only if inside try. Here the dereference is outside try, so it escapes unwrapped.
+    traces:
+      - path: legacy-source/app/src/components/servicelocator/src/com/sun/j2ee/blueprints/servicelocator/web/ServiceLocator.java
+        line_start: 278
+        line_end: 288
+findings: []
