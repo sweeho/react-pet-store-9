@@ -1,0 +1,14 @@
+filename: PetStore-user-guide.pdf
+kind: pdf
+origin: upload
+uploaded_by: sweeho@gmail.com
+uploaded_at: '2026-11-08T10:48:45.859Z'
+sha256: 478a987d7b5928896a0624cb723bfd7e5aa6809518e9ec5585774a306a4271dd
+method: pdf-parse
+language: en
+bytes: 120110
+extracted_chars: 3930
+pii:
+  total: 0
+  counts: {}
+  held: false

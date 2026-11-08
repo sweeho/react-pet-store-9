@@ -1,0 +1,14 @@
+filename: PetStore-operations-runbook.pdf
+kind: pdf
+origin: upload
+uploaded_by: sweeho@gmail.com
+uploaded_at: '2026-11-08T10:48:45.859Z'
+sha256: 1f4c56e38eab9ddbc98e4961b7152973ccc7fd1a8b3379478222d0f5ee936ddb
+method: pdf-parse
+language: en
+bytes: 168220
+extracted_chars: 6208
+pii:
+  total: 0
+  counts: {}
+  held: false

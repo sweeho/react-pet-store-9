@@ -1,0 +1,14 @@
+filename: PetStore-admin-guide.pdf
+kind: pdf
+origin: upload
+uploaded_by: sweeho@gmail.com
+uploaded_at: '2026-11-08T10:48:45.859Z'
+sha256: fb057b83d70b3c64dbd2a0a934d694c2c4d580cff1313905e52b8a580a83460f
+method: pdf-parse
+language: en
+bytes: 138976
+extracted_chars: 3537
+pii:
+  total: 0
+  counts: {}
+  held: false
