@@ -1,0 +1,147 @@
+recommendations:
+  - record_key: CUSTA-ENT-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      Code constants and ejbPostCreate agree across both passes; defaults are not in any document, so confirm with the Business Owner that they are intended.
+  - record_key: CUSTA-ENT-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Both customer passes read the same account home; DDL requires status NOT NULL. Whether "disabled" is ever set is unknown (see design.md).
+  - record_key: CUSTA-BR-0004
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Declared as cascade-delete in the ejb-jar relationships in both passes; the contactinfo pass confirms the address cascade. Confirm the cascade is intended in the rebuild, since data deletion is irreversible.
+  - record_key: CUSB-ENT-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      DDL NOT NULL constraints are the strongest evidence and both DDL passes agree. Note this conflicts with the form, where e-mail is optional (see CA-BR-0007): the form rule would fail at the database. Goes to Intent.
+  - record_key: CUST-ENT-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      DDL primary and foreign keys in both passes agree.
+  - record_key: CUST-REQ-0007
+    recommendation: accept
+    confidence: high
+    reason: >
+      ejb-jar and DDL agree. The password is stored in clear text per the schema; flag as a suspected legacy defect for the defect register.
+  - record_key: CUST-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Read clearly in SignOnEJB in both passes. Plain-text comparison is a suspected legacy defect; confirm what the code does.
+  - record_key: CUST-REQ-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      Bare literal 25 in UserEJB; the maximum password length is a constant whose value should be confirmed (not stated in the record).
+  - record_key: CUST-REQ-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Both servlet and action passes agree.
+  - record_key: CUSTOMER-ACCOUNT-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Passes a, b and c all agree on the screen; the label is misleading for bad-name failures but that is what the code does.
+  - record_key: CUST-REQ-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      SignOnFilter read in two passes.
+  - record_key: CUST-REQ-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      SignOnFilter, two passes agree.
+  - record_key: CUST-REQ-0006
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Literal value read from SignOnFilter; no document states it. Cookie name bp_signon comes from conf (CUSTOMER-ACCOUNT-REQUIREMENT-0003).
+  - record_key: CUSTOMER-ACCOUNT-REQUIREMENT-0003
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Single source (petstore.properties); consistent with the filter. Low risk.
+  - record_key: CUSTOMER-ACCOUNT-REQ-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      signon-config.xml read in all four passes, same four resources.
+  - record_key: CUSTOMER-ACCOUNT-REQUIREMENT-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      Same configuration as the protected-pages record.
+  - record_key: CUSTOMER-ACCOUNT-REQ-0008
+    recommendation: edit
+    confidence: low
+    reason: >
+      web.xml and petstore.properties both say 15, but the user guide gives no figure and two distinct settings exist; confirm which one governs in production. Edit: state "15 minutes" as configured value pending confirmation.
+    edited_requirement: >
+      The system SHALL expire an inactive web session after 15 minutes.
+  - record_key: CUSTOMER-ACCOUNT-REQ-0006
+    recommendation: accept
+    confidence: high
+    reason: >
+      SignOnEJBAction read in three passes with identical behaviour.
+  - record_key: CUSTOMER-ACCOUNT-REQ-0007
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Single pass reading of SignOffHTMLAction; clear code.
+  - record_key: CUSTOMER-ACCOUNT-REQ-0003
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Form validation (CustomerHTMLAction) treats e-mail as optional but DDL requires e-mail NOT NULL, and country is required by DDL but not on the form. Recommend the spec records the form rule and the conflict goes to Intent for the Business Owner.
+    edited_requirement: >
+      The system SHALL require last name, first name, street address, city, state or province, postal code and telephone number when a customer account is created or updated, and SHALL treat a blank second street line as absent. E-mail is optional on the form.
+  - record_key: CUSTOMER-ACCOUNT-REQ-0004
+    recommendation: accept
+    confidence: medium
+    reason: >
+      CustomerEJBAction create and update paths agree in all passes. Card number is held in clear text; suspected legacy defect for the defect register.
+  - record_key: CUSTOMER-ACCOUNT-REQ-0009
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Browser semantics of unchecked boxes; read identically in three passes.
+  - record_key: CUSTOMER-ACCOUNT-REQ-0005
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Flow handler and action agree.
+  - record_key: CA-REQ-0009
+    recommendation: accept
+    confidence: medium
+    reason: >
+      BannerHelper switch with explicit default, clear in one pass. Borderline with the catalog capability; keep here as it is driven by the profile.
+  - record_key: CA-ENT-0010
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Seed data, not a production requirement. Recommend the SME confirm whether it is kept for demo only, and note that j2ee has no customer record.
+    edited_requirement: >
+      The system SHALL maintain sample users j2ee and shopper, with a customer record for shopper, when sample data is loaded.
+  - record_key: AOM-REQ-0005
+    recommendation: accept
+    confidence: high
+    reason: >
+      web.xml security constraint is declarative and explicit. Shared with the admin capability; confirm ownership.
+  - record_key: customer-account-BR-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      web.xml security constraint; ownership may belong to supplier capability.
+  - record_key: CUSTOMER-ACCOUNT-ENTITY-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      ejb-jar, DDL and both passes agree. The XML contact interchange and creation variants from the contactinfo pass are described in design.md.
