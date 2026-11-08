@@ -1,0 +1,51 @@
+recommendations:
+  - record_key: INVR-REQ-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      SQL, script, env.sh and runbook agree; passes A, B and the db and conf passes restate it. The silent omission of items without an en_US description is a suspected legacy defect; confirm with the Business Owner.
+  - record_key: INVR-REQ-0002
+    recommendation: accept
+    confidence: high
+    reason: >
+      SQL, script and runbook agree. The C4 SQL comment lists three locales but the query uses category locales; trust the query. CATBR-REQ-0011 duplicates this and should be merged.
+  - record_key: INVR-REQ-0003
+    recommendation: accept
+    confidence: high
+    reason: >
+      Script and runbook agree. The trigger phrase matches any "does not exist" output, a suspected legacy defect for the Business Owner.
+  - record_key: IR-INT-0001
+    recommendation: accept
+    confidence: high
+    reason: Servlet code and runbook agree.
+  - record_key: INVR-REQ-0004
+    recommendation: accept
+    confidence: high
+    reason: >
+      Script, SQL, env.sh and runbook agree. find -mtime +7 keeps about 8 backups; confirm intent with the Business Owner.
+  - record_key: INVR-REQ-0005
+    recommendation: accept
+    confidence: high
+    reason: Script, Control-M cyclic definition and runbook agree.
+  - record_key: ADM-REQ-0007
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Servlet is clear but aggregation is in a facade outside the module and no document describes the charts. Float arithmetic and the TotalSales name for quantities are legacy quirks; confirm.
+  - record_key: AOM-REQ-0009
+    recommendation: edit
+    confidence: medium
+    reason: >
+      Filed under inventory-reporting only as nearest capability; the admin session-error behaviour is a different record (AOM-REQ-0010) and may belong to an admin capability. Consider moving it.
+    edited_requirement: >
+      The system SHALL answer an admin data request with no existing session with a session-timed-out error, and an unknown request type with an error.
+  - record_key: INVENTORY-REPORTING-REQ-0001
+    recommendation: accept
+    confidence: medium
+    reason: >
+      Pass A and B agree on code behaviour (Debug class, switch off). It is a developer utility, not a business capability; a reviewer may prefer to reject it as out of scope.
+  - record_key: INVENTORY-REPORTING-BUSINESS-RULE-0001
+    recommendation: accept
+    confidence: high
+    reason: >
+      The 500-unit and 7-day values are duplicated in env.sh and petstore.properties and the runbook; they are covered by the report and backup requirements.
