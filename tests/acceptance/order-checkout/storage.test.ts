@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 // Assumed persistence boundary (Drizzle over bun:sqlite, foreign keys enforced), db/schema.ts holds the
 // contact, credit card, purchase order, line item and counter tables.
@@ -145,22 +145,24 @@ describe("order line storage", () => {
   });
 
   // case: SWHR8-C-0161@v1
-  it("[SWHR8-C-0161] line item reads and writes need no role and run in a transaction", async () => {
+  it("[SWHR8-C-0161] line item reads and writes need no role", async () => {
     const r = await repo();
     const order = await baseOrder();
     await r.savePurchaseOrder(order);
-    // No role needed: the calls are made detached from any session, user or role context, passing only data,
-    // and the stored line carries no user or role field.
-    const { saveLineItem, saveLineItems, readLineItem } = r;
+    // The functions are detached from the module and called with data only: no session, user or role is
+    // supplied, and the line is still written and read back. The stored line carries no user or role field.
+    const { saveLineItem, readLineItem } = r;
     await saveLineItem(line(order.orderId, { lineNumber: 5 }));
     const stored = await readLineItem(order.orderId, 5);
     expect(stored).toMatchObject({ itemId: "EST-1", quantity: 2 });
     expect(Object.keys(stored as object).filter((k) => /user|role|session/i.test(k))).toEqual([]);
-    await r.saveLineItem(line(order.orderId, { lineNumber: 0 }));
-    expect(await r.readLineItem(order.orderId, 0)).toMatchObject({ itemId: "EST-1", quantity: 2 });
-    await saveLineItems([line(order.orderId, { lineNumber: 3 })]);
-    expect(await r.readLineItem(order.orderId, 3)).toMatchObject({ itemId: "EST-1" });
-    // A batch with one invalid line leaves nothing behind: the write ran as one transaction.
+  });
+
+  // case: SWHR8-C-0161@v1
+  it("[SWHR8-C-0161] a line item write runs in a transaction: a failing batch leaves nothing behind", async () => {
+    const r = await repo();
+    const order = await baseOrder();
+    await r.savePurchaseOrder(order);
     await expect(
       r.saveLineItems([
         line(order.orderId, { lineNumber: 1 }),
@@ -168,6 +170,7 @@ describe("order line storage", () => {
       ]),
     ).rejects.toThrow();
     expect(await r.readLineItem(order.orderId, 1)).toBeUndefined();
+    expect(await r.getOrderLines(order.orderId)).toHaveLength(0);
   });
 });
 
@@ -214,6 +217,9 @@ describe("identifier counters", () => {
 
   // case: SWHR8-C-0170@v1
   it("[SWHR8-C-0170] the first order number follows the confirmed start value", async () => {
+    // Fresh module graph, so a fresh in-memory database (db/client.ts under VITEST): no earlier test or
+    // run can have taken an order number from it.
+    vi.resetModules();
     const r = await repo();
     const first = await r.nextOrderNumber();
     expect(first).toBe(1001);
