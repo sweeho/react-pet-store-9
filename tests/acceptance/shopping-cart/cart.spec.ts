@@ -99,9 +99,19 @@ test.describe("shopping cart", () => {
       ["Telephone", party.phone],
       ["E-mail", party.email],
     ]) {
-      for (const i of [0, 1]) await page.getByLabel(label).nth(i).fill(value);
+      // Exact match: 'State' must not hit other labels containing "state". Billing then shipping.
+      const fields = page.getByLabel(label, { exact: true });
+      await expect(fields).toHaveCount(2);
+      for (const i of [0, 1]) await fields.nth(i).fill(value);
     }
-    await page.getByRole("button", { name: /submit|place order|confirm/i }).click();
+    // Scope to the one form holding the billing fields so only its own submit button can match.
+    const form = page
+      .locator("form")
+      .filter({ has: page.getByLabel("Last name", { exact: true }) });
+    await form
+      .getByRole("button", { name: /submit|place order|confirm/i })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/checkout\/error/);
     await expect(page.getByText("Order Error").first()).toBeVisible();
     await expect(page.getByText(/empty/i).first()).toBeVisible();
@@ -124,11 +134,15 @@ test.describe("shopping cart", () => {
     await page.goto("/cart");
     await page.getByLabel("Quantity EST-1").fill("3");
     await page.getByLabel("Quantity EST-6").fill("5");
-    await page.getByRole("button", { name: "Update" }).click();
-    const cart = await (await page.request.get("/api/cart")).json();
-    const q = Object.fromEntries(
-      cart.items.map((i: { itemId: string; quantity: number }) => [i.itemId, i.quantity]),
-    );
-    expect(q).toEqual({ "EST-1": 3, "EST-6": 5 });
+    await page.getByRole("button", { name: "Update", exact: true }).click();
+    // Wait for the update to be applied: poll the cart until it reflects the new quantities.
+    await expect
+      .poll(async () => {
+        const cart = await (await page.request.get("/api/cart")).json();
+        return Object.fromEntries(
+          cart.items.map((i: { itemId: string; quantity: number }) => [i.itemId, i.quantity]),
+        );
+      })
+      .toEqual({ "EST-1": 3, "EST-6": 5 });
   });
 });
