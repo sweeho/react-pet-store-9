@@ -1,0 +1,399 @@
+records:
+  - record_key: CATBR-REQ-0001
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL list categories ordered by name, and list the products of a category ordered by name, showing only entries that have a description in the requested locale.
+    confidence: medium
+    confidence_basis: >
+      One clear place (the SQL statements); the user guide confirms browsing categories, products and items but not the ordering.
+    risk_class: presentational
+    plain_text: >
+      Shoppers see the categories, and the products within a category, in alphabetical order by name, in their own language.
+    technical_note: >
+      CloudscapeCatalogDAO GET_CATEGORIES_STATEMENT and GET_PRODUCTS_STATEMENT join the base table to its _details table on locale and order by name.
+    interface: false
+    basis: SQL join to locale-specific details table with order by name.
+    traces:
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/dao/CloudscapeCatalogDAO.java
+        line_start: 70
+        line_end: 81
+        excerpt: |
+          public static String GET_CATEGORIES_STATEMENT
+            = "select a.catid, name, descn "
+            + " from (category a join category_details b on a.catid=b.catid) "
+            + " where locale = ? order by name";
+          public static String GET_PRODUCT_STATEMENT
+            = "select name, descn "
+            + " from (product a join product_details b on a.productid=b.productid) "
+            + " where locale = ? and a.productid = ? ";
+          public static String GET_PRODUCTS_STATEMENT
+            = "select a.productid, name, descn "
+            + " from (product a join product_details b on a.productid=b.productid) "
+            + " where locale = ? and a.catid = ? order by name";
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        kind: document
+        anchor: "2.2 Browsing and searching"
+        excerpt: "Select a category to list its products, a product to list its items, and an item to see its detail."
+    stack_metadata:
+      framework: EJB 2.x stateless session bean with DAO
+      ejb.bean: CatalogEJB
+      db.object: category, category_details, product, product_details
+
+  - record_key: CATBR-REQ-0002
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL list the items of a product, and show the detail of a single item (category, product, name, image, description, five attributes, list price, unit cost), in the requested locale.
+    confidence: medium
+    confidence_basis: One clear place (SQL plus Item construction); the guide only mentions item detail and prices in general terms.
+    risk_class: presentational
+    plain_text: >
+      Selecting a product shows its items; selecting an item shows its description, attributes and prices.
+    technical_note: >
+      GET_ITEM_STATEMENT / GET_ITEMS_STATEMENT join item, item_details, product_details and product on locale. Items are not ordered explicitly.
+    interface: false
+    basis: SQL joins and Item constructor mapping.
+    traces:
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/dao/CloudscapeCatalogDAO.java
+        line_start: 82
+        line_end: 95
+        excerpt: |
+          public static String GET_ITEM_STATEMENT
+            = "select catid, a.productid, name, b.image, b.descn, attr1, "
+            + "  attr2, attr3, attr4, attr5, listprice, unitcost "
+            + " from (((item a join item_details b on a.itemid=b.itemid)"
+            + "   join product_details c on a.productid=c.productid)"
+            + "   join product d on d.productid = c.productid and b.locale = c.locale) "
+            + " where b.locale = ? and a.itemid = ?";
+          public static String GET_ITEMS_STATEMENT
+            = "select catid, name, a.itemid, b.image, b.descn, attr1, "
+            + "  attr2, attr3, attr4, attr5, listprice, unitcost "
+            + " from (((item a join item_details b on a.itemid=b.itemid)"
+            + "  join product_details c on a.productid=c.productid)"
+            + "  join product d on d.productid=c.productid and b.locale = c.locale)"
+            + " where b.locale = ? and a.productid = ?";
+    stack_metadata:
+      ejb.bean: CatalogEJB
+      db.object: item, item_details, product_details, product
+
+  - record_key: CATBR-REQ-0003
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL present catalog lists in pages, and a page SHALL report whether a next page exists (more rows after the page) and whether a previous page exists (start offset greater than zero).
+    confidence: high
+    confidence_basis: Enforced in the DAO paging loop and in the Page model, and described in the user guide.
+    risk_class: presentational
+    plain_text: >
+      Long lists are split into pages with Next and Previous navigation.
+    technical_note: >
+      DAO positions the scrollable result set at start+1 and reads up to count rows; hasNext is taken from rs.next(). Page.getStartOfPreviousPage clamps at 0.
+    interface: false
+    basis: Paging loop in DAO methods and Page class.
+    traces:
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/dao/CloudscapeCatalogDAO.java
+        line_start: 168
+        line_end: 179
+        excerpt: |
+          if (start >= 0 && rs.absolute(start+1)) {
+            boolean hasNext = false;
+            List items = new ArrayList();
+            do {
+              items.add(new Category(rs.getString(1).trim(),
+                                     rs.getString(2),
+                                     rs.getString(3)));
+            } while ((hasNext = rs.next()) && (--count > 0));
+            ret = new Page(items, start, hasNext);
+          } else {
+            ret = Page.EMPTY_PAGE;
+          }
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/model/Page.java
+        line_start: 69
+        line_end: 93
+        excerpt: |
+          public boolean isNextPageAvailable() {
+          public boolean isPreviousPageAvailable() {
+              return start > 0;
+          public int getStartOfNextPage() { return start + objects.size(); }
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        kind: document
+        anchor: "2.2 Browsing and searching"
+        excerpt: "Lists show 2 rows at a time with Next and Previous."
+    stack_metadata:
+      ejb.bean: CatalogEJB
+
+  - record_key: CATBR-BR-0004
+    kind: business-rule
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL show catalog lists two rows per page by default, starting at offset 0.
+    confidence: medium
+    confidence_basis: Bare literal default in the helper bean, corroborated by the user guide text "2 rows at a time".
+    risk_class: presentational
+    plain_text: >
+      Each list page shows two rows unless told otherwise.
+    technical_note: CatalogHelper fields count=2, start=0.
+    interface: false
+    basis: Default field values in CatalogHelper.
+    traces:
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/client/CatalogHelper.java
+        line_start: 82
+        line_end: 83
+        excerpt: |
+          private int count = 2;
+          private int start = 0;
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        kind: document
+        anchor: "2.2 Browsing and searching"
+        excerpt: "Lists show 2 rows at a time"
+
+  - record_key: CATBR-REQ-0005
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL search items by one or more whitespace-separated keywords, case-insensitively, returning every item in the requested locale whose product name, category identifier or item description contains ANY of the keywords as a substring.
+    confidence: high
+    confidence_basis: Dynamic SQL in the DAO plus the user guide describing the same behaviour; the guide says "category" while code matches the category id.
+    risk_class: operational
+    plain_text: >
+      Typing one or more words in the search box shows items that match any of the words, ignoring upper/lower case, in the product name, category or item description.
+    technical_note: >
+      CloudscapeCatalogDAO.searchItems tokenises with StringTokenizer into a HashSet (duplicates collapse), builds lower(...) like '%kw%' predicates for name, catid and b.descn, ORed. Keywords are bound as parameters. Result is paged like other lists.
+    interface: false
+    basis: searchItems and SEARCH_ITEMS_STATEMENT_FRAGMENTS.
+    traces:
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/dao/CloudscapeCatalogDAO.java
+        line_start: 103
+        line_end: 109
+        excerpt: |
+          "    and ((lower(name) like ? ",
+          "          or lower(name) like ? ",
+          "    ) or (lower(catid) like ? ",
+          "          or lower(catid) like ? ",
+          "    ) or (lower(b.descn) like ? ",
+          "          or lower(b.descn) like ? ",
+          ") )"
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/dao/CloudscapeCatalogDAO.java
+        line_start: 347
+        line_end: 354
+        excerpt: |
+          Collection keywords = new HashSet();
+          StringTokenizer st = new StringTokenizer(searchQuery);
+          while (st.hasMoreTokens()) {
+            keywords.add(st.nextToken());
+          }
+          if (keywords.isEmpty()) {
+            return Page.EMPTY_PAGE;
+          }
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        kind: document
+        anchor: "2.2 Browsing and searching"
+        excerpt: "Search is not case-sensitive. It matches the product name, the category and the item description, and shows items that match any of the words."
+    stack_metadata:
+      ejb.bean: CatalogEJB
+      ejb.transaction: Required
+      db.object: item, item_details, product_details, product
+
+  - record_key: CATBR-REQ-0006
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      GIVEN a search query that is empty or contains only whitespace WHEN a search is requested THEN the system SHALL return an empty result page.
+    confidence: medium
+    confidence_basis: One clear place (early return in the DAO).
+    risk_class: operational
+    plain_text: A blank search shows no results.
+    technical_note: Early return Page.EMPTY_PAGE before any SQL is built.
+    interface: false
+    basis: Early return in searchItems.
+    traces:
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/dao/CloudscapeCatalogDAO.java
+        line_start: 352
+        line_end: 354
+        excerpt: |
+          if (keywords.isEmpty()) {
+            return Page.EMPTY_PAGE;
+          }
+
+  - record_key: CATBR-REQ-0007
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      GIVEN a page start offset that is negative or beyond the last row WHEN a list or search is requested THEN the system SHALL return an empty page rather than an error.
+    confidence: medium
+    confidence_basis: One clear pattern repeated in every DAO list method.
+    risk_class: presentational
+    plain_text: Asking for a page that does not exist shows an empty list, not an error.
+    technical_note: "start >= 0 && rs.absolute(start+1) else Page.EMPTY_PAGE."
+    interface: false
+    basis: Guard in DAO list methods.
+    traces:
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/dao/CloudscapeCatalogDAO.java
+        line_start: 177
+        line_end: 179
+        excerpt: |
+          } else {
+            ret = Page.EMPTY_PAGE;
+          }
+
+  - record_key: CATBR-REQ-0008
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: >
+      GIVEN a category, product or item identifier that has no entry in the requested locale WHEN it is looked up THEN the system SHALL return no result (absent) rather than an error.
+    confidence: medium
+    confidence_basis: One clear pattern in getCategory/getProduct/getItem (rs.first() guard, ret stays null).
+    risk_class: presentational
+    plain_text: Looking up something that does not exist (or has no text in that language) returns nothing.
+    technical_note: ret initialised null, populated only if rs.first().
+    interface: false
+    basis: Single-record lookups.
+    traces:
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/dao/CloudscapeCatalogDAO.java
+        line_start: 141
+        line_end: 143
+        excerpt: |
+          if (rs.first()) {
+            ret = new Category(categoryID, rs.getString(1), rs.getString(2));
+          }
+
+  - record_key: CATLOC-REQ-0009
+    kind: requirement
+    capability_key: localization
+    requirement: >
+      The system SHALL return catalog names, descriptions and images from the locale-specific detail rows matching the requested locale, using the locale's string form (for example en_US) as the match key.
+    confidence: medium
+    confidence_basis: One clear place (every statement filters locale = ?); the user guide confirms three languages but not the key format.
+    risk_class: operational
+    plain_text: Catalog text is shown in the shopper's language (English, Japanese or Chinese).
+    technical_note: ps.setString(1, l.toString()) on every query; no fallback to another locale.
+    interface: false
+    basis: Locale binding in all DAO methods.
+    traces:
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/dao/CloudscapeCatalogDAO.java
+        line_start: 135
+        line_end: 139
+        excerpt: |
+          ps = c.prepareStatement(GET_CATEGORY_STATEMENT,
+                                  ResultSet.TYPE_SCROLL_INSENSITIVE,
+                                  ResultSet.CONCUR_READ_ONLY);
+          ps.setString(1, l.toString());
+          ps.setString(2, categoryID);
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        kind: document
+        anchor: "2.1 Visiting the Storefront"
+        excerpt: "The page is available in English, Japanese and Chinese."
+
+  - record_key: CATBR-INT-0010
+    kind: integration
+    capability_key: catalog-browsing
+    requirement: >
+      The system SHALL allow callers to read the catalog either through the catalog service or directly from the database (a direct-read shortcut), with identical results, and SHALL select the database vendor-specific query set by configuration.
+    confidence: medium
+    confidence_basis: Helper has both code paths and the admin guide describes per-database statement sets; reachability of the direct path not traced.
+    risk_class: operational
+    plain_text: The catalog can be read through the service or straight from the database, and the database type is configurable.
+    technical_note: >
+      CatalogHelper.useFastLane toggles DAO vs EJB; CatalogDAOFactory loads the DAO class named by JNDI env-entry param/CatalogDAOClass; ejb-jar env-entry param/CatalogDAODatabase selects the statement set (values redacted in the source).
+    interface: false
+    basis: CatalogHelper and CatalogDAOFactory.
+    traces:
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/client/CatalogHelper.java
+        line_start: 300
+        line_end: 302
+        excerpt: |
+          return useFastLane ? getItemFromDAO(itemId,locale) : getItemFromEJB(itemId,locale);
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/dao/CatalogDAOFactory.java
+        line_start: 52
+        line_end: 55
+        excerpt: |
+          InitialContext ic = new InitialContext();
+          String className = (String) ic.lookup(JNDINames.CATALOG_DAO_CLASS);
+          catDao = (CatalogDAO) Class.forName(className).newInstance();
+      - path: legacy-analysis/sources/pdf/petstore-admin-guide/extracted.md
+        kind: document
+        anchor: "Add database support"
+        excerpt: "Copy the cloudscape entry of CatalogDAOSQL.xml (the select statements)"
+    stack_metadata:
+      ejb.bean: CatalogEJB
+      ejb.transaction: Required
+
+  - record_key: CATBR-REQ-0011
+    kind: requirement
+    capability_key: inventory-reporting
+    requirement: >
+      The system SHALL be checkable by a daily catalog consistency job (checks C1 to C5) for categories without products, products without items, items priced below cost, items missing a description in a served locale, and items the supplier does not stock.
+    confidence: low
+    confidence_basis: Seen only in the operations runbook; the check SQL (db/batch/catalog_check.sql) is not in this module so the rules were not read in code.
+    risk_class: operational
+    plain_text: A scheduled check reports catalog data problems such as empty categories, items priced below cost or missing descriptions.
+    technical_note: Documented only; the check script lives outside this component. Filed under inventory-reporting per the capability list.
+    interface: true
+    basis: Document only.
+    traces:
+      - path: legacy-analysis/sources/pdf/petstore-operations-runbook/extracted.md
+        kind: document
+        anchor: "3.6 PS_CATALOG_CHECK"
+        excerpt: "Runs catalog checks C1 to C5 (db/batch/catalog_check.sql): category without product, product without item, item priced below cost, item missing a description in a locale the store serves, item the supplier does not stock."
+
+suspected_defects:
+  - capability_key: localization
+    record_keys: [CATLOC-REQ-0009]
+    severity: medium
+    category: other
+    title: Locale string parser ignores variants and returns null for strings without an underscore
+    description: >
+      getLocaleFromString never assigns variantIndex (it modifies countryIndex instead), so a variant is never parsed; a string with no underscore returns null, and the DAO then dereferences the locale (l.toString()), which would fail with a null pointer rather than a handled error.
+    traces:
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/client/CatalogHelper.java
+        line_start: 365
+        line_end: 380
+        excerpt: |
+          if (localeString == null) return null;
+          if (localeString.toLowerCase().equals("default")) return Locale.getDefault();
+          int languageIndex = localeString.indexOf('_');
+          if (languageIndex  == -1) return null;
+  - capability_key: catalog-browsing
+    record_keys: [CATBR-REQ-0005]
+    severity: low
+    category: contradicts-document
+    title: Search matches category identifier, not category name
+    description: >
+      The user guide says search matches the category; the code matches the category id column and the product name (not the category name).
+    traces:
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/dao/CloudscapeCatalogDAO.java
+        line_start: 105
+        line_end: 106
+        excerpt: |
+          "    ) or (lower(catid) like ? ",
+          "          or lower(catid) like ? ",
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        kind: document
+        anchor: "2.2 Browsing and searching"
+        excerpt: "It matches the product name, the category and the item description"
+  - capability_key: catalog-browsing
+    record_keys: [CATBR-REQ-0001, CATBR-REQ-0003]
+    severity: low
+    category: error-swallowed
+    title: Database errors in catalog reads are rewrapped as generic system exceptions; connections leak on error
+    description: >
+      Connections, statements and result sets are closed only on the success path; on SQLException they are not closed, so repeated failures can exhaust the pool.
+    traces:
+      - path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/dao/CloudscapeCatalogDAO.java
+        line_start: 181
+        line_end: 188
+        excerpt: |
+          rs.close();
+          ps.close();
+          c.close();
+          return ret;
+        } catch (SQLException se) {
+          se.printStackTrace(System.err);
+          throw new CatalogDAOSysException("SQLException: " + se.getMessage());
+
+findings:
+  - kind: ambiguity
+    path: legacy-source/app/src/components/catalog/src/com/sun/j2ee/blueprints/catalog/dao/GenericCatalogDAO.java
+    description: >
+      GenericCatalogDAO is an XML-configured alternative DAO; not read in detail. Which DAO is live depends on redacted env-entry values in ejb-jar.xml, so whether results match the Cloudscape DAO is undetermined.
