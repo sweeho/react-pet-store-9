@@ -33,3 +33,7 @@
 ## 7. Diagnostics
 
 - [ ] 7.1 Provide a diagnostic output helper disabled by default
+
+## 8. Configuration thresholds
+
+- [ ] 8.1 Expose the low-stock threshold (default 500) and backup retention (default 7 days) as configuration
