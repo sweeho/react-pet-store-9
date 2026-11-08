@@ -1,0 +1,499 @@
+records:
+  - record_key: CAT-REQ-0001
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: The system SHALL let a shopper navigate from a category to its products, from a product to its items, and from an item to its detail, in the shopper's selected locale.
+    confidence: medium
+    confidence_basis: The locale-filtered category/product/item queries are one clear place; the user guide describes the same navigation, but I did not read the servlet that runs the queries.
+    risk_class: presentational
+    basis: Catalog queries filter every level by locale and join the details tables; the user guide describes the drill-down.
+    plain_text: Shoppers can open a category, then a product, then an item, and see everything in their own language.
+    technical_note: CatalogDAOSQL.xml statements GET_CATEGORIES, GET_PRODUCTS, GET_ITEMS, GET_ITEM all take locale as the first bind parameter; consumed by the web-tier fast-lane DAO.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/docroot/CatalogDAOSQL.xml
+        line_start: 119
+        line_end: 119
+        excerpt: |
+          where b.locale = ? and ((lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?)
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        anchor: "p1 / 2.2 Browsing and searching"
+    stack_metadata:
+      framework: JSP/JSTL, JDBC fast-lane reader
+      db.object: category_details, product_details, item_details
+  - record_key: CAT-REQ-0002
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: The system SHALL search items case-insensitively by matching each entered word against product name, category identifier and item description, returning items that match ANY of the words.
+    confidence: high
+    confidence_basis: SQL (lower() with LIKE, repeated OR fragment per extra word) and the user guide both state it; Oracle variant repeats the same logic.
+    risk_class: presentational
+    basis: SEARCH_ITEMS builds one OR-group per search word over lower(name), lower(catid), lower(descn).
+    plain_text: Searching is not case-sensitive; it looks in the product name, category and item description and shows items matching any of the words typed.
+    technical_note: SEARCH_ITEMS SQLFragment with occurrence=VARIABLE appended once per extra keyword, for both cloudscape and oracle entries.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/docroot/CatalogDAOSQL.xml
+        line_start: 122
+        line_end: 122
+        excerpt: |
+          or (lower(name) like ? or lower(catid) like ? or lower(b.descn) like ?)
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        anchor: "p1 / 2.2 Browsing and searching"
+    stack_metadata:
+      db.object: item, item_details, product_details
+  - record_key: CAT-REQ-0003
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: The system SHALL list categories, products and items two rows per page with Next and Previous navigation.
+    confidence: medium
+    confidence_basis: Page size 2 is a literal in category.jsp, confirmed by the user guide; I checked only the category page, not product/item/search pages.
+    risk_class: presentational
+    basis: category.jsp defaults count to 2 and passes count=2 in paging links.
+    plain_text: Lists show two rows at a time, with Next and Previous links.
+    technical_note: category.jsp c:set count default 2 and c:param count 2.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/docroot/category.jsp
+        line_start: 122
+        line_end: 122
+        excerpt: |
+          <c:param name="count" value="2"/>
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        anchor: "p1 / 2.2 Browsing and searching"
+  - record_key: CAT-REQ-0004
+    kind: requirement
+    capability_key: catalog-browsing
+    requirement: The system SHALL show on the item page both the list price and the member ("your") price of the item, formatted as currency for the locale.
+    confidence: high
+    confidence_basis: JSP code and the user guide section 2.3 agree.
+    risk_class: financial
+    basis: item.jsp renders item.listCost as List Price and item.unitCost as Your Price.
+    plain_text: Each item shows a normal shelf price and a lower member price.
+    technical_note: item.jsp fmt:formatNumber of listCost and unitCost; DAO columns listprice and unitcost. The order total later uses unitCost.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/docroot/item.jsp
+        line_start: 66
+        line_end: 70
+        excerpt: |
+          <td class="petstore" width="100%"><b>List Price:</b>
+           <fmt:formatNumber value="${item.listCost}" type="currency" />
+           <br><br>
+           <b>Your Price:</b>
+           <fmt:formatNumber value="${item.unitCost}" type="currency" />
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        anchor: "p1 / 2.3 Item prices"
+  - record_key: CART-REQ-0001
+    kind: requirement
+    capability_key: shopping-cart
+    requirement: The system SHALL support adding an item to the cart, removing an item, and updating the quantity of items, where a non-numeric quantity entered on update is treated as 0.
+    confidence: high
+    confidence_basis: Web action maps purchase/remove/update and the EJB action applies them (two places).
+    risk_class: operational
+    basis: CartHTMLAction translates action=purchase|remove|update into cart events; CartEJBAction applies add/delete/updateItemQuantity.
+    plain_text: Customers can add items to the cart, remove them or change quantities; an unreadable quantity counts as zero.
+    technical_note: CartHTMLAction parses itemQuantity_<id> params, catches NumberFormatException to 0. Whether quantity 0 removes the line is decided in the shopping cart component, not in this module.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/web/actions/CartHTMLAction.java
+        line_start: 111
+        line_end: 116
+        excerpt: |
+          try {
+              quantity = new Integer(value);
+          }
+          catch (NumberFormatException nfe) {
+              quantity = new Integer(0);
+          }
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/ejb/actions/CartEJBAction.java
+        line_start: 1
+        line_end: 1
+        excerpt: |
+          package com.sun.j2ee.blueprints.petstore.controller.ejb.actions;
+    stack_metadata:
+      framework: WAF front controller
+      ejb.bean: ShoppingClientFacadeLocalEJB
+  - record_key: CART-REQ-0002
+    kind: requirement
+    capability_key: shopping-cart
+    requirement: GIVEN the cart contains no items WHEN an order is submitted THEN the system SHALL reject the order and show the empty-cart order error screen, creating no purchase order.
+    confidence: high
+    confidence_basis: Check in order action plus exception-to-screen mapping.
+    risk_class: operational
+    basis: OrderEJBAction throws ShoppingCartEmptyOrderException; mappings.xml routes it to cart_empty_order_error.screen.
+    plain_text: An order cannot be placed with an empty cart; the customer sees an error page.
+    technical_note: The check occurs after the order id is generated and before the message is sent, so an order id is consumed by a rejected attempt.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/ejb/actions/OrderEJBAction.java
+        line_start: 130
+        line_end: 132
+        excerpt: |
+          if (items.size() == 0) {
+            throw new ShoppingCartEmptyOrderException("Shopping cart is empty");
+          }
+      - path: legacy-source/app/src/apps/petstore/src/docroot/WEB-INF/mappings.xml
+        line_start: 110
+        line_end: 110
+        excerpt: |
+          <exception-mapping exception-class="com.sun.j2ee.blueprints.petstore.controller.exceptions.ShoppingCartEmptyOrderException" screen="cart_empty_order_error.screen"/>
+  - record_key: CART-REQ-0003
+    kind: requirement
+    capability_key: shopping-cart
+    requirement: The system SHALL empty the cart after an order has been handed off, and SHALL keep one cart per signed-in session.
+    confidence: medium
+    confidence_basis: cart.empty() is one clear call; per-session cart creation is lazy in the facade (one place).
+    risk_class: operational
+    basis: OrderEJBAction calls cart.empty() last; facade creates cart on first use.
+    plain_text: After the order is placed the cart is cleared.
+    technical_note: cart.empty() runs even if sending the order message failed (see defect).
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/ejb/actions/OrderEJBAction.java
+        line_start: 167
+        line_end: 167
+        excerpt: |
+          cart.empty();
+  - record_key: ACCT-REQ-0001
+    kind: requirement
+    capability_key: customer-account
+    requirement: The system SHALL require sign-on before a shopper can view or edit the customer profile, or enter order information.
+    confidence: medium
+    confidence_basis: Declared in signon-config.xml (one place); the filter implementing it lives outside this module.
+    risk_class: regulated
+    basis: security constraints list customer.screen, customer.do and enter_order_information.screen (and signon_welcome.screen). No roles are named, so any authenticated user passes.
+    plain_text: Only signed-in customers can edit their account or enter checkout details.
+    technical_note: signon-config.xml security-constraint entries; enforced by SignOnFilter on /*. Browsing, cart and search are unprotected.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/docroot/WEB-INF/signon-config.xml
+        line_start: 69
+        line_end: 69
+        excerpt: |
+          <url-pattern>enter_order_information.screen</url-pattern>
+      - path: legacy-source/app/src/apps/petstore/src/docroot/WEB-INF/signon-config.xml
+        line_start: 61
+        line_end: 61
+        excerpt: |
+          <url-pattern>customer.do</url-pattern>
+    stack_metadata:
+      framework: custom SignOnFilter
+  - record_key: ACCT-REQ-0002
+    kind: requirement
+    capability_key: customer-account
+    requirement: The system SHALL create a user account from a user name and password, and GIVEN the account cannot be created (name taken, bad name or password) THEN it SHALL show the duplicate-account screen.
+    confidence: medium
+    confidence_basis: One clear flow (action + exception mapping); the uniqueness check itself is in the sign-on component outside this module.
+    risk_class: regulated
+    basis: CreateUserEJBAction wraps CreateException and lookup failures as DuplicateAccountException; mappings route it to duplicate_account.screen.
+    plain_text: A new user picks a name and password; if that fails the customer is told the account already exists.
+    technical_note: Any lookup/creation failure, not only a true duplicate, produces the duplicate-account page.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/ejb/actions/CreateUserEJBAction.java
+        line_start: 99
+        line_end: 101
+        excerpt: |
+          } catch (CreateException ce) {
+              throw new DuplicateAccountException("Bad UserName or password");
+          }
+      - path: legacy-source/app/src/apps/petstore/src/docroot/WEB-INF/mappings.xml
+        line_start: 111
+        line_end: 111
+        excerpt: |
+          <exception-mapping exception-class="com.sun.j2ee.blueprints.petstore.controller.exceptions.DuplicateAccountException" screen="duplicate_account.screen"/>
+  - record_key: ACCT-REQ-0003
+    kind: requirement
+    capability_key: customer-account
+    requirement: The system SHALL capture, on account creation and update, family name, given name, street address, city, state or province, postal code and telephone as mandatory, with second address line and email optional.
+    confidence: medium
+    confidence_basis: Checked in the web action (one place); duplicated copy in OrderHTMLAction but that is a different flow. Missing-field list is recorded in a request attribute, but see defect on how it is consumed.
+    risk_class: operational
+    basis: extractContactInfo trims each field and collects labels of blanks; address_2 blank becomes null; country is not checked.
+    plain_text: Name, street, city, state, postal code and phone are required when creating or updating an account; second address line, country and email are optional.
+    technical_note: CustomerHTMLAction.extractContactInfo; on missing fields returns null contact info and sets MISSING_FORM_DATA_EXCEPTION_KEY.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/web/actions/CustomerHTMLAction.java
+        line_start: 245
+        line_end: 249
+        excerpt: |
+          if (missingFields != null) {
+              MissingFormDataException ex = new MissingFormDataException("Missing Address Data", missingFields);
+              request.setAttribute(PetstoreKeys.MISSING_FORM_DATA_EXCEPTION_KEY, ex);
+              return null;
+          }
+  - record_key: ACCT-REQ-0004
+    kind: requirement
+    capability_key: customer-account
+    requirement: The system SHALL store per customer a profile of preferred language, favourite category, my-list preference and banner preference, and SHALL treat the my-list and banner preferences as on only when their checkbox is submitted.
+    confidence: medium
+    confidence_basis: Single code location for extraction and one for persistence.
+    risk_class: operational
+    basis: extractProfileInfo and CustomerEJBAction.updateCustomer.
+    plain_text: Customers choose language, favourite category, and whether to show their list and banners.
+    technical_note: Language and favourite category are collected as missing fields but never raised as errors (see defect).
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/web/actions/CustomerHTMLAction.java
+        line_start: 126
+        line_end: 132
+        excerpt: |
+          boolean defaultMyListPreference = true;
+          String defaultMyListPreferenceString =  request.getParameter("mylist_on");
+          if (defaultMyListPreferenceString == null) defaultMyListPreference=false;
+          boolean defaultBannerPreference = true;
+          String defaultBannerPreferenceString =  request.getParameter("banners_on");
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/ejb/actions/CustomerEJBAction.java
+        line_start: 138
+        line_end: 141
+        excerpt: |
+          profileLocal.setPreferredLanguage(profileInfo.getPreferredLanguage());
+          profileLocal.setFavoriteCategory(profileInfo.getFavoriteCategory());
+          profileLocal.setMyListPreference(profileInfo.getMyListPreference());
+          profileLocal.setBannerPreference(profileInfo.getBannerPreference());
+  - record_key: ACCT-REQ-0005
+    kind: requirement
+    capability_key: customer-account
+    requirement: The system SHALL, when a customer signs on, load their profile and set the session locale and the cart locale to the customer's preferred language.
+    confidence: high
+    confidence_basis: Enforced in both SignOnEJBAction and SignOnNotifier.
+    risk_class: operational
+    basis: Both read the profile preferred language via I18nUtil and set the session locale.
+    plain_text: After signing in the store switches to the customer's saved language.
+    technical_note: SignOnNotifier triggers a SignOnEvent when SIGNED_ON_USER is set true; SignOnEJBAction sets facade userId, locale and cart locale.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/ejb/actions/SignOnEJBAction.java
+        line_start: 86
+        line_end: 91
+        excerpt: |
+          ProfileLocal profile = scf.getCustomer().getProfile();
+          Locale locale = I18nUtil.getLocaleFromString(profile.getPreferredLanguage());
+          machine.setAttribute(PetstoreKeys.LOCALE, locale);
+          ShoppingCartLocal cart = scf.getShoppingCart();
+          cart.setLocale(locale);
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/web/SignOnNotifier.java
+        line_start: 139
+        line_end: 141
+        excerpt: |
+          ProfileInfo profile = sl.getCustomer(session).getProfile();
+    stack_metadata:
+      session.scope: HttpSession
+  - record_key: ACCT-REQ-0006
+    kind: requirement
+    capability_key: customer-account
+    requirement: The system SHALL expire an idle web session after 15 minutes.
+    confidence: low
+    confidence_basis: A single bare literal in deployment descriptor; no document states it.
+    risk_class: operational
+    basis: web.xml session-timeout.
+    plain_text: A customer who is idle for 15 minutes is signed out.
+    technical_note: web.xml session-config 15 (minutes).
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/docroot/WEB-INF/web.xml
+        line_start: 162
+        line_end: 162
+        excerpt: |
+          <session-timeout>15</session-timeout>
+  - record_key: CHK-REQ-0001
+    kind: requirement
+    capability_key: order-checkout
+    requirement: The system SHALL require billing and shipping contact data (family name, given name, street, city, state or province, postal code, telephone) before accepting an order, and on missing data SHALL not place the order.
+    confidence: medium
+    confidence_basis: One clear check in OrderHTMLAction; the missing-data handling after return null is in the front controller outside the module.
+    risk_class: operational
+    basis: extractContactInfo is called for the shipping (_a) and billing (_b) forms.
+    plain_text: Order entry needs a complete name, address and phone for both billing and shipping.
+    technical_note: OrderHTMLAction, suffix _a becomes shipper, _b becomes receiver; note naming is swapped relative to variable names (shipper/billTo mapping is as constructed in OrderEvent).
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/web/actions/OrderHTMLAction.java
+        line_start: 80
+        line_end: 83
+        excerpt: |
+          ContactInfo shipper = extractContactInfo(request, "_a");
+          ContactInfo receiver = extractContactInfo(request, "_b");
+          CreditCard creditCard = new CreditCard( "1234-2334", "Duke Express", "10/2001") ;
+          return new OrderEvent(shipper,receiver,creditCard);
+  - record_key: CHK-RULE-0001
+    kind: business-rule
+    capability_key: order-checkout
+    requirement: The system SHALL price an order as the sum over cart lines of unit (member) price times quantity, and SHALL record each line with category, product, item, line number, quantity and unit price.
+    confidence: medium
+    confidence_basis: One clear loop; ordering/rounding in float is visible but there is no spec or test.
+    risk_class: financial
+    basis: OrderEJBAction accumulates totalCost in a float from item.getUnitCost().
+    plain_text: The order total is each item's member price times quantity, added up.
+    technical_note: Arithmetic in float; unit cost parsed from string via new Float(). Line numbers start at 0.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/ejb/actions/OrderEJBAction.java
+        line_start: 137
+        line_end: 138
+        excerpt: |
+          float cost = new Float(item.getUnitCost()).floatValue();
+          totalCost += (cost*item.getQuantity());
+  - record_key: CHK-REQ-0002
+    kind: requirement
+    capability_key: order-checkout
+    requirement: The system SHALL assign each order a unique order id and stamp it with the user id, billing email, date, shipping info, billing info, credit card and session locale.
+    confidence: medium
+    confidence_basis: One place, visible in code.
+    risk_class: operational
+    basis: OrderEJBAction populates the PurchaseOrder.
+    plain_text: Each order gets its own number and records who ordered, when, where it ships and the locale.
+    technical_note: Order id from UniqueIdGenerator seeded with "1001".
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/ejb/actions/OrderEJBAction.java
+        line_start: 110
+        line_end: 121
+        excerpt: |
+          orderIdString = uidgen.getUniqueId("1001");
+  - record_key: CHK-INT-0001
+    kind: integration
+    capability_key: order-checkout
+    requirement: The system SHALL send each accepted order to the Order Processing Center asynchronously as an XML purchase order message, then return the order id and billing email to the customer.
+    confidence: high
+    confidence_basis: Code (AsyncSender) plus the user guide section 2.5.
+    risk_class: operational
+    basis: purchaseOrder.toXML() sent via AsyncSender; OrderEventResponse returned.
+    plain_text: Once an order is placed it is passed to the order processing system in the background and the customer gets an order number.
+    technical_note: JMS via AsyncSenderLocal EJB; message body is PurchaseOrder XML.
+    interface: true
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/ejb/actions/OrderEJBAction.java
+        line_start: 152
+        line_end: 153
+        excerpt: |
+          AsyncSender  sender= home.create();
+          sender.sendAMessage(purchaseOrder.toXML());
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        anchor: "p1 / 2.5 Placing an order"
+    stack_metadata:
+      jms.queue: via AsyncSender
+      ejb.bean: AsyncSenderLocalEJB
+  - record_key: CHK-REQ-0003
+    kind: requirement
+    capability_key: order-checkout
+    requirement: The system SHALL capture a credit card number, type and expiry month and year when an account is created or updated.
+    confidence: low
+    confidence_basis: Values are read and persisted, but no format, expiry or Luhn check is visible; the validation block is broken (see defect).
+    risk_class: regulated
+    basis: CustomerHTMLAction.extractCreditCard joins month/year into expiry; stored by CustomerEJBAction.
+    plain_text: A customer's card number, type and expiry are saved with the account.
+    technical_note: Card number is stored in clear by CreditCardLocal.setCardNumber.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/web/actions/CustomerHTMLAction.java
+        line_start: 175
+        line_end: 178
+        excerpt: |
+          String expiryDate = creditCardExpiryMonth + "/" + creditCardExpiryYear;
+          return new CreditCard(creditCardNumber,
+                                              creditCardType,
+                                              expiryDate);
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/ejb/actions/CustomerEJBAction.java
+        line_start: 132
+        line_end: 134
+        excerpt: |
+          creditCardLocal.setCardNumber(creditCard.getCardNumber());
+          creditCardLocal.setCardType(creditCard.getCardType());
+          creditCardLocal.setExpiryDate(creditCard.getExpiryDate());
+  - record_key: LOC-REQ-0001
+    kind: requirement
+    capability_key: localization
+    requirement: The system SHALL serve the storefront in en_US, ja_JP and zh_CN with en_US as default, using per-locale screen definitions and pages, and SHALL allow the locale to be changed by the shopper.
+    confidence: high
+    confidence_basis: web.xml locales list, per-locale screendefinitions and JSP directories, changelocale mapping, and documents all agree.
+    risk_class: presentational
+    basis: TemplateServlet locales init-param; ChangeLocaleEJBAction sets session locale and informs cart.
+    plain_text: The store is available in English, Japanese and Chinese; English is used by default and the shopper can switch.
+    technical_note: Admin guide describes only en and ja localizations while code ships zh_CN too.
+    interface: false
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/docroot/WEB-INF/web.xml
+        line_start: 109
+        line_end: 110
+        excerpt: |
+          <param-name>locales</param-name>
+          <param-value>en_US,ja_JP,zh_CN</param-value>
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        anchor: "p1 / 2.1 Visiting the Storefront"
+      - path: legacy-analysis/sources/pdf/petstore-admin-guide/extracted.md
+        anchor: "p1 / 3.2 Adding a localization"
+suspected_defects:
+  - capability_key: order-checkout
+    record_keys: [CHK-REQ-0001, CHK-REQ-0003]
+    severity: high
+    category: contradicts-document
+    title: Order always carries a hard-coded credit card
+    description: >
+      The order web action ignores any card entered and always builds the card "1234-2334" / "Duke Express" / "10/2001",
+      which is also already expired. The user guide says the form is pre-filled for the sample user and implies the entered data is used.
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/web/actions/OrderHTMLAction.java
+        line_start: 82
+        line_end: 82
+        excerpt: |
+          CreditCard creditCard = new CreditCard( "1234-2334", "Duke Express", "10/2001") ;
+      - path: legacy-analysis/sources/pdf/petstore-user-guide/extracted.md
+        anchor: "p1 / 2.5 Placing an order"
+  - capability_key: customer-account
+    record_keys: [CHK-REQ-0003, ACCT-REQ-0004]
+    severity: medium
+    category: other
+    title: Credit card and profile required-field checks never reject anything
+    description: >
+      In extractCreditCard the type, expiry month and expiry year checks all test creditCardNumber instead of their own field,
+      and the collected missingFields list is never thrown or stored. extractProfileInfo likewise collects missing language and favourite category but never reports them.
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/web/actions/CustomerHTMLAction.java
+        line_start: 151
+        line_end: 153
+        excerpt: |
+          String creditCardType =  request.getParameter("credit_card_type").trim();
+          if (creditCardNumber.equals("")) {
+              if (missingFields == null) {
+  - capability_key: customer-account
+    record_keys: [ACCT-REQ-0002]
+    severity: medium
+    category: other
+    title: Password confirmation is read but not compared
+    description: >
+      CreateUserHTMLAction reads a second password field but only checks that user name and password are not null;
+      no equality check between the two passwords is visible, and a failure to create is always shown as a duplicate account.
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/web/actions/CreateUserHTMLAction.java
+        line_start: 84
+        line_end: 86
+        excerpt: |
+          if (userName != null && password != null) {
+              return new CreateUserEvent(userName,password);
+          }
+  - capability_key: order-checkout
+    record_keys: [CHK-INT-0001, CART-REQ-0003]
+    severity: high
+    category: error-swallowed
+    title: Failure to send the order is only printed, yet the cart is emptied and success returned
+    description: >
+      Lookup, XML and create exceptions around the send are caught and printed; execution continues to empty the cart and return an order id, so the customer is told the order succeeded though nothing reached the OPC.
+      A failed id generator lookup also leaves uidgen null and causes a NullPointerException.
+    traces:
+      - path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/controller/ejb/actions/OrderEJBAction.java
+        line_start: 155
+        line_end: 160
+        excerpt: |
+          } catch (ServiceLocatorException sle) {
+            sle.printStackTrace();
+          } catch (XMLDocumentException xde) {
+            xde.printStackTrace();
+            System.err.println(xde.getRootCause().getMessage());
+findings:
+  - kind: ambiguity
+    path: legacy-source/app/src/apps/petstore/src/com/sun/j2ee/blueprints/petstore/tools/populate/PopulateServlet.java
+    description: >
+      PopulateServlet is mapped at /Populate in web.xml and reloads catalog and user data; no authorisation is visible. Whether it is reachable in production, and its data-reset effect, needs a human decision.
