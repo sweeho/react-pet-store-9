@@ -17,6 +17,8 @@
 - [ ] 3.2 Publish decisions asynchronously and reply SUCCESS on hand-off
 - [ ] 3.3 Define the Order Approval document structure
 - [ ] 3.4 Validate incoming Order Approval documents against structure and document type
+- [ ] 3.5 Warn on Refresh when unsaved status changes exist
+- [ ] 3.6 Forward update-status requests to order processing as one order-approval message
 
 ## 4. Sales totals
 

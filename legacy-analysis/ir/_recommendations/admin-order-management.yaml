@@ -1,53 +1,13 @@
 recommendations:
-  - record_key: ADM-REQ-0001
-    recommendation: accept
-    confidence: medium
-    reason: >
-      web.xml declares the constraint, but it covers only the launcher servlet and not the data servlet. Accept the intended rule; confirm the gap as a suspected defect with the Business Owner.
-  - record_key: ADM-REQ-0002
-    recommendation: accept
-    confidence: low
-    reason: >
-      A bare literal of 54 minutes with no document or comment stating intent. Confirm the value with the Business Owner.
-  - record_key: ADM-WF-0003
-    recommendation: accept
-    confidence: high
-    reason: Code and the user guide agree on launching the rich client and logging out.
-  - record_key: ADM-REQ-0004
-    recommendation: accept
-    confidence: high
-    reason: Server handler, client data source and user guide agree on the four statuses.
-  - record_key: ADM-WF-0005
-    recommendation: accept
-    confidence: high
-    reason: Client status options, commit logic and the user guide agree. Financial risk, so a person should confirm.
-  - record_key: ADM-REQ-0006
-    recommendation: accept
-    confidence: high
-    reason: >
-      Web relay and delegate agree. Status values are not validated against the known four; confirm what the code does, whether that is right is the Business Owner's decision in the defect register.
-  - record_key: ADM-REQ-0008
-    recommendation: accept
-    confidence: high
-    reason: Both error branches are explicit in code with message text.
   - record_key: ORDAPP-REQ-0001
     recommendation: accept
     confidence: high
-    reason: DTD and Java reader/writer agree.
+    reason: DTD and Java reader/writer agree on the Order Approval structure.
   - record_key: ORDAPP-RULE-0002
     recommendation: accept
     confidence: medium
-    reason: Single place (fromDOM and getters). The silent stop at a foreign sibling element is a legacy quirk; confirm it is not required.
+    reason: Single place (fromDOM and getters). Iteration stops silently at a foreign sibling element, a legacy quirk; confirm it is not required.
   - record_key: ORDAPP-REQ-0003
     recommendation: accept
     confidence: medium
     reason: Default validating flag is in code; whether any caller turns validation off is outside this module.
-  - record_key: ADMIN-REQ-0002
-    recommendation: accept
-    confidence: medium
-    reason: >
-      One place in code. Float arithmetic is a suspected rounding defect; confirm what the code does and refer rounding to the Business Owner.
-  - record_key: ADMO-ENT-0001
-    recommendation: accept
-    confidence: low
-    reason: View definition only; no consumer found. Confirm it is still used before rebuilding.
