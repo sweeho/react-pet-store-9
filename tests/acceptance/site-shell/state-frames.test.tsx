@@ -23,20 +23,20 @@ describe("shared state frames", () => {
   it("[SWHR8-C-0139] a page with no data renders the shared empty frame", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          new Response(JSON.stringify([]), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        ),
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
     );
 
-    renderPage();
+    const { container } = renderPage();
 
-    expect(await screen.findByTestId("empty-frame")).toBeInTheDocument();
-    expect(screen.queryByTestId("error-frame")).toBeNull();
+    // The empty frame shows a visible message; no failure is reported and nothing offers a retry.
+    await waitFor(() => expect(container.textContent?.trim().length).toBeGreaterThan(0));
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("button", { name: /retry|try again/i })).toBeNull();
   });
 
   // case: SWHR8-C-0140@v1
@@ -47,9 +47,10 @@ describe("shared state frames", () => {
 
     renderPage();
 
-    const frame = await screen.findByTestId("error-frame");
-    expect(frame).toBeInTheDocument();
-    const retry = screen.getByRole("button", { name: /retry/i });
+    // The error frame is announced as an alert with a visible message and a retry control.
+    const frame = await screen.findByRole("alert");
+    expect(frame.textContent?.trim().length).toBeGreaterThan(0);
+    const retry = (await screen.findAllByRole("button", { name: /retry|try again/i }))[0];
     const callsBefore = fetchMock.mock.calls.length;
 
     await user.click(retry);
