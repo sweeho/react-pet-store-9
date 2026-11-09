@@ -1,0 +1,109 @@
+sections:
+  - section: Summary
+    from:
+      - openspec/changes/swhr8-i-0002-bootstrap-landing-page-and/specs/site-shell/spec.md
+      - openspec/changes/swhr8-i-0003-localization/specs/localization/spec.md
+      - openspec/changes/swhr8-i-0004-catalog-browsing-and-search/specs/catalog-browsing/spec.md
+      - openspec/changes/swhr8-i-0005-customer-account-and-sign-o/specs/customer-account/spec.md
+      - openspec/changes/swhr8-i-0006-shopping-cart/specs/shopping-cart/spec.md
+      - openspec/changes/swhr8-i-0007-order-checkout-and-payment/specs/order-checkout/spec.md
+      - openspec/changes/swhr8-i-0008-order-approval/specs/order-approval/spec.md
+      - openspec/changes/swhr8-i-0009-customer-notifications/specs/order-notifications/spec.md
+      - openspec/changes/swhr8-i-0010-order-fulfillment-and-inven/specs/order-fulfillment/spec.md
+      - openspec/changes/swhr8-i-0011-admin-order-management/specs/admin-order-management/spec.md
+      - openspec/changes/swhr8-i-0012-order-batch-jobs/specs/order-reporting-batch/spec.md
+      - openspec/changes/swhr8-i-0013-inventory-and-operations-re/specs/inventory-reporting/spec.md
+  - section: Context
+    from:
+      - openspec/changes/swhr8-i-0002-bootstrap-landing-page-and/specs/site-shell/spec.md
+  - section: Goals
+    from:
+      - openspec/changes/swhr8-i-0003-localization/specs/localization/spec.md
+      - openspec/changes/swhr8-i-0004-catalog-browsing-and-search/specs/catalog-browsing/spec.md
+      - openspec/changes/swhr8-i-0006-shopping-cart/specs/shopping-cart/spec.md
+      - openspec/changes/swhr8-i-0005-customer-account-and-sign-o/specs/customer-account/spec.md
+      - openspec/changes/swhr8-i-0008-order-approval/specs/order-approval/spec.md
+      - openspec/changes/swhr8-i-0010-order-fulfillment-and-inven/specs/order-fulfillment/spec.md
+      - openspec/changes/swhr8-i-0011-admin-order-management/specs/admin-order-management/spec.md
+      - openspec/changes/swhr8-i-0009-customer-notifications/specs/order-notifications/spec.md
+      - openspec/changes/swhr8-i-0012-order-batch-jobs/specs/order-reporting-batch/spec.md
+      - openspec/changes/swhr8-i-0013-inventory-and-operations-re/specs/inventory-reporting/spec.md
+  - section: Non-goals
+    from:
+      - openspec/changes/swhr8-i-0003-localization/specs/localization/spec.md
+  - section: Users
+    from:
+      - openspec/changes/swhr8-i-0002-bootstrap-landing-page-and/specs/site-shell/spec.md
+      - openspec/changes/swhr8-i-0003-localization/specs/localization/spec.md
+      - openspec/changes/swhr8-i-0004-catalog-browsing-and-search/specs/catalog-browsing/spec.md
+      - openspec/changes/swhr8-i-0005-customer-account-and-sign-o/specs/customer-account/spec.md
+      - openspec/changes/swhr8-i-0006-shopping-cart/specs/shopping-cart/spec.md
+      - openspec/changes/swhr8-i-0007-order-checkout-and-payment/specs/order-checkout/spec.md
+      - openspec/changes/swhr8-i-0008-order-approval/specs/order-approval/spec.md
+      - openspec/changes/swhr8-i-0009-customer-notifications/specs/order-notifications/spec.md
+      - openspec/changes/swhr8-i-0010-order-fulfillment-and-inven/specs/order-fulfillment/spec.md
+      - openspec/changes/swhr8-i-0011-admin-order-management/specs/admin-order-management/spec.md
+      - openspec/changes/swhr8-i-0012-order-batch-jobs/specs/order-reporting-batch/spec.md
+      - openspec/changes/swhr8-i-0013-inventory-and-operations-re/specs/inventory-reporting/spec.md
+  - section: User journeys
+    from:
+      - openspec/changes/swhr8-i-0002-bootstrap-landing-page-and/specs/site-shell/spec.md
+      - openspec/changes/swhr8-i-0004-catalog-browsing-and-search/specs/catalog-browsing/spec.md
+      - openspec/changes/swhr8-i-0003-localization/specs/localization/spec.md
+      - openspec/changes/swhr8-i-0005-customer-account-and-sign-o/specs/customer-account/spec.md
+      - openspec/changes/swhr8-i-0006-shopping-cart/specs/shopping-cart/spec.md
+      - openspec/changes/swhr8-i-0007-order-checkout-and-payment/specs/order-checkout/spec.md
+      - openspec/changes/swhr8-i-0011-admin-order-management/specs/admin-order-management/spec.md
+      - openspec/changes/swhr8-i-0010-order-fulfillment-and-inven/specs/order-fulfillment/spec.md
+  - section: Capability map
+    from:
+      - openspec/changes/swhr8-i-0003-localization/specs/localization/spec.md
+      - openspec/changes/swhr8-i-0004-catalog-browsing-and-search/specs/catalog-browsing/spec.md
+      - openspec/changes/swhr8-i-0005-customer-account-and-sign-o/specs/customer-account/spec.md
+      - openspec/changes/swhr8-i-0006-shopping-cart/specs/shopping-cart/spec.md
+      - openspec/changes/swhr8-i-0007-order-checkout-and-payment/specs/order-checkout/spec.md
+      - openspec/changes/swhr8-i-0008-order-approval/specs/order-approval/spec.md
+      - openspec/changes/swhr8-i-0009-customer-notifications/specs/order-notifications/spec.md
+      - openspec/changes/swhr8-i-0010-order-fulfillment-and-inven/specs/order-fulfillment/spec.md
+      - openspec/changes/swhr8-i-0011-admin-order-management/specs/admin-order-management/spec.md
+      - openspec/changes/swhr8-i-0012-order-batch-jobs/specs/order-reporting-batch/spec.md
+      - openspec/changes/swhr8-i-0013-inventory-and-operations-re/specs/inventory-reporting/spec.md
+  - section: Screens
+    from:
+      - openspec/changes/swhr8-i-0002-bootstrap-landing-page-and/specs/site-shell/spec.md
+      - openspec/changes/swhr8-i-0003-localization/specs/localization/spec.md
+      - openspec/changes/swhr8-i-0004-catalog-browsing-and-search/specs/catalog-browsing/spec.md
+      - openspec/changes/swhr8-i-0005-customer-account-and-sign-o/specs/customer-account/spec.md
+      - openspec/changes/swhr8-i-0006-shopping-cart/specs/shopping-cart/spec.md
+      - openspec/changes/swhr8-i-0007-order-checkout-and-payment/specs/order-checkout/spec.md
+      - openspec/changes/swhr8-i-0008-order-approval/specs/order-approval/spec.md
+      - openspec/changes/swhr8-i-0009-customer-notifications/specs/order-notifications/spec.md
+      - openspec/changes/swhr8-i-0010-order-fulfillment-and-inven/specs/order-fulfillment/spec.md
+      - openspec/changes/swhr8-i-0011-admin-order-management/specs/admin-order-management/spec.md
+      - openspec/changes/swhr8-i-0012-order-batch-jobs/specs/order-reporting-batch/spec.md
+      - openspec/changes/swhr8-i-0013-inventory-and-operations-re/specs/inventory-reporting/spec.md
+  - section: Constraints and assumptions
+    from:
+      - openspec/changes/swhr8-i-0002-bootstrap-landing-page-and/specs/site-shell/spec.md
+      - openspec/changes/swhr8-i-0003-localization/specs/localization/spec.md
+      - openspec/changes/swhr8-i-0004-catalog-browsing-and-search/specs/catalog-browsing/spec.md
+      - openspec/changes/swhr8-i-0005-customer-account-and-sign-o/specs/customer-account/spec.md
+      - openspec/changes/swhr8-i-0006-shopping-cart/specs/shopping-cart/spec.md
+      - openspec/changes/swhr8-i-0007-order-checkout-and-payment/specs/order-checkout/spec.md
+      - openspec/changes/swhr8-i-0008-order-approval/specs/order-approval/spec.md
+      - openspec/changes/swhr8-i-0009-customer-notifications/specs/order-notifications/spec.md
+      - openspec/changes/swhr8-i-0010-order-fulfillment-and-inven/specs/order-fulfillment/spec.md
+      - openspec/changes/swhr8-i-0011-admin-order-management/specs/admin-order-management/spec.md
+      - openspec/changes/swhr8-i-0012-order-batch-jobs/specs/order-reporting-batch/spec.md
+      - openspec/changes/swhr8-i-0013-inventory-and-operations-re/specs/inventory-reporting/spec.md
+  - section: Open questions
+    from:
+      - openspec/changes/swhr8-i-0003-localization/specs/localization/spec.md
+      - openspec/changes/swhr8-i-0005-customer-account-and-sign-o/specs/customer-account/spec.md
+      - openspec/changes/swhr8-i-0007-order-checkout-and-payment/specs/order-checkout/spec.md
+      - openspec/changes/swhr8-i-0006-shopping-cart/specs/shopping-cart/spec.md
+      - openspec/changes/swhr8-i-0011-admin-order-management/specs/admin-order-management/spec.md
+      - openspec/changes/swhr8-i-0002-bootstrap-landing-page-and/specs/site-shell/spec.md
+  - section: Sources
+    from:
+      - build/manifest.yaml

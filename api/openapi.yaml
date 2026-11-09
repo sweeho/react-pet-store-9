@@ -1,0 +1,82 @@
+# EXTRACTED FROM LEGACY SOURCE — evidence of what exists, not a build target. Where this disagrees with a capability delta spec, the delta spec wins.
+# Surface reconstructed from web.xml and mappings.xml of the legacy petstore, admin and supplier web modules.
+# Legacy endpoints are form posts and servlet entry points, not REST; request bodies are indicative only.
+openapi: 3.0.3
+info:
+  title: Legacy Java Pet Store 1.3.2 HTTP surface (as found)
+  version: legacy-1.3.2
+servers:
+  - url: http://ps-app01:8000
+paths:
+  /petstore/main.screen:
+    get:
+      summary: Storefront home, category, product, item, search and cart screens (templated by screen name)
+      tags: [catalog-browsing]
+      responses:
+        "200": {description: Rendered screen in the session locale}
+  /petstore/cart.do:
+    post:
+      summary: Add, remove or update cart lines, then show the cart screen
+      tags: [shopping-cart]
+      responses:
+        "200": {description: Cart screen}
+  /petstore/order.do:
+    post:
+      summary: Submit the order; hands off asynchronously to order processing
+      tags: [order-checkout]
+      responses:
+        "200": {description: Order complete screen}
+  /petstore/createcustomer.do:
+    post:
+      summary: Create a customer account
+      tags: [customer-account]
+      responses:
+        "200": {description: Main screen, or duplicate-account screen}
+  /petstore/customer.do:
+    post:
+      summary: Edit customer profile
+      tags: [customer-account]
+      responses:
+        "200": {description: Customer screen}
+  /petstore/signoff.do:
+    get:
+      summary: Sign off and invalidate the session
+      tags: [customer-account]
+      responses:
+        "200": {description: Sign-off screen}
+  /petstore/changelocale.do:
+    post:
+      summary: Change the session locale (en_US, ja_JP, zh_CN)
+      tags: [localization]
+      responses:
+        "200": {description: Locale change confirmation}
+  /petstore/Populate:
+    get:
+      summary: Load catalog seed data
+      tags: [inventory-reporting]
+      responses:
+        "200": {description: Data loaded}
+  /admin/AdminRequestProcessor:
+    post:
+      summary: Administrator requests (list orders by status, approve or deny, sales totals); role administrator, form login
+      tags: [admin-order-management]
+      responses:
+        "200": {description: Result}
+  /admin/ApplRequestProcessor:
+    post:
+      summary: Application request relay used by the admin client
+      tags: [admin-order-management]
+      responses:
+        "200": {description: Result}
+  /supplier/RcvrRequestProcessor:
+    post:
+      summary: Stock clerk inventory update; role administrator, form login
+      tags: [order-fulfillment]
+      responses:
+        "200": {description: Inventory view}
+  /supplier/Populate:
+    get:
+      summary: Load supplier inventory seed data
+      tags: [inventory-reporting]
+      responses:
+        "200": {description: Data loaded}
