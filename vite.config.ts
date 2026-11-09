@@ -31,7 +31,7 @@ export default defineConfig({
     Pages({
       dirs: "src/pages",
       extensions: ["tsx", "jsx"],
-      exclude: ["**/*.test.tsx", "**/*.test.ts"],
+      exclude: ["**/*.test.tsx", "**/*.test.ts", "**/_layout.tsx"],
       importMode: "sync",
     }),
     svgr(),
