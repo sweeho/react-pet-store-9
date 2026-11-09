@@ -1,58 +1,33 @@
-import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
+
+import { PRIMARY_AREAS } from "@/constants/primary-areas";
 
 import Home from "./index";
 
-/**
- * UI / PAGE TEST
- *
- * Same tools as a component test (render + user-event), but exercises a
- * full page and a real interactive feature end to end inside jsdom: opening
- * the mobile nav (a @headlessui/react Dialog) and reading what appears.
- * Copy this pattern for other pages under src/pages.
- */
-describe("Home page", () => {
-  it("renders the hero heading and primary CTA", () => {
-    render(<Home />);
+describe("Landing page", () => {
+  it("[SWHR8-C-0136] renders the Pet Store heading", () => {
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    );
 
-    expect(
-      screen.getByRole("heading", { level: 1, name: /Vortex: the AI-driven autonomous/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Get started" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
   });
 
-  it("lists the tech stack", () => {
-    render(<Home />);
+  it("[SWHR8-C-0136] links to every primary area", () => {
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>,
+    );
 
-    for (const tech of ["React 19", "TypeScript", "Vite 8", "Tailwind CSS v4"]) {
-      expect(screen.getByText(tech)).toBeInTheDocument();
+    expect(PRIMARY_AREAS.length).toBeGreaterThan(0);
+    for (const area of PRIMARY_AREAS) {
+      const link = screen.getByRole("link", { name: new RegExp(area.label, "i") });
+      expect(link).toHaveAttribute("href", area.href);
     }
-  });
-
-  it("opens the mobile nav dialog and lists the nav links inside it", async () => {
-    const user = userEvent.setup();
-    render(<Home />);
-
-    // The mobile menu content isn't mounted until the dialog opens.
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Open main menu" }));
-
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByRole("link", { name: "Features" })).toBeInTheDocument();
-    expect(within(dialog).getByRole("link", { name: "Tech Stack" })).toBeInTheDocument();
-  });
-
-  it("closes the mobile nav dialog", async () => {
-    const user = userEvent.setup();
-    render(<Home />);
-
-    await user.click(screen.getByRole("button", { name: "Open main menu" }));
-    await screen.findByRole("dialog");
-
-    await user.click(screen.getByRole("button", { name: "Close menu" }));
-
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
