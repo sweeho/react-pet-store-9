@@ -28,7 +28,7 @@ export function ErrorFrame({
       </p>
       <div className="mt-6 flex gap-3">
         <Button type="button" onClick={onRetry}>
-          <RotateCw aria-hidden="true" />
+          <RotateCw aria-hidden="true" className="mr-2 size-4" />
           Try again
         </Button>
       </div>
