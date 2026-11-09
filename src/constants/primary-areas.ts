@@ -5,4 +5,6 @@ export interface PrimaryArea {
   description: string;
 }
 
-export const PRIMARY_AREAS: readonly PrimaryArea[] = [];
+export const PRIMARY_AREAS: readonly PrimaryArea[] = (() => {
+  throw new Error("VortexNotImplemented");
+})();
