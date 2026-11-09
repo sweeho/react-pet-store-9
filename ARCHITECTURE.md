@@ -23,7 +23,9 @@ See [PRODUCT.md](./PRODUCT.md) for what this is, [DESIGN.md](./DESIGN.md) for th
 .
 ├── src/
 │   ├── components/ui/   # shadcn/ui-style primitives (+ *.test.tsx)
-│   ├── pages/            # Frontend routes, file-based (+ *.test.tsx)
+│   ├── components/shell/ # Shared empty / error / loading frames every page reuses
+│   ├── constants/primary-areas.ts # The primary areas: one source for nav + landing page
+│   ├── pages/            # Frontend routes, file-based (+ *.test.tsx); _layout.tsx is the site shell
 │   ├── hooks/, utils/, types/, constants/, data/, store/
 │   ├── test/              # Vitest setup
 │   ├── index.css           # Tailwind v4 + design tokens
@@ -43,7 +45,9 @@ See [PRODUCT.md](./PRODUCT.md) for what this is, [DESIGN.md](./DESIGN.md) for th
 
 ## Routing
 
-**Frontend**: `src/pages/**/*.tsx` → routes (`about.tsx` → `/about`, `[id].tsx` → `/:id`, `[...all].tsx` → catch-all). `*.test.tsx` excluded via `Pages({ exclude })` in `vite.config.ts`.
+**Frontend**: `src/pages/**/*.tsx` → routes (`about.tsx` → `/about`, `[id].tsx` → `/:id`, `[...all].tsx` → catch-all). `*.test.tsx` and `_layout.tsx` excluded via `Pages({ exclude })` in `vite.config.ts`.
+
+**Site shell**: `src/main.tsx` mounts `src/pages/_layout.tsx` once as the parent route of every generated page route, so every page (including not-found) renders inside the shared header, global navigation and footer via `<Outlet />`. Pages render content only; they never draw chrome. Navigation entries come from `src/constants/primary-areas.ts`. Requirements: `openspec/specs/site-shell/`.
 
 **Backend**: `routes/api/*.ts` → `/api/*`, `middleware/*.ts` runs first and can set `event.context`. Requires `nitro({ serverDir: "./" })` in `vite.config.ts` — default is `false` (no scanning). `*.test.ts` excluded via `nitro({ ignore })`.
 
@@ -68,3 +72,9 @@ Four tiers, one worked example each. Commands and how to extend: [README.md](./R
 
 - `ecosystem.config.js` (PM2) runs the real build: `.output/server/index.mjs`, under Bun (`interpreter: "bun"`) — required by `db/client.ts`'s `bun:sqlite` import. `nitro.service` (systemd) is the non-PM2 equivalent, same requirement.
 - `Dockerfile`/`docker-compose.yml` build a static `dist/` served by nginx — don't rely on them for the Nitro/DB-backed API without fixing first (they never run `.output/server/index.mjs`)
+
+## Key Decisions
+
+- **One shell, mounted once as the parent route.** Every page renders inside `SiteLayout` (`src/pages/_layout.tsx`); a capability adds a page, never its own header, nav or footer. Rationale: the store reads as one product and chrome changes land in one file. Authored in change `swhr8-i-0002-bootstrap-landing-page-and` (design.md).
+- **Primary areas are one data list.** A capability that ships a primary area adds one entry to `PRIMARY_AREAS`; the nav and landing page both render from it. Rationale: no second menu, no landing page drift. Authored in change `swhr8-i-0002-bootstrap-landing-page-and`.
+- **Pages reuse the shared state frames.** Loading, empty and error states use `src/components/shell` (`useLoad` for fetch state), not page-local markup. Rationale: one empty/error/retry behaviour across capabilities. Authored in change `swhr8-i-0002-bootstrap-landing-page-and`.

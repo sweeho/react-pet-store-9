@@ -31,6 +31,25 @@ Pattern (see `src/components/ui/button.tsx` + `button-variants.ts`):
 
 New shared components go in `src/components/ui/`, follow this pattern, get a `*.test.tsx`.
 
+## Site shell and state frames
+
+Every page renders inside one shell (route → `src/pages/_layout.tsx`; requirements → `openspec/specs/site-shell/`):
+
+- **Header** (`banner`): the store name, linking to `/`.
+- **Global navigation** (`nav aria-label="Global"`): "Home" plus one entry per primary area. Below the `lg` breakpoint it collapses behind a menu button into a `@headlessui/react` `Dialog`.
+- **Main** (`main`): the page's own content; pages draw no chrome of their own.
+- **Footer** (`contentinfo`): identical on every page.
+
+State frames (`src/components/shell/`) replace page-local placeholders:
+
+| Frame          | When               | Contract                                                                          |
+| -------------- | ------------------ | --------------------------------------------------------------------------------- |
+| `LoadingFrame` | content on its way | `role="status"`, `data-testid="loading-frame"`                                    |
+| `EmptyFrame`   | nothing to show    | `data-testid="empty-frame"`, title + message, optional "Back to home"             |
+| `ErrorFrame`   | the load failed    | `role="alert"`, `data-testid="error-frame"`, "Try again" button calling `onRetry` |
+
+Reference mockups for each are exported per sprint under `artifacts/<sprint>/design/`.
+
 ## Icons
 
 `lucide-react` for general use, `@heroicons/react` for `@headlessui/react` overlays (nav dialog).
