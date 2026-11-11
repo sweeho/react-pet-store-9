@@ -67,7 +67,7 @@ Sign-on state is attached to the same session id. A signed-on session idle for 1
 
 ## Database
 
-`db/schema.ts` defines Drizzle tables; `db/client.ts` opens the SQLite connection, runs pending migrations from `drizzle/`, and turns on SQLite foreign-key enforcement, and seeds sample data (demo users, the sample catalog, the sample sign-on users) when a table is empty. Routes import `db` and the table objects directly (see `routes/api/users/`) — no repository layer.
+`db/schema.ts` defines Drizzle tables; `db/client.ts` opens the SQLite connection, runs pending migrations from `drizzle/`, and turns on SQLite foreign-key enforcement, and seeds sample data (demo users, the sample catalog, the sample sign-on users) when a table is empty. The template's demo routes import `db` and the table objects directly (see `routes/api/users/`); capability data goes through its module instead (`server/catalog/`, and `server/customer/repository.ts` for customers — see Key Decisions).
 
 - `bun run db:generate` — after editing `db/schema.ts`, generates a new migration into `drizzle/` (via `drizzle-kit`, config in `drizzle.config.ts`)
 - `bun run db:studio` — browse the db in Drizzle Studio
