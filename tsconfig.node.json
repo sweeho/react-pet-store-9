@@ -19,6 +19,7 @@
     "server.ts",
     "routes",
     "middleware",
+    "server",
     "db",
     "e2e"
   ]

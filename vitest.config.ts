@@ -45,6 +45,8 @@ export default defineConfig({
             ".output",
             "e2e",
             "routes/**",
+            "middleware/**",
+            "server/**",
             // Written before the product code, so red until Build; run by
             // `test:acceptance` instead. Includes its Playwright e2e/ specs.
             "tests/acceptance/**",
@@ -56,7 +58,7 @@ export default defineConfig({
         test: {
           name: "server",
           environment: "node",
-          include: ["routes/**/*.test.ts"],
+          include: ["routes/**/*.test.ts", "middleware/**/*.test.ts", "server/**/*.test.ts"],
         },
       },
     ],
