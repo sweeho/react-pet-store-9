@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CatalogError, createCatalog, paginate } from "../catalog";
+import { CatalogError, createCatalog, paginate } from "../../../server/catalog/catalog";
 
 type Row = Record<string, unknown>;
 type Table = "category" | "product" | "item";

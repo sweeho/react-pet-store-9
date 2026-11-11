@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createCatalogStore } from "../store";
+import { createCatalogStore } from "../../../server/catalog/store";
 
 describe("catalog store structure", () => {
   it("[SWHR8-C-0236] a product with no category is rejected", () => {

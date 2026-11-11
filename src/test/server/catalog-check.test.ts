@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { runCatalogCheck } from "../catalog-check";
+import { runCatalogCheck } from "../../../server/jobs/catalog-check";
 
 const ok = async () => true;
 const item = (over: Record<string, unknown> = {}) => ({
