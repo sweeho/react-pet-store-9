@@ -12,6 +12,12 @@ export interface PrimaryArea {
  */
 export const PRIMARY_AREAS: readonly PrimaryArea[] = [
   {
+    slug: "catalog",
+    label: "Catalog",
+    href: "/catalog",
+    description: "Browse categories, products and items, or search the catalog.",
+  },
+  {
     slug: "localization",
     label: "Language",
     href: "/locale",

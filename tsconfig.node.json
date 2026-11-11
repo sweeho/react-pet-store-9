@@ -21,6 +21,7 @@
     "middleware",
     "server",
     "db",
+    "db/seed/*.json",
     "e2e"
   ]
 }

@@ -4,7 +4,10 @@ import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 
-import { users } from "./schema";
+import { replaceCatalog, type CatalogSeed } from "./catalog-seed";
+import catalogSeed from "./seed/catalog.json";
+import * as schema from "./schema";
+import { category, users } from "./schema";
 
 // Vitest sets VITEST=true in every worker; an in-memory db keeps route
 // integration tests isolated from the file-backed dev/prod db and from
@@ -17,7 +20,7 @@ const sqlite = new Database(
   process.env.VITEST ? ":memory:" : path.join(process.cwd(), "sqlite.db"),
 );
 
-export const db = drizzle(sqlite, { schema: { users } });
+export const db = drizzle(sqlite, { schema });
 
 migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
 
@@ -30,4 +33,9 @@ if (db.select().from(users).all().length === 0) {
       { name: "Jane Smith", email: "jane@example.com" },
     ])
     .run();
+}
+
+// Load the legacy sample catalog (design C7) when the catalog is empty, as for users.
+if (db.select().from(category).all().length === 0) {
+  replaceCatalog(db, catalogSeed as CatalogSeed);
 }

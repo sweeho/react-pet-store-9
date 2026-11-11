@@ -8,7 +8,9 @@ import { existsSync } from "node:fs";
 
 if (!existsSync(new URL("../auto-imports.d.ts", import.meta.url))) {
   const { createServer } = await import("vite");
-  const server = await createServer({ configFile: new URL("../vite.config.ts", import.meta.url).pathname });
+  const server = await createServer({
+    configFile: new URL("../vite.config.ts", import.meta.url).pathname,
+  });
   await server.close();
   // Vite's dev server leaves file watchers open even after close(); this
   // script only needs to run the plugin hook that writes the dts file, so
