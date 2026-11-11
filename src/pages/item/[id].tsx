@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router";
 
 import { Crumbs, formatPrice, LoadState, Thumb } from "@/components/catalog";
+import { AddToCart } from "@/components/cart";
 import { getJson, type ItemWithProduct } from "@/components/catalog/api";
 import { useLoad } from "@/hooks/use-load";
 import { useScreen } from "@/i18n";
@@ -63,6 +64,7 @@ function ItemView({ id }: { id: string }): React.JSX.Element {
                   </span>
                 </div>
               </div>
+              <AddToCart itemId={item.id} />
               <hr className="border-border my-7" />
               <dl className="grid grid-cols-[120px_1fr] gap-x-4 gap-y-2.5 text-sm">
                 <dt className="text-muted-foreground">{t("catalog.item")}</dt>

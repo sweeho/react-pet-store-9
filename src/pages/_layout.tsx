@@ -1,14 +1,20 @@
 import { Dialog, DialogPanel } from "@headlessui/react";
-import { Globe, House, LayoutGrid, Menu, PawPrint, User, X } from "lucide-react";
+import { Globe, House, LayoutGrid, Menu, PawPrint, ShoppingCart, User, X } from "lucide-react";
 import { Link, NavLink, Outlet } from "react-router";
 
 import { AccountMenu } from "@/components/account/account-menu";
 import { RequireSignOn } from "@/components/account/require-sign-on";
+import { CartBadge } from "@/components/cart";
 import { PRIMARY_AREAS } from "@/constants/primary-areas";
 import { useScreen } from "@/i18n";
 import { cn } from "@/utils";
 
-const AREA_ICONS = { catalog: LayoutGrid, localization: Globe, account: User } as const;
+const AREA_ICONS = {
+  catalog: LayoutGrid,
+  localization: Globe,
+  account: User,
+  cart: ShoppingCart,
+} as const;
 
 function Brand() {
   return (
@@ -62,6 +68,7 @@ export default function SiteLayout(): React.JSX.Element {
                 <NavLink key={area.slug} to={area.href} className={desktopLink}>
                   {Icon ? <Icon aria-hidden="true" className="size-4" /> : null}
                   {t(`area.${area.slug}.label`) || area.label}
+                  {area.slug === "cart" ? <CartBadge pathname={pathname} /> : null}
                 </NavLink>
               );
             })}
@@ -111,6 +118,7 @@ export default function SiteLayout(): React.JSX.Element {
                   <NavLink key={area.slug} to={area.href} className={drawerLink}>
                     {Icon ? <Icon aria-hidden="true" className="size-5" /> : null}
                     {t(`area.${area.slug}.label`) || area.label}
+                    {area.slug === "cart" ? <CartBadge pathname={pathname} /> : null}
                   </NavLink>
                 );
               })}
