@@ -1,10 +1,11 @@
-import { ChevronRight, Globe, PawPrint } from "lucide-react";
+import { ChevronRight, Globe, LayoutGrid, PawPrint } from "lucide-react";
 import { Link } from "react-router";
 
+import { Button } from "@/components/ui/button";
 import { PRIMARY_AREAS } from "@/constants/primary-areas";
 import { useScreen } from "@/i18n";
 
-const AREA_ICONS = { localization: Globe } as const;
+const AREA_ICONS = { catalog: LayoutGrid, localization: Globe } as const;
 
 const Home = () => {
   const { t } = useScreen();
@@ -22,6 +23,9 @@ const Home = () => {
           <p className="text-muted-foreground mt-5 max-w-[540px] text-lg leading-relaxed">
             {t("home.lead")}
           </p>
+          <Button asChild size="lg" className="mt-7">
+            <Link to="/catalog">{t("home.browse")}</Link>
+          </Button>
         </div>
         <div
           aria-hidden="true"

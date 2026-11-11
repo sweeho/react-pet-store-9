@@ -50,6 +50,12 @@ State frames (`src/components/shell/`) replace page-local placeholders:
 
 Reference mockups for each are exported per sprint under `artifacts/<sprint>/design/`.
 
+## Lists and search
+
+- **Paged lists.** A long list shows one page at a time, with a **Next** link when more rows follow and a **Previous** link after the first page. Links carry the page start in the URL, so a page can be bookmarked. A page past either end shows `EmptyFrame`, never an error.
+- **Search box.** One keyword search box sits at the top of the Catalog and Search pages and submits to the search results page; the shell header has no search box. A blank search shows nothing and makes no request.
+- **Prices.** Money is shown with the locale's currency format (see Language and localized text). When two prices sit together, each carries its own label.
+
 ## Language and localized text
 
 - Every user-facing string, shell chrome included, comes from the per-locale screen dictionaries via `useScreen()` (`src/i18n/`). en_US is the fallback for a locale without a dictionary.

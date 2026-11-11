@@ -1,12 +1,12 @@
 import { Dialog, DialogPanel } from "@headlessui/react";
-import { Globe, House, Menu, PawPrint, X } from "lucide-react";
+import { Globe, House, LayoutGrid, Menu, PawPrint, X } from "lucide-react";
 import { Link, NavLink, Outlet } from "react-router";
 
 import { PRIMARY_AREAS } from "@/constants/primary-areas";
 import { useScreen } from "@/i18n";
 import { cn } from "@/utils";
 
-const AREA_ICONS = { localization: Globe } as const;
+const AREA_ICONS = { catalog: LayoutGrid, localization: Globe } as const;
 
 function Brand() {
   return (

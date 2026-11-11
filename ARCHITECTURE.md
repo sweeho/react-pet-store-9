@@ -31,7 +31,7 @@ See [PRODUCT.md](./PRODUCT.md) for what this is, [DESIGN.md](./DESIGN.md) for th
 │   ├── index.css           # Tailwind v4 + design tokens
 │   └── main.tsx
 ├── src/i18n/              # Locale provider, useScreen(), per-locale screen dictionaries
-├── server/                # Framework-free server modules, one folder per capability (e.g. server/localization/)
+├── server/                # Framework-free server modules, one folder per capability (e.g. server/localization/, server/catalog/); server/jobs/ holds operational checks
 ├── routes/api/            # Backend routes, file-based (+ *.test.ts)
 ├── middleware/             # Runs before every route handler (session + locale resolution)
 ├── db/                      # Drizzle schema.ts + client.ts (sqlite connection, migrate, seed)
@@ -70,6 +70,10 @@ Every request passes through one session middleware. It resolves an HTTP-only se
 - The db file itself is `sqlite.db` at the project root (gitignored, created on first run); `drizzle/` migrations are committed
 - Under Vitest (`VITEST=true`), `db/client.ts` swaps in an in-memory db instead, so tests never touch the dev database
 
+**Entity model.** The catalog is `category` → `product` → `item`. Each product belongs to exactly one category and each item to exactly one product, both enforced by NOT NULL foreign keys. Localised text and prices live in per-locale detail tables keyed by (id, locale), with no cross-locale fallback. `inventory` holds one stock row per item. The sample catalog is seeded from a committed JSON file when the tables are empty. Behaviour: `openspec/specs/catalog-browsing/` (after this sprint lands). Implementation: `server/catalog/`.
+
+**Jobs.** Operational checks are pure functions in `server/jobs/`, given plain data and returning `{ exitCode, log }`, with a thin script in `scripts/` that reads the db and exits with the code. Scheduling them is the reporting capabilities' concern.
+
 ## Testing
 
 Four tiers, one worked example each. Commands and how to extend: [README.md](./README.md#testing), [AGENTS.md](./AGENTS.md).
@@ -87,4 +91,7 @@ Four tiers, one worked example each. Commands and how to extend: [README.md](./R
 
 - **One shell, mounted once as the parent route.** Every page renders inside `SiteLayout` (`src/pages/_layout.tsx`); a capability adds a page, never its own header, nav or footer. Rationale: the store reads as one product and chrome changes land in one file. Authored in change `swhr8-i-0002-bootstrap-landing-page-and` (design.md).
 - **Primary areas are one data list.** A capability that ships a primary area adds one entry to `PRIMARY_AREAS`; the nav and landing page both render from it. Rationale: no second menu, no landing page drift. Authored in change `swhr8-i-0002-bootstrap-landing-page-and`.
+- **All catalog reads go through one catalog module.** Routes, cart, checkout and jobs call `createCatalog({ source })` (`server/catalog/`); none queries the catalog tables directly. Rationale: locale filtering, ordering, paging and error wrapping stay in one place, and the legacy's two access modes collapse into one. Authored in change `swhr8-i-0004-catalog-browsing-and-search` (design.md, C1).
+- **One database, no dialect-specific query sets.** The store runs on SQLite through Drizzle only; the legacy Cloudscape/Oracle split is not carried over. Rationale: the brief puts it out of scope and a second dialect would double every query. Authored in change `swhr8-i-0004-catalog-browsing-and-search` (design.md, D2).
+- **`inventory` is created by the catalog and extended by fulfillment.** One stock row per item; later capabilities add columns by migration, never a second stock table. Rationale: the catalog check (C5) and fulfillment must read the same stock. Authored in change `swhr8-i-0004-catalog-browsing-and-search` (design.md, C2).
 - **Pages reuse the shared state frames.** Loading, empty and error states use `src/components/shell` (`useLoad` for fetch state), not page-local markup. Rationale: one empty/error/retry behaviour across capabilities. Authored in change `swhr8-i-0002-bootstrap-landing-page-and`.
