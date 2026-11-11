@@ -30,8 +30,10 @@ See [PRODUCT.md](./PRODUCT.md) for what this is, [DESIGN.md](./DESIGN.md) for th
 │   ├── test/              # Vitest setup
 │   ├── index.css           # Tailwind v4 + design tokens
 │   └── main.tsx
+├── src/i18n/              # Locale provider, useScreen(), per-locale screen dictionaries
+├── server/                # Framework-free server modules, one folder per capability (e.g. server/localization/)
 ├── routes/api/            # Backend routes, file-based (+ *.test.ts)
-├── middleware/             # Runs before every route handler
+├── middleware/             # Runs before every route handler (session + locale resolution)
 ├── db/                      # Drizzle schema.ts + client.ts (sqlite connection, migrate, seed)
 ├── drizzle/                  # Generated SQL migrations (drizzle-kit generate), committed
 ├── e2e/                     # Playwright specs + global-setup.ts
@@ -55,6 +57,10 @@ See [PRODUCT.md](./PRODUCT.md) for what this is, [DESIGN.md](./DESIGN.md) for th
 
 `GET /api/hello`: `middleware/auth.ts` sets `event.context.user` → `routes/api/hello.ts` reads it and responds. `routes/api/users/[id].ts` shows the dynamic-route + `createError()` 404 pattern, backed by a real query against `db/client.ts`'s Drizzle instance.
 
+## Session and locale
+
+Every request passes through one session middleware. It resolves an HTTP-only session cookie, renews a session idle for 30 minutes or more, and puts `sessionId` and the request's `locale` on `event.context`. The locale is a `?locale=` parameter for that request, otherwise the session locale, otherwise the configured default (en_US). `GET /api/session` exposes the session state. The client mirrors it in one `LocaleProvider`, which sets `<html lang>` and serves screen strings from per-locale dictionaries. A locale with no dictionary falls back to the default. Catalog text never falls back. Requests and responses are UTF-8. Behaviour: `openspec/specs/localization/` (after this sprint lands). Implementation: `server/localization/`, `middleware/`, `src/i18n/`.
+
 ## Database
 
 `db/schema.ts` defines Drizzle tables; `db/client.ts` opens the SQLite connection, runs pending migrations from `drizzle/`, and seeds two demo users if the table is empty. Routes import `db` and the table objects directly (see `routes/api/users/`) — no repository layer.
@@ -74,6 +80,10 @@ Four tiers, one worked example each. Commands and how to extend: [README.md](./R
 - `Dockerfile`/`docker-compose.yml` build a static `dist/` served by nginx — don't rely on them for the Nitro/DB-backed API without fixing first (they never run `.output/server/index.mjs`)
 
 ## Key Decisions
+
+- **One session, one cookie.** Every capability attaches its per-visitor state (locale, sign-on, cart) to the session id from the session middleware and extends `GET /api/session` additively. None mints a second session. Rationale: sign-off keeps the locale, and timeout must expire everything together. Authored in change `swhr8-i-0003-localization` (design.md, L4).
+- **Screen text comes from per-locale dictionaries.** Pages and the shell read user-facing strings through `useScreen()`, never as hard-coded literals. A locale without a dictionary falls back to en_US. Rationale: ja_JP and zh_CN shoppers must get every screen in their language. Authored in change `swhr8-i-0003-localization` (design.md, L5).
+- **Catalog text is keyed by (entity id, locale) with no fallback.** Persistent detail rows are unique per (id, locale). A request returns only rows of the requested locale, and a null locale is an error. Rationale: the approved spec forbids substituting another language. Authored in change `swhr8-i-0003-localization` (design.md, L7).
 
 - **One shell, mounted once as the parent route.** Every page renders inside `SiteLayout` (`src/pages/_layout.tsx`); a capability adds a page, never its own header, nav or footer. Rationale: the store reads as one product and chrome changes land in one file. Authored in change `swhr8-i-0002-bootstrap-landing-page-and` (design.md).
 - **Primary areas are one data list.** A capability that ships a primary area adds one entry to `PRIMARY_AREAS`; the nav and landing page both render from it. Rationale: no second menu, no landing page drift. Authored in change `swhr8-i-0002-bootstrap-landing-page-and`.
