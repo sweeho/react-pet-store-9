@@ -3,6 +3,7 @@ import { Globe, House, Menu, PawPrint, X } from "lucide-react";
 import { Link, NavLink, Outlet } from "react-router";
 
 import { PRIMARY_AREAS } from "@/constants/primary-areas";
+import { useScreen } from "@/i18n";
 import { cn } from "@/utils";
 
 const AREA_ICONS = { localization: Globe } as const;
@@ -33,6 +34,7 @@ const drawerLink = ({ isActive }: { isActive: boolean }) =>
   );
 
 export default function SiteLayout(): React.JSX.Element {
+  const { t, locale } = useScreen();
   const { pathname } = useLocation();
   // The menu is open for the path it was opened on, so navigating closes it.
   const [openedAt, setOpenedAt] = useState<string | null>(null);
@@ -44,29 +46,39 @@ export default function SiteLayout(): React.JSX.Element {
       <header className="bg-background border-border sticky top-0 z-10 border-b">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-8 px-4 sm:px-8">
           <Brand />
-          <nav aria-label="Global" className="hidden flex-1 gap-1 lg:flex">
+          <nav aria-label={t("nav.global")} className="hidden flex-1 gap-1 lg:flex">
             <NavLink to="/" end className={desktopLink}>
               <House aria-hidden="true" className="size-4" />
-              Home
+              {t("nav.home")}
             </NavLink>
             {PRIMARY_AREAS.map((area) => {
               const Icon = AREA_ICONS[area.slug as keyof typeof AREA_ICONS];
               return (
                 <NavLink key={area.slug} to={area.href} className={desktopLink}>
                   {Icon ? <Icon aria-hidden="true" className="size-4" /> : null}
-                  {area.label}
+                  {t(`area.${area.slug}.label`) || area.label}
                 </NavLink>
               );
             })}
           </nav>
-          <button
-            type="button"
-            onClick={() => setMenuOpen(true)}
-            className="hover:bg-accent ml-auto inline-flex size-10 items-center justify-center rounded-md lg:hidden"
-          >
-            <span className="sr-only">Open main menu</span>
-            <Menu aria-hidden="true" className="size-5" />
-          </button>
+          <div className="ml-auto flex items-center gap-1 lg:ml-0">
+            <Link
+              to="/locale"
+              className="text-muted-foreground hover:bg-accent hover:text-foreground inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium"
+            >
+              <Globe aria-hidden="true" className="size-4" />
+              <span className="sr-only">{t("language.current")}: </span>
+              {locale}
+            </Link>
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              className="hover:bg-accent inline-flex size-10 items-center justify-center rounded-md lg:hidden"
+            >
+              <span className="sr-only">{t("menu.open")}</span>
+              <Menu aria-hidden="true" className="size-5" />
+            </button>
+          </div>
         </div>
         <Dialog open={menuOpen} onClose={setMenuOpen} className="lg:hidden">
           <div className="fixed inset-0 z-40 bg-black/30" aria-hidden="true" />
@@ -78,21 +90,21 @@ export default function SiteLayout(): React.JSX.Element {
                 onClick={() => setMenuOpen(false)}
                 className="hover:bg-accent inline-flex size-10 items-center justify-center rounded-md"
               >
-                <span className="sr-only">Close menu</span>
+                <span className="sr-only">{t("menu.close")}</span>
                 <X aria-hidden="true" className="size-5" />
               </button>
             </div>
             <nav aria-label="Mobile" className="mt-4 flex flex-col gap-1">
               <NavLink to="/" end className={drawerLink}>
                 <House aria-hidden="true" className="size-5" />
-                Home
+                {t("nav.home")}
               </NavLink>
               {PRIMARY_AREAS.map((area) => {
                 const Icon = AREA_ICONS[area.slug as keyof typeof AREA_ICONS];
                 return (
                   <NavLink key={area.slug} to={area.href} className={drawerLink}>
                     {Icon ? <Icon aria-hidden="true" className="size-5" /> : null}
-                    {area.label}
+                    {t(`area.${area.slug}.label`) || area.label}
                   </NavLink>
                 );
               })}
@@ -110,16 +122,16 @@ export default function SiteLayout(): React.JSX.Element {
           <div>
             <Brand />
             <p className="text-muted-foreground mt-2.5 max-w-[300px] text-[13px] leading-normal">
-              Pets, supplies and friendly service — online.
+              {t("brand.tagline")}
               <br />© 2026 Pet Store
             </p>
           </div>
           <div className="text-sm">
-            <h4 className="mb-3 text-[13px] font-semibold">Explore</h4>
+            <h4 className="mb-3 text-[13px] font-semibold">{t("nav.explore")}</h4>
             <ul>
               <li>
                 <Link to="/" className="text-muted-foreground hover:text-foreground block py-0.5">
-                  Home
+                  {t("nav.home")}
                 </Link>
               </li>
               {PRIMARY_AREAS.map((area) => (
@@ -128,10 +140,18 @@ export default function SiteLayout(): React.JSX.Element {
                     to={area.href}
                     className="text-muted-foreground hover:text-foreground block py-0.5"
                   >
-                    {area.label}
+                    {t(`area.${area.slug}.label`) || area.label}
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link
+                  to="/locale"
+                  className="text-muted-foreground hover:text-foreground block py-0.5"
+                >
+                  {t("footer.changeLanguage")}
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

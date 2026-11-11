@@ -1,0 +1,60 @@
+/** Screen definitions for en_US, the default locale. Every other locale falls back to these. */
+export const en_US = {
+  "brand.tagline": "Pets, supplies and friendly service — online.",
+  "nav.home": "Home",
+  "nav.global": "Global",
+  "nav.explore": "Explore",
+  "menu.open": "Open main menu",
+  "menu.close": "Close menu",
+  "language.current": "Language",
+  "footer.changeLanguage": "Change language",
+  "area.localization.label": "Language",
+  "area.localization.description": "Choose the language you shop in.",
+  "home.badge": "The online pet store",
+  "home.title": "Find your next companion.",
+  "home.lead":
+    "Browse the pet catalog by category, keep a cart while you look, and sign on only when you're ready to check out.",
+  "home.where": "Where would you like to go?",
+  "home.whereLead": "Every part of the store, one click away.",
+  "locale.name.en_US": "English (US)",
+  "locale.name.de_DE": "Deutsch",
+  "locale.name.ja_JP": "日本語",
+  "locale.name.zh_CN": "简体中文",
+  "locale.english.en_US": "US English",
+  "locale.english.de_DE": "German",
+  "locale.english.ja_JP": "Japanese",
+  "locale.english.zh_CN": "Simplified Chinese",
+  "locale.noScreens": "Pages show in English (US) — no German screens yet",
+  "locale.title": "Choose your language",
+  "locale.lead": "The store's pages, prices and catalog will be shown in the language you pick.",
+  "locale.current": "Current language:",
+  "locale.label": "Language",
+  "locale.default": "Default",
+  "locale.submit": "Change language",
+  "locale.submitting": "Changing…",
+  "locale.cancel": "Cancel",
+  "locale.error.title": "We were unable to change the language.",
+  "locale.error.body": "Your language is still {current}. Choose one of the options and try again.",
+  "locale.empty.title": "No languages available",
+  "locale.empty.message": "No languages are available yet.",
+  "locale.notes.title": "Good to know",
+  "locale.notes.catalog":
+    "Pet names and descriptions appear only in the language you choose. If a pet has no text in that language, it isn't shown in another one instead.",
+  "locale.notes.timeout":
+    "Your choice lasts for this visit. After a period of inactivity the store goes back to English (US).",
+  "locale.notes.profile":
+    "Signed in? Saving your profile switches the store to its preferred language.",
+  "locale.notes.mail":
+    "Order e-mails are written in the language you shopped in when you placed the order.",
+  "locale.done.crumb": "Language changed",
+  "locale.done.title": "Language changed",
+  "locale.done.lead": "Every page from now on is shown in {name}.",
+  "locale.done.before": "Before",
+  "locale.done.now": "Current session language",
+  "locale.done.home": "Back to home",
+  "locale.done.another": "Choose another language",
+  "locale.done.hint":
+    "This setting applies to this visit only. After a period of inactivity the store returns to English (US).",
+} as const;
+
+export type ScreenKey = keyof typeof en_US;

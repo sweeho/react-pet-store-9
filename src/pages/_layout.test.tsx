@@ -52,10 +52,7 @@ describe("SiteLayout", () => {
     renderAt("/any-page");
 
     const nav = screen.getAllByRole("navigation")[0];
-    expect(within(nav).getByRole("link", { name: /language/i })).toHaveAttribute(
-      "href",
-      "/localization",
-    );
+    expect(within(nav).getByRole("link", { name: /language/i })).toHaveAttribute("href", "/locale");
   });
 
   it("opens and closes the mobile menu", async () => {
@@ -69,5 +66,15 @@ describe("SiteLayout", () => {
 
     await user.click(within(dialog).getByRole("button", { name: "Close menu" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("[SWHR8-C-0019] the header shows the language control and the footer offers Change language", () => {
+    renderAt("/any-page");
+
+    const header = screen.getByRole("banner");
+    expect(within(header).getByRole("link", { name: /en_US/ })).toHaveAttribute("href", "/locale");
+    expect(
+      within(screen.getByRole("contentinfo")).getByRole("link", { name: "Change language" }),
+    ).toHaveAttribute("href", "/locale");
   });
 });

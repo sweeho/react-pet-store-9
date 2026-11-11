@@ -22,9 +22,6 @@ describe("Landing page", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("link", { name: /language/i })).toHaveAttribute(
-      "href",
-      "/localization",
-    );
+    expect(screen.getByRole("link", { name: /language/i })).toHaveAttribute("href", "/locale");
   });
 });

@@ -1,4 +1,6 @@
 import { defineHandler } from "nitro/h3";
 
-// Supported locale codes. The Localization capability replaces this source.
-export default defineHandler(() => [{ code: "en_US" }]);
+import { localeConfigFromEnv } from "../../server/localization/locale";
+
+// The configured locale codes (LOCALES, default en_US,ja_JP,zh_CN).
+export default defineHandler(() => localeConfigFromEnv().locales.map((code) => ({ code })));

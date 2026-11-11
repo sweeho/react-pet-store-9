@@ -62,11 +62,11 @@ describe("Localization page", () => {
     expect(await screen.findByTestId("error-frame")).toBeInTheDocument();
   });
 
-  it("lists the available locales", async () => {
+  it("renders the Language page at /localization", async () => {
     stubJson([{ code: "en_US" }]);
     renderPage();
 
-    expect(await screen.findByText("en_US")).toBeInTheDocument();
+    expect(await screen.findByLabelText("Language")).toBeInTheDocument();
     expect(screen.queryByTestId("empty-frame")).toBeNull();
   });
 });
