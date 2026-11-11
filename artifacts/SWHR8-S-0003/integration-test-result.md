@@ -15,7 +15,7 @@ Summary line: `15 passed (5.0s)`
 | e2e/catalog.spec.ts      | 2     | pass   |
 | e2e/home.spec.ts         | 4     | pass   |
 | e2e/localization.spec.ts | 6     | pass   |
-| e2e/smoke.spec.ts        | 4     | pass   |
+| e2e/smoke.spec.ts        | 3     | pass   |
 
 No skips, no failures; every spec file ran its tests.
 
