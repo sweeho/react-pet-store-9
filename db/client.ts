@@ -7,6 +7,7 @@ import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { replaceCatalog, type CatalogSeed } from "./catalog-seed";
 import catalogSeed from "./seed/catalog.json";
 import * as schema from "./schema";
+import { seedCustomers } from "./customer-seed";
 import { category, users } from "./schema";
 
 // Vitest sets VITEST=true in every worker; an in-memory db keeps route
@@ -19,6 +20,9 @@ import { category, users } from "./schema";
 const sqlite = new Database(
   process.env.VITEST ? ":memory:" : path.join(process.cwd(), "sqlite.db"),
 );
+
+// SQLite leaves foreign keys off by default; cascades and references need them on.
+sqlite.exec("PRAGMA foreign_keys = ON");
 
 export const db = drizzle(sqlite, { schema });
 
@@ -39,3 +43,6 @@ if (db.select().from(users).all().length === 0) {
 if (db.select().from(category).all().length === 0) {
   replaceCatalog(db, catalogSeed as CatalogSeed);
 }
+
+// Sample sign-on users j2ee and shopper (change swhr8-i-0005, design A7).
+seedCustomers(db);

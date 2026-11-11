@@ -38,7 +38,7 @@ describe("session middleware and locale endpoints", () => {
     const first = await call(session);
     expect(first.sid).toBeTruthy();
     expect(first.event.res.headers.get("set-cookie")).toMatch(/HttpOnly/i);
-    expect(first.result).toEqual({ locale: "en_US" });
+    expect(first.result).toMatchObject({ locale: "en_US" });
     expect(first.event.context.locale).toBe("en_US");
   });
 
@@ -46,9 +46,9 @@ describe("session middleware and locale endpoints", () => {
     const { sid } = await call(session);
     const cookie = `petstore_sid=${sid}`;
     const changed = await call(changeLocale, { cookie, body: { locale: "ja_JP" } });
-    expect(changed.result).toEqual({ locale: "ja_JP" });
+    expect(changed.result).toMatchObject({ locale: "ja_JP" });
     const later = await call(session, { cookie });
-    expect(later.result).toEqual({ locale: "ja_JP" });
+    expect(later.result).toMatchObject({ locale: "ja_JP" });
     expect(later.sid).toBeUndefined();
   });
 
@@ -57,7 +57,7 @@ describe("session middleware and locale endpoints", () => {
     const cookie = `petstore_sid=${sid}`;
     const bad = await call(changeLocale, { cookie, body: { locale: "english" } });
     expect(bad.error).toMatchObject({ status: 400, message: "Unable to change the language" });
-    expect((await call(session, { cookie })).result).toEqual({ locale: "en_US" });
+    expect((await call(session, { cookie })).result).toMatchObject({ locale: "en_US" });
   });
 
   it("[SWHR8-C-0008] a missing code is a 400 and the session locale is unchanged", async () => {
@@ -66,7 +66,7 @@ describe("session middleware and locale endpoints", () => {
     await call(changeLocale, { cookie, body: { locale: "ja_JP" } });
     const bad = await call(changeLocale, { cookie, body: {} });
     expect(bad.error).toMatchObject({ status: 400 });
-    expect((await call(session, { cookie })).result).toEqual({ locale: "ja_JP" });
+    expect((await call(session, { cookie })).result).toMatchObject({ locale: "ja_JP" });
   });
 
   it("[SWHR8-C-0025] the code default selects the server default locale", async () => {
@@ -74,7 +74,7 @@ describe("session middleware and locale endpoints", () => {
     const cookie = `petstore_sid=${sid}`;
     await call(changeLocale, { cookie, body: { locale: "ja_JP" } });
     const res = await call(changeLocale, { cookie, body: { locale: "default" } });
-    expect(res.result).toEqual({ locale: "en_US" });
+    expect(res.result).toMatchObject({ locale: "en_US" });
   });
 
   it("[SWHR8-C-0011] a ?locale= parameter overrides the locale for that request only", async () => {
@@ -85,7 +85,7 @@ describe("session middleware and locale endpoints", () => {
       url: "http://localhost/api/session?locale=ja_JP",
     });
     expect(overridden.event.context.locale).toBe("ja_JP");
-    expect(overridden.result).toEqual({ locale: "en_US" });
+    expect(overridden.result).toMatchObject({ locale: "en_US" });
   });
 
   it("[SWHR8-C-0027] an unknown session cookie is replaced by a new session", async () => {

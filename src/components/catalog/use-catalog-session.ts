@@ -3,9 +3,11 @@ import { useEffect, useState } from "react";
 export interface CatalogSession {
   myList?: boolean;
   favoriteCategory?: string;
+  banner?: boolean;
+  bannerCategory?: string;
 }
 
-/** The MyList fields of the session. Sign-on (SWHR8-I-0005) supplies them; until then both are absent. */
+/** The MyList fields of the session. Sign-on (SWHR8-I-0005) supplies them; both are absent while signed off. */
 export function useCatalogSession(): CatalogSession | undefined {
   const [session, setSession] = useState<CatalogSession>();
   useEffect(() => {

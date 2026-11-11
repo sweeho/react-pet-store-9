@@ -18,6 +18,12 @@ export const PRIMARY_AREAS: readonly PrimaryArea[] = [
     description: "Browse categories, products and items, or search the catalog.",
   },
   {
+    slug: "account",
+    label: "Account",
+    href: "/account",
+    description: "Sign on, create an account and manage your profile.",
+  },
+  {
     slug: "localization",
     label: "Language",
     href: "/locale",

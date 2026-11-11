@@ -3,35 +3,16 @@ import { describe, expect, it } from "vitest";
 
 import getUser from "./[id]";
 
-/**
- * INTEGRATION TEST
- *
- * Dynamic route params come from `event.context.params` — Nitro's router
- * populates that from the URL's `[id]` segment normally, so a direct
- * handler call needs to set it explicitly, the same way
- * routes/api/hello.test.ts sets `event.context.user` for its middleware.
- */
-describe("GET /api/users/:id", () => {
-  it("returns the matching user", async () => {
-    const event = new H3Event(new Request("http://localhost/api/users/1"), {
-      params: { id: "1" },
-    });
+/** INTEGRATION TEST: the route reads the name from `event.context.params`. */
+const call = (id: string) =>
+  getUser(new H3Event(new Request(`http://localhost/api/users/${id}`), { params: { id } }));
 
-    const result = await getUser(event);
-
-    expect(result).toEqual({ user: { id: 1, name: "John Doe", email: "john@example.com" } });
+describe("GET /api/users/:name", () => {
+  it("returns a sign-on user", async () => {
+    expect(await call("shopper")).toEqual({ userName: "shopper" });
   });
 
-  it("throws a 404 for an id that doesn't exist", () => {
-    const event = new H3Event(new Request("http://localhost/api/users/999"), {
-      params: { id: "999" },
-    });
-
-    try {
-      getUser(event);
-      expect.fail("expected getUser to throw");
-    } catch (error) {
-      expect(error).toMatchObject({ status: 404, message: "User not found" });
-    }
+  it("throws a 404 for a name that doesn't exist", async () => {
+    await expect(call("nobody-here")).rejects.toMatchObject({ status: 404 });
   });
 });
