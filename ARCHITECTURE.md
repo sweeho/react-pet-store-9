@@ -55,15 +55,19 @@ See [PRODUCT.md](./PRODUCT.md) for what this is, [DESIGN.md](./DESIGN.md) for th
 
 ## Data flow example
 
-`GET /api/hello`: `middleware/auth.ts` sets `event.context.user` → `routes/api/hello.ts` reads it and responds. `routes/api/users/[id].ts` shows the dynamic-route + `createError()` 404 pattern, backed by a real query against `db/client.ts`'s Drizzle instance.
+`POST /api/signon`: the session middleware resolves `sessionId` → the route calls `server/customer/auth.ts`, which checks the credentials through `server/customer/repository.ts` (Drizzle over `db/client.ts`) and records sign-on on that session → `GET /api/session` then reports `signedOn` and `userName`. `routes/api/users/[id].ts` shows the dynamic-route + `createError()` 404 pattern.
 
 ## Session and locale
 
-Every request passes through one session middleware. It resolves an HTTP-only session cookie, renews a session idle for 30 minutes or more, and puts `sessionId` and the request's `locale` on `event.context`. The locale is a `?locale=` parameter for that request, otherwise the session locale, otherwise the configured default (en_US). `GET /api/session` exposes the session state. The client mirrors it in one `LocaleProvider`, which sets `<html lang>` and serves screen strings from per-locale dictionaries. A locale with no dictionary falls back to the default. Catalog text never falls back. Requests and responses are UTF-8. Behaviour: `openspec/specs/localization/` (after this sprint lands). Implementation: `server/localization/`, `middleware/`, `src/i18n/`.
+Every request passes through one session middleware. It resolves an HTTP-only session cookie, renews a session idle for 30 minutes or more, and puts `sessionId` and the request's `locale` on `event.context`. The locale is a `?locale=` parameter for that request, otherwise the session locale, otherwise the configured default (en_US). `GET /api/session` exposes the session state; each capability adds its fields to it (locale; sign-on, user name and profile preferences; cart count). The client mirrors it in one `LocaleProvider`, which sets `<html lang>` and serves screen strings from per-locale dictionaries. A locale with no dictionary falls back to the default. Catalog text never falls back. Requests and responses are UTF-8. Behaviour: `openspec/specs/localization/` (after this sprint lands). Implementation: `server/localization/`, `middleware/`, `src/i18n/`.
+
+## Sign-on and protected pages
+
+Sign-on state is attached to the same session id. A signed-on session idle for 15 minutes loses its sign-on and cart on the next request, while the locale follows the 30-minute session rule (the two figures are an open question in [PRODUCT.md](./PRODUCT.md#open-questions)). A short, fixed list of pages and actions requires sign-on: the account profile and its save, order information entry and the sign-on welcome. The server answers a protected API call from a signed-out session with 401; the client shell redirects a protected route to `/signon?next=<path>` and returns there afterwards. Everything else is public. A "remember my user name" cookie (`bp_signon`, 31 days) is the only cookie besides the session cookie. Behaviour: `openspec/specs/customer-account/` (after this sprint lands). Implementation: `server/customer/`.
 
 ## Database
 
-`db/schema.ts` defines Drizzle tables; `db/client.ts` opens the SQLite connection, runs pending migrations from `drizzle/`, and seeds two demo users if the table is empty. Routes import `db` and the table objects directly (see `routes/api/users/`) — no repository layer.
+`db/schema.ts` defines Drizzle tables; `db/client.ts` opens the SQLite connection, runs pending migrations from `drizzle/`, and turns on SQLite foreign-key enforcement, and seeds sample data (demo users, the sample catalog, the sample sign-on users) when a table is empty. Routes import `db` and the table objects directly (see `routes/api/users/`) — no repository layer.
 
 - `bun run db:generate` — after editing `db/schema.ts`, generates a new migration into `drizzle/` (via `drizzle-kit`, config in `drizzle.config.ts`)
 - `bun run db:studio` — browse the db in Drizzle Studio
@@ -71,6 +75,8 @@ Every request passes through one session middleware. It resolves an HTTP-only se
 - Under Vitest (`VITEST=true`), `db/client.ts` swaps in an in-memory db instead, so tests never touch the dev database
 
 **Entity model.** The catalog is `category` → `product` → `item`. Each product belongs to exactly one category and each item to exactly one product, both enforced by NOT NULL foreign keys. Localised text and prices live in per-locale detail tables keyed by (id, locale), with no cross-locale fallback. `inventory` holds one stock row per item. The sample catalog is seeded from a committed JSON file when the tables are empty. Behaviour: `openspec/specs/catalog-browsing/` (after this sprint lands). Implementation: `server/catalog/`.
+
+**Customer model.** A customer is keyed by its sign-on user name and owns exactly one account (status `active` or `disabled`, one contact with one address, one credit card) and one profile (language, favourite category, My List and banner flags). Removing a customer removes all of them. Mandatory contact, address and card fields are enforced in `server/customer/model.ts`, because a new customer starts with empty ones. All customer reads and writes go through `server/customer/repository.ts`. Behaviour: `openspec/specs/customer-account/` (after this sprint lands).
 
 **Jobs.** Operational checks are pure functions in `server/jobs/`, given plain data and returning `{ exitCode, log }`, with a thin script in `scripts/` that reads the db and exits with the code. Scheduling them is the reporting capabilities' concern.
 
@@ -95,3 +101,5 @@ Four tiers, one worked example each. Commands and how to extend: [README.md](./R
 - **One database, no dialect-specific query sets.** The store runs on SQLite through Drizzle only; the legacy Cloudscape/Oracle split is not carried over. Rationale: the brief puts it out of scope and a second dialect would double every query. Authored in change `swhr8-i-0004-catalog-browsing-and-search` (design.md, D2).
 - **`inventory` is created by the catalog and extended by fulfillment.** One stock row per item; later capabilities add columns by migration, never a second stock table. Rationale: the catalog check (C5) and fulfillment must read the same stock. Authored in change `swhr8-i-0004-catalog-browsing-and-search` (design.md, C2).
 - **Pages reuse the shared state frames.** Loading, empty and error states use `src/components/shell` (`useLoad` for fetch state), not page-local markup. Rationale: one empty/error/retry behaviour across capabilities. Authored in change `swhr8-i-0002-bootstrap-landing-page-and`.
+- **Customer data goes through one repository.** Checkout, admin and jobs read and write customers, accounts and profiles only via `server/customer/repository.ts`; none queries those tables directly. Rationale: the mandatory-field rules and cascade removal live in one place. Authored in change `swhr8-i-0005-customer-account-and-sign-o` (design.md, A1–A3).
+- **Protected pages are one list, enforced on both sides.** A capability that adds a page needing sign-on adds it to that list; the server returns 401 and the shell redirects to `/signon?next=`. Rationale: the legacy kept one configured list, and the return-to-page behaviour depends on it. Authored in change `swhr8-i-0005-customer-account-and-sign-o` (design.md, A5).

@@ -36,6 +36,7 @@ New shared components go in `src/components/ui/`, follow this pattern, get a `*.
 Every page renders inside one shell (route → `src/pages/_layout.tsx`; requirements → `openspec/specs/site-shell/`):
 
 - **Header** (`banner`): the store name, linking to `/`, and a language control (globe icon + current language) linking to the Language page `/locale`.
+- **Account control** (header, right of the language control): a "Sign in" link to `/signon` when signed out; when signed on, a "Hi, <user name> ▾" menu with "My account" (`/account`) and "Sign off". It is the only sign-on entry in the chrome; requirements → `openspec/specs/customer-account/`.
 - **Global navigation** (`nav aria-label="Global"`): "Home" plus one entry per primary area. Below the `lg` breakpoint it collapses behind a menu button into a `@headlessui/react` `Dialog`.
 - **Main** (`main`): the page's own content; pages draw no chrome of their own.
 - **Footer** (`contentinfo`): identical on every page, including a "Change language" link to `/locale`.
@@ -47,6 +48,8 @@ State frames (`src/components/shell/`) replace page-local placeholders:
 | `LoadingFrame` | content on its way | `role="status"`, `data-testid="loading-frame"`                                    |
 | `EmptyFrame`   | nothing to show    | `data-testid="empty-frame"`, title + message, optional "Back to home"             |
 | `ErrorFrame`   | the load failed    | `role="alert"`, `data-testid="error-frame"`, "Try again" button calling `onRetry` |
+
+Forms (sign-on, registration, profile) label every field, mark optional fields "(optional)" in the label rather than marking required ones, and on a rejected submit show one summary naming the missing fields above the form.
 
 Reference mockups for each are exported per sprint under `artifacts/<sprint>/design/`.
 
