@@ -25,9 +25,10 @@ class Browser {
     );
     await locale(event);
     let result: unknown;
-    let status = 200;
+    let status: number;
     try {
       result = await handler(event);
+      status = event.res.status ?? 200;
     } catch (e) {
       const err = e as { status?: number; statusCode?: number; data?: unknown };
       status = err.status ?? err.statusCode ?? 500;

@@ -152,7 +152,7 @@ export default function CartPage(): React.JSX.Element {
             </p>
           </div>
           <Button asChild size="lg" className="mt-5 w-full">
-            <Link to="/checkout">
+            <Link to="/order">
               {t("cart.checkout")}
               <ArrowRight aria-hidden="true" className="ml-2 size-4" />
             </Link>
