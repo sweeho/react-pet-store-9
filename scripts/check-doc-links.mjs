@@ -16,18 +16,18 @@
  * triples the output. `artifacts/` is skipped: those are historical sprint
  * records, and a link that was correct when written is not a defect now.
  */
-import { execFileSync } from 'node:child_process';
-import { existsSync, lstatSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { execFileSync } from "node:child_process";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
-const files = execFileSync('git', ['ls-files', '*.md'], { encoding: 'utf8' })
-  .split('\n')
-  .filter(f => f && !f.startsWith('artifacts/') && !lstatSync(f).isSymbolicLink());
+const files = execFileSync("git", ["ls-files", "*.md"], { encoding: "utf8" })
+  .split("\n")
+  .filter((f) => f && !f.startsWith("artifacts/") && !lstatSync(f).isSymbolicLink());
 
 const broken = [];
 for (const file of files) {
   const dir = dirname(file);
-  const lines = readFileSync(file, 'utf8').split('\n');
+  const lines = readFileSync(file, "utf8").split("\n");
   lines.forEach((line, i) => {
     for (const m of line.matchAll(/\]\((\.{1,2}\/[^)#\s]+)/g)) {
       const target = m[1];

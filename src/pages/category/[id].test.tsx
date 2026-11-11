@@ -50,7 +50,10 @@ describe("Category page (product list)", () => {
     stubFetch("DOGS", 5);
     renderAt("/category/DOGS");
     expect(await screen.findAllByTestId("product-row")).toHaveLength(2);
-    expect(screen.getByRole("link", { name: "Next" })).toHaveAttribute("href", "?start=2");
+    expect(screen.getByRole("link", { name: "Next" })).toHaveAttribute(
+      "href",
+      "/category/DOGS?start=2",
+    );
     expect(screen.queryByRole("link", { name: "Previous" })).toBeNull();
   });
 
@@ -64,7 +67,10 @@ describe("Category page (product list)", () => {
     stubFetch("DOGS", 5);
     renderAt("/category/DOGS?start=2");
     expect(await screen.findAllByTestId("product-row")).toHaveLength(2);
-    expect(screen.getByRole("link", { name: "Previous" })).toHaveAttribute("href", "?start=0");
+    expect(screen.getByRole("link", { name: "Previous" })).toHaveAttribute(
+      "href",
+      "/category/DOGS?start=0",
+    );
     expect(screen.getByRole("link", { name: "Next" })).toBeInTheDocument();
   });
 

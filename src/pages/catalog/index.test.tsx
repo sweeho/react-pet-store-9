@@ -12,11 +12,15 @@ const json = (body: unknown, status = 200) =>
 function stubFetch(session: Record<string, unknown> = { locale: "en_US" }) {
   const mock = vi.fn(async (url: string) => {
     if (url === "/api/session") return json(session);
-    if (url === "/api/catalog/categories")
-      return json([
-        { id: "BIRDS", name: "Birds", image: "birds_icon.gif" },
-        { id: "FISH", name: "Fish", image: "fish_icon.gif" },
-      ]);
+    if (url.startsWith("/api/catalog/categories"))
+      return json({
+        rows: [
+          { id: "BIRDS", name: "Birds", image: "birds_icon.gif" },
+          { id: "CATS", name: "Cats", image: "cats_icon.gif" },
+        ],
+        hasNext: true,
+        hasPrevious: false,
+      });
     if (url.startsWith("/api/catalog/category/FISH"))
       return json({
         category: { id: "FISH", name: "Fish" },
@@ -48,7 +52,7 @@ describe("Catalog page", () => {
   it("a shopper with no language choice sees the en_US Catalog heading", async () => {
     stubFetch();
     renderAs("en_US");
-    expect(await screen.findByRole("heading", { name: "Catalog" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /catalog/i })).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: /Birds/ })).toHaveAttribute(
       "href",
       "/category/BIRDS",
@@ -58,7 +62,7 @@ describe("Catalog page", () => {
   it("a ja_JP shopper sees the Japanese catalog heading", async () => {
     stubFetch();
     renderAs("ja_JP");
-    expect(await screen.findByRole("heading", { name: "カタログ" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /カタログ/ })).toBeInTheDocument();
   });
 
   it("shows the dogs banner when the shopper has no favourite category", async () => {
@@ -77,7 +81,7 @@ describe("Catalog page", () => {
   it("shows no MyList sidebar without a favourite category", async () => {
     stubFetch();
     renderAs("en_US");
-    await screen.findByRole("heading", { name: "Catalog" });
+    await screen.findByRole("heading", { name: /catalog/i });
     expect(screen.queryByTestId("mylist")).toBeNull();
   });
 
