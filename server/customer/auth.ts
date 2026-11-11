@@ -4,6 +4,7 @@ import {
   sharedSessions,
   type LocaleSessions,
 } from "../localization/sessions";
+import { dropCart } from "../cart/store";
 import { checkPassword, getCustomer, getSignOnUser, saveSignOnUser } from "./repository";
 import { validateNewUser } from "./model";
 
@@ -61,6 +62,7 @@ export function createAuth(sessions?: LocaleSessions) {
     let state = states.get(id);
     if (state && now.getTime() - state.lastSeen >= SIGNON_IDLE_MS) {
       states.delete(id);
+      dropCart(id);
       state = undefined;
     }
     if (state) state.lastSeen = now.getTime();
@@ -120,7 +122,7 @@ export function createAuth(sessions?: LocaleSessions) {
       return { created: true };
     },
 
-    /** Clears sign-on state (and, later, the cart slot); the locale stays. */
+    /** Clears sign-on state and the cart; the locale stays. */
     signOff(id: string): void {
       states.delete(id);
     },

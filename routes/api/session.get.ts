@@ -2,10 +2,10 @@ import { defineHandler, getCookie } from "nitro/h3";
 
 import { bannerCategory, REMEMBER_COOKIE } from "../../server/customer/auth";
 import { sharedSessions } from "../../server/localization/sessions";
+import { cartFor } from "../../server/cart/store";
 import { getCustomer } from "../../server/customer/repository";
 
-// The session: locale, sign-on state and the signed-on customer's preferences. The cart count is
-// 0 until the cart (SWHR8-I-0006) attaches to the same session.
+// The session: locale, sign-on state, the signed-on customer's preferences and the cart's line count.
 export default defineHandler(async (event) => {
   const userName = event.context.userName as string | undefined;
   const profile = userName ? (await getCustomer(userName))?.profile : undefined;
@@ -15,7 +15,7 @@ export default defineHandler(async (event) => {
     locale,
     signedOn: userName !== undefined,
     userName,
-    cartCount: 0,
+    cartCount: cartFor(event.context.sessionId as string).count(),
     rememberedUserName: getCookie(event, REMEMBER_COOKIE) || undefined,
     myList: profile?.myList,
     favoriteCategory: profile?.favoriteCategory || undefined,

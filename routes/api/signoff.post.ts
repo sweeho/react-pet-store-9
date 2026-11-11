@@ -1,10 +1,12 @@
 import { defineHandler } from "nitro/h3";
 
+import { dropCart } from "../../server/cart/store";
 import { sharedAuth } from "../../server/customer/auth";
 
-// Clears the sign-on state (and the cart slot, once the cart exists); the locale is kept.
+// Clears the sign-on state and the cart; the locale is kept.
 export default defineHandler((event) => {
   sharedAuth().signOff(event.context.sessionId as string);
+  dropCart(event.context.sessionId as string);
   event.context.userName = undefined;
   return { signedOn: false };
 });
