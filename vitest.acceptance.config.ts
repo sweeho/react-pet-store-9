@@ -5,7 +5,7 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 // Runs only the acceptance unit tests (`bun run test:acceptance`). The default
-// config excludes tests/acceptance/**; its Playwright specs under e2e/ belong to
+// config excludes tests/acceptance/**; its Playwright specs (*.spec.ts in each capability folder) belong to
 // playwright.acceptance.config.ts and are excluded here too.
 export default defineConfig({
   plugins: [
@@ -23,6 +23,6 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     css: false,
     include: ["tests/acceptance/**/*.test.{ts,tsx}"],
-    exclude: ["node_modules", "tests/acceptance/**/e2e/**"],
+    exclude: ["node_modules", "tests/acceptance/**/*.spec.ts"],
   },
 });
