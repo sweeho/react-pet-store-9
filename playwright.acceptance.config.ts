@@ -1,12 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Browser specs of the acceptance suite (tests/acceptance/<capability>/e2e/).
+// Browser specs of the acceptance suite (tests/acceptance/<capability>/*.spec.ts).
 // Same dedicated port as playwright.config.ts: the two never run together.
 const PORT = 5178;
 
 export default defineConfig({
   testDir: "./tests/acceptance",
-  testMatch: "**/e2e/**/*.spec.ts",
+  testMatch: "**/*.spec.ts",
   globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
   // The merge gate reads one run; a retry would hide an unreliable test.
