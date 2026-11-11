@@ -63,7 +63,7 @@ Every request passes through one session middleware. It resolves an HTTP-only se
 
 ## Sign-on and protected pages
 
-Sign-on state is attached to the same session id. A signed-on session idle for 15 minutes loses its sign-on and cart on the next request, and sign-off clears the cart too, while the locale follows the 30-minute session rule (the two figures are an open question in [PRODUCT.md](./PRODUCT.md#open-questions)). A short, fixed list of pages and actions requires sign-on: the account profile and its save, order information entry and the sign-on welcome. The server answers a protected API call from a signed-out session with 401; the client shell redirects a protected route to `/signon?next=<path>` and returns there afterwards. Everything else is public. A "remember my user name" cookie (`bp_signon`, 31 days) is the only cookie besides the session cookie. Behaviour: `openspec/specs/customer-account/` (after this sprint lands). Implementation: `server/customer/`.
+Sign-on state is attached to the same session id. A signed-on session idle for 15 minutes loses its sign-on and cart on the next request, and sign-off clears the cart too, while the locale follows the 30-minute session rule (the two figures are an open question in [PRODUCT.md](./PRODUCT.md#open-questions)). A short, fixed list of pages and actions requires sign-on: the account profile and its save, order information entry (`/order`, the gate the cart's Checkout button goes through) and the sign-on welcome. The checkout form and its order API themselves accept a signed-out session, as the locked acceptance tests require. That is an open decision recorded in change `swhr8-i-0007-order-checkout-and-payment` (design S2). The server answers a protected API call from a signed-out session with 401; the client shell redirects a protected route to `/signon?next=<path>` and returns there afterwards. Everything else is public. A "remember my user name" cookie (`bp_signon`, 31 days) is the only cookie besides the session cookie. Behaviour: `openspec/specs/customer-account/` (after this sprint lands). Implementation: `server/customer/`.
 
 ## Database
 
@@ -78,9 +78,20 @@ Sign-on state is attached to the same session id. A signed-on session idle for 1
 
 **Customer model.** A customer is keyed by its sign-on user name and owns exactly one account (status `active` or `disabled`, one contact with one address, one credit card) and one profile (language, favourite category, My List and banner flags). Removing a customer removes all of them. Mandatory contact, address and card fields are enforced in `server/customer/model.ts`, because a new customer starts with empty ones. All customer reads and writes go through `server/customer/repository.ts`. Behaviour: `openspec/specs/customer-account/` (after this sprint lands).
 
+**Order model.** A purchase order is keyed by its order number and references a billing contact, a shipping contact and a payment card. These are order-owned rows, separate from the customer's contact and card. It has zero-based numbered line items, each with quantity > 0 and quantity shipped ≤ quantity. Each order has one `order_status` row. Order numbers and other identifiers come from named counters in `id_counter`. All order reads and writes go through `server/checkout/repository.ts`. Behaviour: `openspec/specs/order-checkout/` (after this sprint lands).
+
 **Jobs.** Operational checks are pure functions in `server/jobs/`, given plain data and returning `{ exitCode, log }`, with a thin script in `scripts/` that reads the db and exits with the code. Scheduling them is the reporting capabilities' concern.
 
-## Testing
+## Order hand-off
+
+Checkout never stores the order itself. `placeOrder` (`server/checkout/service.ts`) prices, numbers and stamps the order, then hands an XML purchase-order message to a queue. The production queue is an in-process transactional outbox:
+
+- each message is a row in `order_message`;
+- a drain on the next tick, and on server start, passes queued rows to `receiveOrderMessage`;
+- `receiveOrderMessage` stores the order with status PENDING and marks the row delivered;
+- a failed receipt stays queued and is retried, and redelivering an order already stored is ignored.
+
+No external broker exists. The session cart is emptied only after the message is queued.
 
 Four tiers, one worked example each. Commands and how to extend: [README.md](./README.md#testing), [AGENTS.md](./AGENTS.md).
 
@@ -104,3 +115,6 @@ Four tiers, one worked example each. Commands and how to extend: [README.md](./R
 - **Customer data goes through one repository.** Checkout, admin and jobs read and write customers, accounts and profiles only via `server/customer/repository.ts`; none queries those tables directly. Rationale: the mandatory-field rules and cascade removal live in one place. Authored in change `swhr8-i-0005-customer-account-and-sign-o` (design.md, A1–A3).
 - **Protected pages are one list, enforced on both sides.** A capability that adds a page needing sign-on adds it to that list; the server returns 401 and the shell redirects to `/signon?next=`. Rationale: the legacy kept one configured list, and the return-to-page behaviour depends on it. Authored in change `swhr8-i-0005-customer-account-and-sign-o` (design.md, A5).
 - **The cart holds item ids and quantities only, in memory on the session.** Prices and line text are read from the catalog module every time the cart is listed, and checkout prices the order from those lines. Order checkout empties the session cart through `server/cart/` after hand-off and never keeps a second cart. Rationale: catalog price changes must show up in the cart, and the cart must not outlive the session. Authored in change `swhr8-i-0006-shopping-cart` (design.md, K1–K3, K8).
+- **Orders reach order processing only as queued messages.** Order processing starts from `receiveOrderMessage`. Order approval extends that receipt, never the checkout request, and later capabilities read and write orders through `server/checkout/repository.ts` only. Rationale: the order is confirmed to the shopper only once its message is durably queued, and redelivery never duplicates an order. Authored in change `swhr8-i-0007-order-checkout-and-payment` (design.md, O1, O7, O8).
+- **Order numbers come from the `"1001"` counter, starting at 1001.** The Finance extract and administration see the same numbers. Rationale: this follows the runbook and the locked test, pending the Business Owner's ruling. Authored in change `swhr8-i-0007-order-checkout-and-payment` (design.md, O3, S1).
+- **Order contacts and cards are order-owned rows.** They are never shared with the customer's account rows. Rationale: an order's card fields are mandatory while a new customer's are empty, and an order must not change when a profile is edited. Authored in change `swhr8-i-0007-order-checkout-and-payment` (design.md, O2, S8).
