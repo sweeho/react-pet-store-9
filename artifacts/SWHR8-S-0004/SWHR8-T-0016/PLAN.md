@@ -34,4 +34,4 @@ Mockups exported under `artifacts/SWHR8-S-0004/design/` — see `MANIFEST.md` th
 
 ## Definition of Done
 
-AC-1 … AC-39 on the ticket, each met by its linked case (C-0028 … C-0065 except C-0047, plus C-0233). C-0047 is deferred to SWHR8-I-0006 and is not expected green. The app builds, its unit, E2E and acceptance tiers are green, and each screen matches its mockup at 1440 and 390 within the D1 overrides.
+AC-1 … AC-39 on the ticket, each met by its linked case (C-0028 … C-0065 except C-0047, plus C-0233 and C-0018, both deferred here by earlier sprints). Saving the profile language applies it to the session immediately (C-0018). Watch design.md D9: C-0018 and C-0233 both use `shopper`. C-0047 is deferred to SWHR8-I-0006 and is not expected green. The app builds, its unit, E2E and acceptance tiers are green, and each screen matches its mockup at 1440 and 390 within the D1 overrides.
