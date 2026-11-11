@@ -51,13 +51,13 @@ async function seed(name = uname()) {
 describe("customer repository", () => {
   it("[SWHR8-C-0028] a customer loads with one account, one profile and its identifier", async () => {
     const name = await seed();
-    const c = await r.getCustomer(name);
+    const c = (await r.getCustomer(name))!;
     expect(c.identifier).toBe(name);
     expect(Array.isArray(c.account)).toBe(false);
     expect(Array.isArray(c.profile)).toBe(false);
   });
   it("[SWHR8-C-0050] a customer owns one account and one profile", async () => {
-    const c = await r.getCustomer(await seed());
+    const c = (await r.getCustomer(await seed()))!;
     expect(c.account.status).toBe("active");
     expect(c.profile.id).toBeTypeOf("number");
   });
@@ -71,7 +71,7 @@ describe("customer repository", () => {
     await expect(r.saveProfile(omit(profile(), "banner"))).rejects.toBeDefined();
   });
   it("[SWHR8-C-0030] a new customer has an active account and a default profile", async () => {
-    const c = await r.getCustomer(await seed());
+    const c = (await r.getCustomer(await seed()))!;
     expect(c.account.status).toBe("active");
     expect(c.profile).toMatchObject({ language: "en_US", myList: true, banner: true });
   });
@@ -80,7 +80,7 @@ describe("customer repository", () => {
   });
   it("[SWHR8-C-0064] a stored contact is linked to exactly one address", async () => {
     const { id } = await r.saveContact(contact);
-    const c = await r.getContact(id);
+    const c = (await r.getContact(id))!;
     expect(Array.isArray(c.address)).toBe(false);
     expect(await r.getAddress(c.address.id)).toBeDefined();
   });
@@ -125,7 +125,7 @@ describe("customer repository", () => {
         banner: false,
       }),
     );
-    const c = await r.getCustomer(name);
+    const c = (await r.getCustomer(name))!;
     expect(c.account.contact).toMatchObject({ lastName: "Roe" });
     expect(c.account.contact.address).toMatchObject({ city: "Portland" });
     expect(c.account.creditCard).toMatchObject({ cardType: "MasterCard" });
@@ -139,7 +139,7 @@ describe("customer repository", () => {
   it("[SWHR8-C-0040] removing a customer removes account, profile, contact, address and card", async () => {
     const name = await seed();
     await r.updateCustomer(name, form());
-    const c = await r.getCustomer(name);
+    const c = (await r.getCustomer(name))!;
     await r.removeCustomer(name);
     expect(await r.getCustomer(name)).toBeUndefined();
     expect(await r.getProfile(c.profile.id)).toBeUndefined();

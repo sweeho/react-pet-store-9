@@ -7,9 +7,11 @@ const FALLBACK = "DOGS";
 const titleCase = (id: string) => id.charAt(0) + id.slice(1).toLowerCase();
 
 /** The category banner: the shopper's favourite category, or dogs when there is none (design C10). */
-export function CategoryBanner(): React.JSX.Element {
+export function CategoryBanner(): React.JSX.Element | null {
   const { t } = useScreen();
-  const id = useCatalogSession()?.favoriteCategory ?? FALLBACK;
+  const session = useCatalogSession();
+  if (session?.banner === false) return null;
+  const id = session?.bannerCategory ?? session?.favoriteCategory ?? FALLBACK;
   return (
     <div
       data-testid="category-banner"

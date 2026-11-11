@@ -46,13 +46,14 @@ describe("RequireSignOn", () => {
     at("/account");
     expect(await screen.findByTestId("where")).toHaveTextContent("/signon");
   });
-  it("[SWHR8-C-0046] the catalog is public and a signed-on visitor reaches /account", async () => {
+  it("[SWHR8-C-0046] the catalog is public", async () => {
     mockSession(false);
     at("/catalog");
     expect(await screen.findByTestId("where")).toHaveTextContent("/catalog");
-    vi.unstubAllGlobals();
+  });
+  it("[SWHR8-C-0046] a signed-on visitor reaches the account page", async () => {
     mockSession(true);
     at("/account");
-    expect((await screen.findAllByTestId("where")).pop()).toHaveTextContent("/account");
+    expect(await screen.findByTestId("where")).toHaveTextContent("/account");
   });
 });

@@ -1,16 +1,21 @@
 import { Dialog, DialogPanel } from "@headlessui/react";
-import { Globe, House, LayoutGrid, Menu, PawPrint, X } from "lucide-react";
+import { Globe, House, LayoutGrid, Menu, PawPrint, User, X } from "lucide-react";
 import { Link, NavLink, Outlet } from "react-router";
 
+import { AccountMenu } from "@/components/account/account-menu";
+import { RequireSignOn } from "@/components/account/require-sign-on";
 import { PRIMARY_AREAS } from "@/constants/primary-areas";
 import { useScreen } from "@/i18n";
 import { cn } from "@/utils";
 
-const AREA_ICONS = { catalog: LayoutGrid, localization: Globe } as const;
+const AREA_ICONS = { catalog: LayoutGrid, localization: Globe, account: User } as const;
 
 function Brand() {
   return (
-    <Link to="/" className="flex items-center gap-2.5 text-base font-semibold tracking-tight">
+    <Link
+      to="/"
+      className="flex items-center gap-2.5 text-base font-semibold tracking-tight whitespace-nowrap"
+    >
       <span className="bg-primary text-primary-foreground grid size-8 place-items-center rounded-md">
         <PawPrint aria-hidden="true" className="size-[18px]" />
       </span>
@@ -70,6 +75,7 @@ export default function SiteLayout(): React.JSX.Element {
               <span className="sr-only">{t("language.current")}: </span>
               {locale}
             </Link>
+            <AccountMenu />
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
@@ -114,7 +120,9 @@ export default function SiteLayout(): React.JSX.Element {
       </header>
 
       <main className="flex-1">
-        <Outlet />
+        <RequireSignOn>
+          <Outlet />
+        </RequireSignOn>
       </main>
 
       <footer className="border-border bg-muted border-t">
