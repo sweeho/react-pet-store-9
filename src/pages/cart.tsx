@@ -141,10 +141,10 @@ export default function CartPage(): React.JSX.Element {
               <span className="text-muted-foreground">{t("cart.items")}</span>
               <span className="tabular-nums">{cart.items.length}</span>
             </div>
-            <div className="border-border mt-1.5 flex justify-between border-t pt-3 font-semibold">
-              <span>{t("cart.total")}</span>
+            <p className="border-border mt-1.5 flex justify-between border-t pt-3 font-semibold">
+              {t("cart.total")}
               <span className="tabular-nums">{usd(cart.total)}</span>
-            </div>
+            </p>
           </div>
           <Button asChild size="lg" className="mt-5 w-full">
             <Link to="/checkout">

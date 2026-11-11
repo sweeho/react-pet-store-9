@@ -1,6 +1,7 @@
+import { CircleAlert } from "lucide-react";
 import { Link } from "react-router";
 
-import { Alert, Crumbs, Page } from "@/components/account/ui";
+import { Crumbs, Page } from "@/components/account/ui";
 import { Button } from "@/components/ui/button";
 import { useScreen } from "@/i18n";
 
@@ -13,11 +14,18 @@ export default function OrderErrorPage(): React.JSX.Element {
       <h1 className="mt-3 text-[30px] font-semibold tracking-[-0.025em]">
         {t("orderError.title")}
       </h1>
-      <div className="mt-6 max-w-[640px]">
-        <Alert tone="error" title={t("orderError.alert")}>
+      <div
+        data-testid="order-error"
+        className="border-border mt-6 flex flex-col items-center rounded-[var(--radius)] border px-6 py-12 text-center"
+      >
+        <div className="bg-destructive/10 text-destructive mb-5 grid size-14 place-items-center rounded-full">
+          <CircleAlert aria-hidden="true" className="size-6" />
+        </div>
+        <h2 className="text-xl font-semibold tracking-tight">{t("orderError.alert")}</h2>
+        <p className="text-muted-foreground mt-2 max-w-[420px] text-[15px] leading-relaxed">
           {t("orderError.body")}
-        </Alert>
-        <div className="mt-6 flex flex-wrap gap-3">
+        </p>
+        <div className="mt-6 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
           <Button asChild>
             <Link to="/catalog">{t("orderError.catalog")}</Link>
           </Button>
