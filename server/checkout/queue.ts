@@ -7,33 +7,48 @@ import { receiveOrderMessage, type OrderQueue } from "./service";
 import { parseOrderXml } from "./xml";
 
 let draining: Promise<void> | undefined;
+let rerun = false;
 
 /** Delivers every queued message; a failed receipt leaves its row queued for the next drain. */
 export function drainOrderQueue(): Promise<void> {
-  draining ??= (async () => {
+  if (draining) {
+    // A message queued mid-drain is missed by that drain's snapshot; ask it to go round again.
+    rerun = true;
+    return draining;
+  }
+  draining = (async () => {
     try {
-      const rows = db
-        .select()
-        .from(orderMessage)
-        .where(eq(orderMessage.status, "queued"))
-        .orderBy(asc(orderMessage.id))
-        .all();
-      for (const row of rows) {
-        try {
-          await receiveOrderMessage(row.body);
-          db.update(orderMessage)
-            .set({ status: "delivered" })
-            .where(and(eq(orderMessage.id, row.id), eq(orderMessage.status, "queued")))
-            .run();
-        } catch {
-          // Stays queued; retried on the next drain.
-        }
-      }
+      do {
+        rerun = false;
+        await drainOnce();
+      } while (rerun);
+    } catch {
+      // Table not ready or a transient failure: queued rows are retried on the next drain.
     } finally {
       draining = undefined;
     }
   })();
   return draining;
+}
+
+async function drainOnce(): Promise<void> {
+  const rows = db
+    .select()
+    .from(orderMessage)
+    .where(eq(orderMessage.status, "queued"))
+    .orderBy(asc(orderMessage.id))
+    .all();
+  for (const row of rows) {
+    try {
+      await receiveOrderMessage(row.body);
+      db.update(orderMessage)
+        .set({ status: "delivered" })
+        .where(and(eq(orderMessage.id, row.id), eq(orderMessage.status, "queued")))
+        .run();
+    } catch {
+      // Stays queued; retried on the next drain.
+    }
+  }
 }
 
 const scheduleDrain = (): void => void setTimeout(() => void drainOrderQueue(), 0);

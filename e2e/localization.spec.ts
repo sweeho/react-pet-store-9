@@ -14,6 +14,7 @@ test.describe("Language page", () => {
     page,
   }) => {
     await page.goto("/locale");
+    await expect(page.getByLabel("Language").locator("option")).toHaveCount(4);
     const values = await page
       .getByLabel("Language")
       .locator("option")

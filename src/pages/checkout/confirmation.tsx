@@ -31,7 +31,7 @@ export default function ConfirmationPage(): React.JSX.Element {
       <span className="grid size-16 place-items-center rounded-full bg-[color-mix(in_oklch,var(--chart-2)_14%,white)] text-[var(--chart-2)]">
         <Check aria-hidden="true" className="size-7" />
       </span>
-      <h1 className="mt-5 text-[32px] font-semibold tracking-[-0.02em]">
+      <h1 className="mt-5 text-[32px] leading-tight font-semibold tracking-[-0.02em]">
         {t("checkout.confirm.title")}
       </h1>
       <p className="text-muted-foreground mt-2.5 text-base leading-[1.55]">

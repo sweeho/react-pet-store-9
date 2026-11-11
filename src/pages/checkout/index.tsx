@@ -15,6 +15,7 @@ import { fetchCart, type CartData } from "@/components/cart/api";
 import { Thumb, formatPrice } from "@/components/catalog";
 import {
   emptyParty,
+  FIELDS,
   fetchProfile,
   fieldId,
   PartyFields,
@@ -71,8 +72,10 @@ export default function CheckoutPage(): React.JSX.Element {
     let cancelled = false;
     void fetchProfile().then((profile) => {
       if (cancelled) return;
-      setBilling(profile);
-      setShipping(profile);
+      // Keep anything the shopper already typed while the profile was loading.
+      const untouched = (p: Party) => FIELDS.every((f) => p[f] === "");
+      setBilling((p) => (untouched(p) ? profile : p));
+      setShipping((p) => (untouched(p) ? profile : p));
     });
     void fetchCart().then(
       (data) => !cancelled && setCart(data),
@@ -231,7 +234,9 @@ export default function CheckoutPage(): React.JSX.Element {
           <PanelHead
             icon={ShoppingCart}
             title={t("checkout.summary.title")}
-            hint={t("checkout.summary.items", { count: String(cart?.count ?? 0) })}
+            hint={t("checkout.summary.items", {
+              count: String(items.reduce((n, l) => n + l.quantity, 0)),
+            })}
           >
             <Button asChild variant="ghost" size="sm" className="ml-auto">
               <Link to="/cart">{t("checkout.summary.edit")}</Link>

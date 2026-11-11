@@ -6,6 +6,9 @@ import { CheckoutError, placeOrder } from "../../../server/checkout/service";
 import { orderQueue } from "../../../server/checkout/queue";
 import type { Contact } from "../../../server/checkout/model";
 
+// Sessions with an order in flight: a concurrent second submit must not place the same cart twice.
+const inFlight = new Set<string>();
+
 const party = (v: unknown): Partial<Contact> =>
   v && typeof v === "object" ? (v as Partial<Contact>) : {};
 
@@ -16,8 +19,13 @@ export default defineHandler(async (event) => {
   const sessionId = event.context.sessionId as string;
   const locale = event.context.locale as string;
   const cart = cartFor(sessionId);
-  const view = await cartView(cart, locale);
+  if (inFlight.has(sessionId)) {
+    event.res.status = 409;
+    return { error: "EMPTY_CART" };
+  }
+  inFlight.add(sessionId);
   try {
+    const view = await cartView(cart, locale);
     const order = await placeOrder({
       userId: (event.context.userName as string | undefined) ?? null,
       locale,
@@ -40,5 +48,7 @@ export default defineHandler(async (event) => {
       return e.code === "EMPTY_CART" ? { error: e.code } : { missing: e.missing };
     }
     throw e;
+  } finally {
+    inFlight.delete(sessionId);
   }
 });
