@@ -58,3 +58,11 @@ describe("Item page", () => {
     expect(await screen.findByTestId("empty-frame")).toBeInTheDocument();
   });
 });
+
+describe("Item page add to cart", () => {
+  it("shows a quantity field and an Add to cart button", async () => {
+    renderItem("en_US", ITEM);
+    expect(await screen.findByRole("button", { name: "Add to cart" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Quantity")).toHaveValue("1");
+  });
+});

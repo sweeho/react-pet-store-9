@@ -1,5 +1,14 @@
-import { defineHandler } from "nitro/h3";
+import { defineHandler, readBody } from "nitro/h3";
 
-export default defineHandler(() => {
-  throw new Error("VortexNotImplemented");
+import { parseQuantity } from "../../../server/cart/cart";
+import { cartFor } from "../../../server/cart/store";
+
+// Applies every submitted quantity; a non-whole value counts as 0 and removes the line.
+export default defineHandler(async (event) => {
+  const body = ((await readBody(event)) ?? {}) as { quantities?: Record<string, unknown> };
+  const cart = cartFor(event.context.sessionId as string);
+  for (const [itemId, raw] of Object.entries(body.quantities ?? {})) {
+    cart.updateQuantity(itemId, parseQuantity(raw));
+  }
+  return { count: cart.count() };
 });

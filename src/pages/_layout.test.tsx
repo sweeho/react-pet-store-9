@@ -78,3 +78,11 @@ describe("SiteLayout", () => {
     ).toHaveAttribute("href", "/locale");
   });
 });
+
+describe("SiteLayout cart entry", () => {
+  it("lists a Cart link to /cart in the global navigation", () => {
+    renderAt("/any-page");
+    const nav = screen.getAllByRole("navigation")[0];
+    expect(nav.querySelector('a[href="/cart"]')).not.toBeNull();
+  });
+});
