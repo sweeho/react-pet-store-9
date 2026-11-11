@@ -35,10 +35,10 @@ New shared components go in `src/components/ui/`, follow this pattern, get a `*.
 
 Every page renders inside one shell (route → `src/pages/_layout.tsx`; requirements → `openspec/specs/site-shell/`):
 
-- **Header** (`banner`): the store name, linking to `/`.
+- **Header** (`banner`): the store name, linking to `/`, and a language control (globe icon + current language) linking to the Language page `/locale`.
 - **Global navigation** (`nav aria-label="Global"`): "Home" plus one entry per primary area. Below the `lg` breakpoint it collapses behind a menu button into a `@headlessui/react` `Dialog`.
 - **Main** (`main`): the page's own content; pages draw no chrome of their own.
-- **Footer** (`contentinfo`): identical on every page.
+- **Footer** (`contentinfo`): identical on every page, including a "Change language" link to `/locale`.
 
 State frames (`src/components/shell/`) replace page-local placeholders:
 
@@ -49,6 +49,14 @@ State frames (`src/components/shell/`) replace page-local placeholders:
 | `ErrorFrame`   | the load failed    | `role="alert"`, `data-testid="error-frame"`, "Try again" button calling `onRetry` |
 
 Reference mockups for each are exported per sprint under `artifacts/<sprint>/design/`.
+
+## Language and localized text
+
+- Every user-facing string, shell chrome included, comes from the per-locale screen dictionaries via `useScreen()` (`src/i18n/`). en_US is the fallback for a locale without a dictionary.
+- `<html lang>` always carries the resolved locale code.
+- Language choices are shown by their native names (English (US), Deutsch, 日本語, 简体中文) with the code beside them.
+- A rejected change shows an `role="alert"` message saying the language could not be changed. The current language stays visible.
+- Prices and numbers are formatted per locale. The screen sets the number of fraction digits.
 
 ## Icons
 

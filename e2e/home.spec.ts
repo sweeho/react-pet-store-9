@@ -14,7 +14,7 @@ test.describe("Landing page and navigation", () => {
     await expect(nav.getByRole("link", { name: "Home" })).toBeVisible();
     await expect(page.getByRole("main").getByRole("link", { name: /Language/ })).toHaveAttribute(
       "href",
-      "/localization",
+      "/locale",
     );
   });
 
@@ -27,14 +27,16 @@ test.describe("Landing page and navigation", () => {
       .getByRole("link", { name: "Language" })
       .click();
 
-    await expect(page).toHaveURL(/\/localization$/);
-    await expect(page.getByRole("heading", { level: 1, name: "Language" })).toBeVisible();
+    await expect(page).toHaveURL(/\/locale$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Choose your language" }),
+    ).toBeVisible();
     await expect(page.getByRole("contentinfo")).toBeVisible();
   });
 
   test("mobile: menu opens, and Home returns to the landing page", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/localization");
+    await page.goto("/locale");
 
     await expect(page.getByRole("dialog")).not.toBeVisible();
     await page.getByRole("button", { name: "Open main menu" }).click();
