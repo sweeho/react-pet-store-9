@@ -7,8 +7,7 @@ import { useScreen } from "@/i18n";
 
 const link = "underline underline-offset-[3px]";
 
-export default function ItemPage(): React.JSX.Element {
-  const { id = "" } = useParams();
+function ItemView({ id }: { id: string }): React.JSX.Element {
   const { t, locale } = useScreen();
   const {
     status,
@@ -87,4 +86,10 @@ export default function ItemPage(): React.JSX.Element {
       </LoadState>
     </div>
   );
+}
+
+export default function ItemPage(): React.JSX.Element {
+  const { id = "" } = useParams();
+  // Remount per id: useLoad only loads on mount and on retry.
+  return <ItemView key={id} id={id} />;
 }

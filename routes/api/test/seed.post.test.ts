@@ -22,11 +22,18 @@ afterEach(() => {
 });
 
 describe("POST /api/test/seed", () => {
-  it("replaces the catalog with the posted rows", async () => {
-    await post({ categories: [{ id: "DOGS", name: "Dogs", locale: "en_US" }] });
-    const event = new H3Event(new Request("http://localhost/api/catalog/categories"));
-    event.context.locale = "en_US";
-    expect(await categories(event)).toMatchObject({ rows: [{ id: "DOGS", name: "Dogs" }] });
+  it("adds the posted rows and replaces rows with the same key", async () => {
+    const list = async () => {
+      const event = new H3Event(new Request("http://localhost/api/catalog/categories?count=50"));
+      event.context.locale = "en_US";
+      return ((await categories(event)) as { rows: { id: string; name: string }[] }).rows;
+    };
+    const before = (await list()).length;
+    await post({ categories: [{ id: "NEW", name: "Newts", locale: "en_US" }] });
+    await post({ categories: [{ id: "NEW", name: "Salamanders", locale: "en_US" }] });
+    const after = await list();
+    expect(after).toHaveLength(before + 1);
+    expect(after.find((c) => c.id === "NEW")?.name).toBe("Salamanders");
   });
 
   it("is refused in production", async () => {
