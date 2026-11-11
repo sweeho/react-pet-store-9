@@ -37,7 +37,7 @@ class Browser {
       const [k, v] = c.split("; ")[0].split("=");
       this.jar[k] = v;
     }
-    return { status, body: result as Record<string, unknown> };
+    return { status, body: (result ?? {}) as Record<string, unknown> };
   }
 }
 
