@@ -37,7 +37,7 @@ Every page renders inside one shell (route → `src/pages/_layout.tsx`; requirem
 
 - **Header** (`banner`): the store name, linking to `/`, and a language control (globe icon + current language) linking to the Language page `/locale`.
 - **Account control** (header, right of the language control): a "Sign in" link to `/signon` when signed out; when signed on, a "Hi, <user name> ▾" menu with "My account" (`/account`) and "Sign off". It is the only sign-on entry in the chrome; requirements → `openspec/specs/customer-account/`.
-- **Global navigation** (`nav aria-label="Global"`): "Home" plus one entry per primary area. Below the `lg` breakpoint it collapses behind a menu button into a `@headlessui/react` `Dialog`.
+- **Global navigation** (`nav aria-label="Global"`): "Home" plus one entry per primary area. The "Cart" entry carries a badge with the number of distinct cart lines when it is above zero; it is the only cart entry in the chrome. Below the `lg` breakpoint it collapses behind a menu button into a `@headlessui/react` `Dialog`.
 - **Main** (`main`): the page's own content; pages draw no chrome of their own.
 - **Footer** (`contentinfo`): identical on every page, including a "Change language" link to `/locale`.
 
@@ -57,7 +57,7 @@ Reference mockups for each are exported per sprint under `artifacts/<sprint>/des
 
 - **Paged lists.** A long list shows one page at a time, with a **Next** link when more rows follow and a **Previous** link after the first page. Links carry the page start in the URL, so a page can be bookmarked. A page past either end shows `EmptyFrame`, never an error.
 - **Search box.** One keyword search box sits at the top of the Catalog and Search pages and submits to the search results page; the shell header has no search box. A blank search shows nothing and makes no request.
-- **Prices.** Money is shown with the locale's currency format (see Language and localized text). When two prices sit together, each carries its own label.
+- **Prices.** Money is shown with the locale's currency format (see Language and localized text). When two prices sit together, each carries its own label. Exception: the cart page shows every amount in US dollars whatever the locale (requirement of `openspec/specs/shopping-cart/`).
 
 ## Language and localized text
 
