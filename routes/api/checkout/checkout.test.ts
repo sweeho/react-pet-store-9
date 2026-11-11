@@ -79,11 +79,11 @@ describe("checkout routes", () => {
 
   it("[SWHR8-C-0182] a blank shipping city blocks the order and is reported", async () => {
     const b = await shopper(1);
-    const before = ((await b.call(queueGet)).body.messages as string[]).length;
+    const before = ((await b.call(queueGet)).body.messages as string[] | undefined)?.length ?? 0;
     const res = await b.call(checkoutPost, { billing: party(), shipping: party({ city: "" }) });
     expect(res.status).toBe(400);
     expect(JSON.stringify(res.body.missing).toLowerCase()).toContain("city");
-    expect((await b.call(queueGet)).body.messages as string[]).toHaveLength(before);
+    expect((await b.call(queueGet)).body.messages).toHaveLength(before);
     expect((await b.call(cartGet)).body.items).toHaveLength(1);
   });
 

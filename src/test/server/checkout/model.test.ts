@@ -114,7 +114,7 @@ describe("XML forms", () => {
   it("[SWHR8-C-0167] address XML whose root is Order is rejected", async () => {
     const { parseAddressXml } = await xml();
     const bad = `<?xml version="1.0"?><Order><StreetName1>1 Main</StreetName1><City>X</City><State>CA</State><ZipCode>9</ZipCode><Country>US</Country></Order>`;
-    expect(() => parseAddressXml(bad)).toThrow();
+    expect(() => parseAddressXml(bad)).toThrow(/Address/);
   });
 });
 
@@ -142,6 +142,8 @@ describe("identifier generation", () => {
       },
       set: () => {},
     };
-    await expect((async () => generateIdentifier({ prefix: "A", store }))()).rejects.toThrow();
+    await expect((async () => generateIdentifier({ prefix: "A", store }))()).rejects.toThrow(
+      "lookup failed",
+    );
   });
 });
