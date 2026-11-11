@@ -94,3 +94,12 @@ describe("cart routes", () => {
     expect((await b.call(session)).cartCount).toBe(0);
   });
 });
+
+describe("cart route input checks", () => {
+  it("rejects a non-whole quantity on add and a non-object quantities on update", async () => {
+    const b = new Browser();
+    await expect(b.call(itemsPost, { itemId: "EST-1", quantity: "abc" })).rejects.toBeTruthy();
+    await expect(b.call(updatePost, { quantities: "12" })).rejects.toBeTruthy();
+    expect(((await b.call(cartGet)) as { count: number }).count).toBe(0);
+  });
+});

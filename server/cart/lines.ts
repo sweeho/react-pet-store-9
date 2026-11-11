@@ -1,6 +1,6 @@
 // Bridges the synchronous cart model to the async catalog (design K3).
 import { catalog } from "../catalog";
-import { listLines, type Cart, type CartLine, type CatalogLookup } from "./cart";
+import { createCart, listLines, type Cart, type CartLine, type CatalogLookup } from "./cart";
 
 async function lookupFor(cart: Cart, locale: string): Promise<CatalogLookup> {
   const found = new Map<string, Omit<CartLine, "quantity">>();
@@ -34,7 +34,11 @@ export interface CartView {
 }
 
 export async function cartView(cart: Cart, locale: string): Promise<CartView> {
-  const lines = listLines(cart, await lookupFor(cart, locale), locale);
+  // One snapshot of the cart, so a concurrent add cannot make the lookup and the lines disagree.
+  const snapshot = createCart();
+  for (const [itemId, quantity] of Object.entries(cart.quantities()))
+    snapshot.add(itemId, quantity);
+  const lines = listLines(snapshot, await lookupFor(snapshot, locale), locale);
   const items = lines.map((l) => ({ ...l, lineTotal: l.listPrice * l.quantity }));
-  return { items, total: items.reduce((s, l) => s + l.lineTotal, 0), count: cart.count() };
+  return { items, total: items.reduce((s, l) => s + l.lineTotal, 0), count: snapshot.count() };
 }

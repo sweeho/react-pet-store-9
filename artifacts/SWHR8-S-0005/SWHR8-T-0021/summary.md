@@ -26,4 +26,4 @@ AC-1 to AC-15, AC-18, AC-19 are covered by unit, route, UI and e2e tests. AC-16 
 
 Money on `/cart` is US dollars in every locale (design K6, S3). Quantity input label is `Quantity <itemId>` and the button "Update" (S2).
 
-CODE-REVIEW: pending
+CODE-REVIEW: sub-agent — fixed: non-whole quantity on add (400), non-object quantities on update (400), single cart snapshot in cartView, stale cart-page loads ignored; rejected: dropping carts of expired anonymous sessions (not in K2 or the spec; follow-up ticket raised).

@@ -15,13 +15,18 @@ export default function CartPage(): React.JSX.Element {
   const [cart, setCart] = useState<CartData | "error" | undefined>();
   const [quantities, setQuantities] = useState<Record<string, string>>({});
 
+  const latest = useRef(0);
   const load = useCallback(() => {
+    const mine = ++latest.current;
     fetchCart().then(
       (data) => {
+        if (mine !== latest.current) return; // a newer load is in flight
         setCart(data);
         setQuantities(Object.fromEntries(data.items.map((i) => [i.itemId, String(i.quantity)])));
       },
-      () => setCart("error"),
+      () => {
+        if (mine === latest.current) setCart("error");
+      },
     );
   }, []);
   useEffect(load, [load]);
