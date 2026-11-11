@@ -45,7 +45,7 @@ function renderAs(locale: string) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Catalog page", () => {
-  it("[SWHR8-C-0019] a shopper with no language choice sees the en_US Catalog heading", async () => {
+  it("a shopper with no language choice sees the en_US Catalog heading", async () => {
     stubFetch();
     renderAs("en_US");
     expect(await screen.findByRole("heading", { name: "Catalog" })).toBeInTheDocument();
@@ -55,7 +55,7 @@ describe("Catalog page", () => {
     );
   });
 
-  it("[SWHR8-C-0020] a ja_JP shopper sees the Japanese catalog heading", async () => {
+  it("a ja_JP shopper sees the Japanese catalog heading", async () => {
     stubFetch();
     renderAs("ja_JP");
     expect(await screen.findByRole("heading", { name: "カタログ" })).toBeInTheDocument();
