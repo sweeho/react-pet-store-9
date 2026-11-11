@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createScreenResolver } from "./screens";
+import { createScreenResolver } from "../../server/localization/screens";
 
 const defs = {
   en_US: { home: "Welcome", only_en: "English only" },

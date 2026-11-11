@@ -9,7 +9,7 @@ import {
   parseKeywords,
   parseLocaleCode,
   readFormField,
-} from "./locale";
+} from "../../server/localization/locale";
 
 describe("locale configuration", () => {
   it("[SWHR8-C-0021] yields en_US, ja_JP and zh_CN with en_US as the default", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createLocaleSessions } from "./sessions";
+import { createLocaleSessions } from "../../server/localization/sessions";
 
 const T0 = new Date("2026-01-01T10:00:00Z");
 const at = (minutes: number) => new Date(T0.getTime() + minutes * 60_000);

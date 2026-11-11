@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { produceOrderMail } from "./mail";
+import { produceOrderMail } from "../../server/localization/mail";
 
 const stylesheets = { en_US: "mail_en_US.xsl", ja_JP: "mail_ja_JP.xsl", zh_CN: "mail_zh_CN.xsl" };
 

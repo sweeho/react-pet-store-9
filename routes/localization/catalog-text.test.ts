@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { createLocalizedCatalog } from "./catalog-text";
-import { createDetailsStore } from "./details";
+import { createLocalizedCatalog } from "../../server/localization/catalog-text";
+import { createDetailsStore } from "../../server/localization/details";
 
 async function seeded() {
   const store = createDetailsStore();

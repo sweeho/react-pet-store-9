@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createDetailsStore } from "./details";
+import { createDetailsStore } from "../../server/localization/details";
 
 describe("details store", () => {
   it("[SWHR8-C-0001] one product stored in en_US and ja_JP is addressable by (P1, locale)", async () => {
