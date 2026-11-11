@@ -5,7 +5,7 @@ Linked cases carry platform-recorded runs; the merge gate replays the `[tdd:red]
 ## Notes
 
 - Red run id: `93405f3d-e6f2-41a7-9070-e637ed7e8bb8` (all 24 linked cases failed on the VortexNotImplemented stubs).
-- Green run id: recorded by `a2a_run_tests(phase: "green")` after the green commit (see ticket comment).
+- Green run id: `3dd0ba56-88c4-4533-9c99-836ab7f02bf2` (valid; locked acceptance run `8777cb97-a39a-4a96-b818-9c8ed49d3cd9` passed). Existing layout, landing and localization page tests changed only for the `/locale` href and the new Language page.
 - Unit tests live under `routes/localization/` because the project's `testEvidence.testGlobs` only cover `src/`, `routes/` and `e2e/`; a `server/**/*.test.ts` file was classed as production code by the red check.
 - Full gate on the green commit: `bun run lint` 0, `bun run typecheck` 0, `bun run test` 23 files / 96 tests passed, `bun run build` 0, `bun run test:e2e` 13 passed.
 - Locked suites `tests/acceptance/localization/localization.test.ts` and `tests/acceptance/site-shell` pass (24 tests).
