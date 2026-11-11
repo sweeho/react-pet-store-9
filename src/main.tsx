@@ -6,6 +6,7 @@ import { BrowserRouter, useRoutes } from "react-router";
 import routes from "~react-pages";
 
 import { LoadingFrame } from "@/components/shell";
+import { LocaleProvider } from "@/i18n";
 import SiteLayout from "@/pages/_layout";
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -21,8 +22,10 @@ const app = createRoot(document.getElementById("root")!);
 
 app.render(
   <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <LocaleProvider>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </LocaleProvider>
   </StrictMode>,
 );

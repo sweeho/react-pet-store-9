@@ -14,7 +14,7 @@ export const PRIMARY_AREAS: readonly PrimaryArea[] = [
   {
     slug: "localization",
     label: "Language",
-    href: "/localization",
+    href: "/locale",
     description: "Choose the language you shop in.",
   },
 ];
