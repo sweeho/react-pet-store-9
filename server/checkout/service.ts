@@ -1,4 +1,6 @@
 // Order placement and receipt (change swhr8-i-0007, design O5-O7).
+import { enqueueApproval, scheduleApprovalDrain } from "../approval/queue";
+import { evaluateOrder } from "../approval/service";
 import {
   FIXED_CARD,
   priceCart,
@@ -116,9 +118,17 @@ export async function placeOrder(input: PlaceOrderInput): Promise<Order> {
   return order;
 }
 
-/** Order processing's side: stores the order with tracking status PENDING (R-0092). */
+/**
+ * Order processing's side: stores the order with tracking status PENDING (R-0092). An order the
+ * approval rules accept is put on the approval queue in the same transaction; the queue drain
+ * then approves it (order-approval design P2). A redelivered order enqueues nothing.
+ */
 export async function receiveOrderMessage(xml: string): Promise<void> {
-  await storeReceivedOrder(parseOrderXml(xml));
+  const order = parseOrderXml(xml);
+  await storeReceivedOrder(order, (tx) => {
+    if (evaluateOrder(order) === "APPROVED") enqueueApproval(tx, order.orderId);
+  });
+  scheduleApprovalDrain();
 }
 
 export const getOrderTrackingStatus = (orderId: string): Promise<string | undefined> =>

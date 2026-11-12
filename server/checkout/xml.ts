@@ -21,14 +21,14 @@ const unescapeXml = (v: string): string =>
 const el = (name: string, value: string | number): string =>
   `<${name}>${escapeXml(String(value))}</${name}>`;
 
-interface XmlNode {
+export interface XmlNode {
   name: string;
   text: string;
   children: XmlNode[];
 }
 
 /** Parses an element-only document into a tree; throws on malformed markup. */
-function parseXml(xml: string): XmlNode {
+export function parseXml(xml: string): XmlNode {
   const body = xml.replace(/<\?[\s\S]*?\?>/g, "").trim();
   const token = /<(\/?)([A-Za-z_][\w.-]*)[^>]*?(\/?)>|([^<]+)/g;
   const root: XmlNode = { name: "#document", text: "", children: [] };
