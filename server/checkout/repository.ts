@@ -10,11 +10,17 @@ import {
   orderStatus,
   purchaseOrder,
 } from "../../db/schema";
+import {
+  isRecognisedStatus,
+  NotFoundError,
+  type RecordMap,
+  type StatusRecord,
+} from "../approval/service";
 import { generateIdentifier } from "./identifiers";
 import type { Card, Contact, Order } from "./model";
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-type Db = typeof db | Tx;
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type Db = typeof db | Tx;
 
 export interface ContactInput {
   firstName?: string;
@@ -194,6 +200,53 @@ export async function getOrderStatus(orderId: string): Promise<string | undefine
     .get()?.status;
 }
 
+/** Writes one order's status; an unknown order or a status outside the vocabulary is refused. */
+export function updateOrderStatus(d: Db, orderId: string, status: string): void {
+  if (!isRecognisedStatus(status)) throw new Error(`Unrecognised order status: ${status}`);
+  const changed = d
+    .update(orderStatus)
+    .set({ status })
+    .where(eq(orderStatus.orderId, orderId))
+    .returning({ id: orderStatus.orderId })
+    .all();
+  if (!changed.length) throw new NotFoundError(`No status record for order ${orderId}`);
+}
+
+export function findOrderIdsByStatus(d: Db, status: string): StatusRecord[] {
+  return d.select().from(orderStatus).where(eq(orderStatus.status, status)).all();
+}
+
+/** Orders that have a status record (inner join), with the fields the admin listing shows. */
+export function listOrderStatusRows(d: Db) {
+  return d
+    .select({
+      orderId: purchaseOrder.orderId,
+      userId: purchaseOrder.userId,
+      date: purchaseOrder.orderDate,
+      value: purchaseOrder.total,
+      status: orderStatus.status,
+    })
+    .from(purchaseOrder)
+    .innerJoin(orderStatus, eq(orderStatus.orderId, purchaseOrder.orderId))
+    .orderBy(asc(purchaseOrder.orderId))
+    .all();
+}
+
+/** The status store the approval rules run over, backed by `order_status`. */
+export function statusRecords(d: Db): RecordMap {
+  const read = (orderId: string) =>
+    d.select().from(orderStatus).where(eq(orderStatus.orderId, orderId)).get();
+  return {
+    get: read,
+    has: (orderId) => read(orderId) !== undefined,
+    set: (orderId, record) => {
+      if (read(orderId)) updateOrderStatus(d, orderId, record.status);
+      else d.insert(orderStatus).values({ orderId, status: record.status }).run();
+    },
+    values: () => d.select().from(orderStatus).all(),
+  };
+}
+
 const contactRow = (c: Contact): ContactInput => ({
   firstName: c.firstName,
   lastName: c.lastName,
@@ -211,7 +264,10 @@ const contactRow = (c: Contact): ContactInput => ({
  * Stores a received order as PENDING in one transaction: card, both contacts, order, lines and
  * status (R-0092). An order id that is already stored is left alone, so redelivery never duplicates.
  */
-export async function storeReceivedOrder(order: Order): Promise<void> {
+export async function storeReceivedOrder(
+  order: Order,
+  afterStore?: (tx: Tx) => void,
+): Promise<void> {
   db.transaction((tx) => {
     if (tx.select().from(purchaseOrder).where(eq(purchaseOrder.orderId, order.orderId)).get()) {
       return;
@@ -232,5 +288,6 @@ export async function storeReceivedOrder(order: Order): Promise<void> {
       lines: order.lines.map((l) => ({ ...l, orderId: order.orderId })),
     });
     tx.insert(orderStatus).values({ orderId: order.orderId, status: "PENDING" }).run();
+    afterStore?.(tx);
   });
 }

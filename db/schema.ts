@@ -254,3 +254,12 @@ export const orderMessage = sqliteTable("order_message", {
   sessionId: text("session_id"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+// Generic transactional outbox for the shared asynchronous send (change swhr8-i-0008, design P3).
+export const queueMessage = sqliteTable("queue_message", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  queue: text("queue").notNull(),
+  body: text("body").notNull(),
+  status: text("status").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
