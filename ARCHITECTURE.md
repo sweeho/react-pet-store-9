@@ -78,7 +78,7 @@ Sign-on state is attached to the same session id. A signed-on session idle for 1
 
 **Customer model.** A customer is keyed by its sign-on user name and owns exactly one account (status `active` or `disabled`, one contact with one address, one credit card) and one profile (language, favourite category, My List and banner flags). Removing a customer removes all of them. Mandatory contact, address and card fields are enforced in `server/customer/model.ts`, because a new customer starts with empty ones. All customer reads and writes go through `server/customer/repository.ts`. Behaviour: `openspec/specs/customer-account/` (after this sprint lands).
 
-**Order model.** A purchase order is keyed by its order number and references a billing contact, a shipping contact and a payment card. These are order-owned rows, separate from the customer's contact and card. It has zero-based numbered line items, each with quantity > 0 and quantity shipped ≤ quantity. Each order has one `order_status` row. Order numbers and other identifiers come from named counters in `id_counter`. All order reads and writes go through `server/checkout/repository.ts`. Behaviour: `openspec/specs/order-checkout/` (after this sprint lands).
+**Order model.** A purchase order is keyed by its order number and references a billing contact, a shipping contact and a payment card. These are order-owned rows, separate from the customer's contact and card. It has zero-based numbered line items, each with quantity > 0 and quantity shipped ≤ quantity. Each order has one `order_status` row holding one of PENDING, APPROVED, DENIED, SHIPPED_PART or COMPLETED. Order numbers and other identifiers come from named counters in `id_counter`. All order reads and writes go through `server/checkout/repository.ts`. Behaviour: `openspec/specs/order-checkout/` (after this sprint lands).
 
 **Jobs.** Operational checks are pure functions in `server/jobs/`, given plain data and returning `{ exitCode, log }`, with a thin script in `scripts/` that reads the db and exits with the code. Scheduling them is the reporting capabilities' concern.
 
@@ -92,6 +92,17 @@ Checkout never stores the order itself. `placeOrder` (`server/checkout/service.t
 - a failed receipt stays queued and is retried, and redelivering an order already stored is ignored.
 
 No external broker exists. The session cart is emptied only after the message is queued.
+
+## Order approval
+
+Order processing decides each received order in two steps:
+
+- receipt stores the order with status PENDING. When the order is under its locale's limit, the same transaction puts an OrderApproval document on the `order-approval` queue;
+- that queue's drain applies each decision only to a PENDING order. In one transaction it updates `order_status` and publishes the applied decision on the `order-decision` queue.
+
+Administrator decisions enter through `order-approval` as well. Fulfilment and customer e-mails consume `order-decision`. The rules live in `server/approval/service.ts`. Behaviour: `openspec/specs/order-approval/` (after this sprint lands).
+
+Both queues are rows in one database outbox, `queue_message`, keyed by queue name. A message commits or rolls back with the caller's transaction, and a failed send is raised to the caller.
 
 Four tiers, one worked example each. Commands and how to extend: [README.md](./README.md#testing), [AGENTS.md](./AGENTS.md).
 
@@ -118,3 +129,4 @@ Four tiers, one worked example each. Commands and how to extend: [README.md](./R
 - **Orders reach order processing only as queued messages.** Order processing starts from `receiveOrderMessage`. Order approval extends that receipt, never the checkout request, and later capabilities read and write orders through `server/checkout/repository.ts` only. Rationale: the order is confirmed to the shopper only once its message is durably queued, and redelivery never duplicates an order. Authored in change `swhr8-i-0007-order-checkout-and-payment` (design.md, O1, O7, O8).
 - **Order numbers come from the `"1001"` counter, starting at 1001.** The Finance extract and administration see the same numbers. Rationale: this follows the runbook and the locked test, pending the Business Owner's ruling. Authored in change `swhr8-i-0007-order-checkout-and-payment` (design.md, O3, S1).
 - **Order contacts and cards are order-owned rows.** They are never shared with the customer's account rows. Rationale: an order's card fields are mandatory while a new customer's are empty, and an order must not change when a profile is edited. Authored in change `swhr8-i-0007-order-checkout-and-payment` (design.md, O2, S8).
+- **Order decisions travel only as messages on the shared outbox.** Approve and deny, automatic or administrator, go on `order-approval`, and applied decisions come off `order-decision`. No capability writes `order_status` for a decision directly, and a new queue is a new `queue` name in `queue_message`, not a new table. Rationale: the PENDING-only guard and the all-or-nothing hand-off to fulfilment and e-mail live in one place. Authored in change `swhr8-i-0008-order-approval` (design.md, P2–P4).
