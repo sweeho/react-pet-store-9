@@ -1,0 +1,236 @@
+// The only module that touches the order tables (change swhr8-i-0007, design O1-O3).
+import { and, asc, eq, gte, lt } from "drizzle-orm";
+
+import { db } from "../../db/client";
+import {
+  idCounter,
+  orderContact,
+  orderCreditCard,
+  orderLineItem,
+  orderStatus,
+  purchaseOrder,
+} from "../../db/schema";
+import { generateIdentifier } from "./identifiers";
+import type { Card, Contact, Order } from "./model";
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type Db = typeof db | Tx;
+
+export interface ContactInput {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+}
+
+export interface LineRecord {
+  orderId: string;
+  lineNumber: number;
+  categoryId: string;
+  productId: string;
+  itemId: string;
+  quantity: number;
+  unitPrice: number;
+  quantityShipped: number;
+}
+
+export interface PurchaseOrderInput {
+  orderId: string;
+  userId?: string | null;
+  email?: string | null;
+  orderDate: Date;
+  locale: string;
+  total: number;
+  contactId?: number;
+  billContactId?: number;
+  shipContactId?: number;
+  creditCardId: number;
+  lines?: LineRecord[];
+}
+
+const insertContact = (d: Db, c: ContactInput): number =>
+  d.insert(orderContact).values(c).returning({ id: orderContact.id }).get().id;
+
+const insertCard = (d: Db, c: Card): number =>
+  d
+    .insert(orderCreditCard)
+    .values({ cardNumber: c.cardNumber, cardType: c.cardType, expiryDate: c.expiryDate })
+    .returning({ id: orderCreditCard.id })
+    .get().id;
+
+function insertOrder(d: Db, o: PurchaseOrderInput): void {
+  d.insert(purchaseOrder)
+    .values({
+      orderId: o.orderId,
+      userId: o.userId ?? null,
+      email: o.email ?? null,
+      orderDate: o.orderDate,
+      locale: o.locale,
+      total: o.total,
+      billContactId: (o.billContactId ?? o.contactId) as number,
+      shipContactId: (o.shipContactId ?? o.contactId) as number,
+      creditCardId: o.creditCardId,
+    })
+    .run();
+  if (o.lines?.length) d.insert(orderLineItem).values(o.lines).run();
+}
+
+export async function saveContact(contact: ContactInput): Promise<{ id: number }> {
+  return { id: insertContact(db, contact) };
+}
+
+/** Rejects a missing field or an expiry over 10 characters (R-0201, R-0199). */
+export async function saveCreditCard(card: Card): Promise<{ id: number }> {
+  return { id: insertCard(db, card) };
+}
+
+export async function getCreditCard(id: number): Promise<Card | undefined> {
+  return db
+    .select({
+      cardNumber: orderCreditCard.cardNumber,
+      cardType: orderCreditCard.cardType,
+      expiryDate: orderCreditCard.expiryDate,
+    })
+    .from(orderCreditCard)
+    .where(eq(orderCreditCard.id, id))
+    .get();
+}
+
+/** Stores the order and its lines in one transaction; an unknown contact or card is refused. */
+export async function savePurchaseOrder(order: PurchaseOrderInput): Promise<void> {
+  db.transaction((tx) => insertOrder(tx, order));
+}
+
+export async function getPurchaseOrder(orderId: string) {
+  return db.select().from(purchaseOrder).where(eq(purchaseOrder.orderId, orderId)).get();
+}
+
+export async function getOrderLines(orderId: string): Promise<LineRecord[]> {
+  return db
+    .select()
+    .from(orderLineItem)
+    .where(eq(orderLineItem.orderId, orderId))
+    .orderBy(asc(orderLineItem.lineNumber))
+    .all();
+}
+
+export async function findPurchaseOrdersByUser(userId: string) {
+  return db.select().from(purchaseOrder).where(eq(purchaseOrder.userId, userId)).all();
+}
+
+/** Orders placed on the given local calendar day. */
+export async function findPurchaseOrdersByDate(date: Date) {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const end = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+  return db
+    .select()
+    .from(purchaseOrder)
+    .where(and(gte(purchaseOrder.orderDate, start), lt(purchaseOrder.orderDate, end)))
+    .all();
+}
+
+/** Needs no user or role (R-0202). Quantity must be positive and shipped at most the quantity. */
+export async function saveLineItem(line: LineRecord): Promise<void> {
+  db.insert(orderLineItem).values(line).run();
+}
+
+/** All-or-nothing: one failing line stores none (R-0093). */
+export async function saveLineItems(lines: LineRecord[]): Promise<void> {
+  if (lines.length) db.transaction((tx) => void tx.insert(orderLineItem).values(lines).run());
+}
+
+export async function readLineItem(
+  orderId: string,
+  lineNumber: number,
+): Promise<LineRecord | undefined> {
+  return db
+    .select()
+    .from(orderLineItem)
+    .where(and(eq(orderLineItem.orderId, orderId), eq(orderLineItem.lineNumber, lineNumber)))
+    .get();
+}
+
+const counterStore = (d: Db) => ({
+  get: (name: string): number | undefined =>
+    d.select().from(idCounter).where(eq(idCounter.name, name)).get()?.value,
+  set: (name: string, value: number): void =>
+    void d
+      .insert(idCounter)
+      .values({ name, value })
+      .onConflictDoUpdate({ target: idCounter.name, set: { value } })
+      .run(),
+});
+
+/** The next identifier for the prefix, drawn from its own counter in one transaction (R-0096). */
+export async function nextIdentifier(prefix: string): Promise<string> {
+  return db.transaction((tx) => generateIdentifier({ prefix, store: counterStore(tx) }) as string);
+}
+
+export async function getCounter(prefix: string): Promise<number | undefined> {
+  return counterStore(db).get(prefix);
+}
+
+/** The counter named "1001" starts so the first order number is 1001 (design O3, S1). */
+export async function nextOrderNumber(): Promise<number> {
+  return db.transaction((tx) => {
+    const store = counterStore(tx);
+    const next = (store.get("1001") ?? 1000) + 1;
+    store.set("1001", next);
+    return next;
+  });
+}
+
+export async function getOrderStatus(orderId: string): Promise<string | undefined> {
+  return db
+    .select({ status: orderStatus.status })
+    .from(orderStatus)
+    .where(eq(orderStatus.orderId, orderId))
+    .get()?.status;
+}
+
+const contactRow = (c: Contact): ContactInput => ({
+  firstName: c.firstName,
+  lastName: c.lastName,
+  phone: c.phone,
+  email: c.email ?? "",
+  address1: c.address1,
+  address2: c.address2 ?? "",
+  city: c.city,
+  state: c.state,
+  postalCode: c.postalCode,
+  country: c.country ?? "",
+});
+
+/**
+ * Stores a received order as PENDING in one transaction: card, both contacts, order, lines and
+ * status (R-0092). An order id that is already stored is left alone, so redelivery never duplicates.
+ */
+export async function storeReceivedOrder(order: Order): Promise<void> {
+  db.transaction((tx) => {
+    if (tx.select().from(purchaseOrder).where(eq(purchaseOrder.orderId, order.orderId)).get()) {
+      return;
+    }
+    const creditCardId = insertCard(tx, order.creditCard);
+    const billContactId = insertContact(tx, contactRow(order.billing));
+    const shipContactId = insertContact(tx, contactRow(order.shipping));
+    insertOrder(tx, {
+      orderId: order.orderId,
+      userId: order.userId,
+      email: order.email,
+      orderDate: order.orderDate,
+      locale: order.locale,
+      total: order.total,
+      billContactId,
+      shipContactId,
+      creditCardId,
+      lines: order.lines.map((l) => ({ ...l, orderId: order.orderId })),
+    });
+    tx.insert(orderStatus).values({ orderId: order.orderId, status: "PENDING" }).run();
+  });
+}
