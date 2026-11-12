@@ -4,6 +4,8 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "../../db/client";
 import { queueMessage } from "../../db/schema";
 import { statusRecords, type Db } from "../checkout/repository";
+import { scheduleStatusMailDrain } from "../notifications/queue";
+import { orderEventDocument, ORDER_STATUS_MAIL_QUEUE } from "../notifications/order-mail";
 import {
   approvalDocument,
   handleDecision,
@@ -55,6 +57,8 @@ export function drainApprovalQueue(): Promise<void> {
   } finally {
     running = false;
   }
+  // Customer notifications drain their fan-out rows.
+  scheduleStatusMailDrain();
   return Promise.resolve();
 }
 
@@ -78,7 +82,17 @@ function drainOnce(): void {
             store,
             orderId,
             decision: orderStatus,
-            send: (message) => sendMessage({ queue, message }),
+            send: (message) => {
+              sendMessage({ queue, message });
+              // Fan-out (notifications design N7): one queue per consumer, same transaction.
+              sendMessage({
+                queue: databaseQueue(ORDER_STATUS_MAIL_QUEUE, tx),
+                message: orderEventDocument(
+                  orderId,
+                  orderStatus === "APPROVED" ? "approved" : "denied",
+                ),
+              });
+            },
           });
         }
         tx.update(queueMessage)
