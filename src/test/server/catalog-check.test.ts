@@ -61,4 +61,33 @@ describe("catalog consistency check", () => {
     const catalog = { ...clean(), items: [item({ listPrice: 5 })] };
     expect((await runCatalogCheck({ catalog, populate: ok })).exitCode).toBe(4);
   });
+
+  it("[SWHR8-C-0143] a C3 line with other findings still ends with the literal code 4", async () => {
+    const catalog = { ...clean(), items: [item({ listPrice: 5 })], inventoryItemIds: [] };
+    const result = await runCatalogCheck({ catalog, populate: ok });
+    expect(result.log.some((l) => l.startsWith("C3 "))).toBe(true);
+    expect(result.exitCode).toBe(4);
+  });
+
+  it("[SWHR8-C-0144] a failed populate request (not forced) is logged and ends with 8", async () => {
+    const requests: { forcefully: boolean }[] = [];
+    const result = await runCatalogCheck({
+      catalog: null,
+      populate: async (r) => {
+        requests.push(r);
+        return false;
+      },
+    });
+    expect(requests).toEqual([{ forcefully: false }]);
+    expect(result.log).toContain("Populate request failed");
+    expect(result.exitCode).toBe(8);
+  });
+
+  it("re-runs the checks after a successful populate", async () => {
+    const bad = { ...clean(), items: [item({ listPrice: 5 })] };
+    const result = await runCatalogCheck({ catalog: null, populate: ok, reload: () => bad });
+    expect(result.exitCode).toBe(4);
+    expect(result.log.some((l) => l.startsWith("C3 "))).toBe(true);
+    expect((await runCatalogCheck({ catalog: null, populate: ok })).exitCode).toBe(0);
+  });
 });

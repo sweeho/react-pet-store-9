@@ -1,12 +1,7 @@
 // The nightly chain CLI (design B4, B5). Start it once a night at 01:00; it waits for each slot.
 import { runExtractJob, runAgingJob, runPurgeJob } from "../server/jobs/order-batch-store";
+import { runBackupJob, runInventoryJob } from "../server/jobs/inventory-store";
 import { runNightlyChain } from "../server/jobs/schedule";
-
-// Backup and the inventory report belong to SWHR8-I-0013; until it lands they are placeholders.
-const placeholder = (name: string) => async () => {
-  console.log(`${name} not installed (SWHR8-I-0013)`);
-  return { exitCode: 0 };
-};
 
 const waitUntil = async (at: string): Promise<void> => {
   const [h, m] = at.split(":").map(Number);
@@ -21,10 +16,10 @@ const { ran } = await runNightlyChain({
   date,
   waitUntil,
   jobs: {
-    backup: placeholder("backup"),
+    backup: async () => ({ exitCode: await runBackupJob() }),
     extract: async () => ({ exitCode: await runExtractJob() }),
     agingReport: async () => ({ exitCode: await runAgingJob() }),
-    inventoryReport: placeholder("inventory report"),
+    inventoryReport: async () => ({ exitCode: await runInventoryJob() }),
     purge: async () => ({ exitCode: await runPurgeJob() }),
   },
 });

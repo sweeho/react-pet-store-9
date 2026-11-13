@@ -60,3 +60,6 @@ reports
 
 # Order batch job output
 batch-out/
+
+# Database backups
+backup/
