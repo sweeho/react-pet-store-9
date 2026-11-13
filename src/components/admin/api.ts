@@ -11,6 +11,10 @@ export interface InventoryItem {
   quantity: number;
 }
 
+export const ADMIN_PATH = "/admin";
+export const ADMIN_ORDERS_PATH = "/admin/orders";
+export const ADMIN_SALES_PATH = "/admin/sales";
+export const ADMIN_LOGOUT_PATH = "/admin/logout";
 export const INVENTORY_PATH = "/admin/inventory";
 
 export const loginPath = (next: string): string => `/admin/login?next=${encodeURIComponent(next)}`;
