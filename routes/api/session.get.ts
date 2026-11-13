@@ -4,6 +4,7 @@ import { bannerCategory, REMEMBER_COOKIE } from "../../server/customer/auth";
 import { sharedSessions } from "../../server/localization/sessions";
 import { cartFor } from "../../server/cart/store";
 import { getCustomer } from "../../server/customer/repository";
+import { adminSession } from "../../server/admin/auth";
 
 // The session: locale, sign-on state, the signed-on customer's preferences and the cart's line count.
 export default defineHandler(async (event) => {
@@ -19,6 +20,7 @@ export default defineHandler(async (event) => {
     rememberedUserName: getCookie(event, REMEMBER_COOKIE) || undefined,
     myList: profile?.myList,
     favoriteCategory: profile?.favoriteCategory || undefined,
+    admin: adminSession(event.context.sessionId as string),
     banner: profile?.banner,
     bannerCategory: profile ? bannerCategory(profile.favoriteCategory) : undefined,
   };

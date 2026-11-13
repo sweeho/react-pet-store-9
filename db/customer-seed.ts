@@ -1,11 +1,38 @@
 import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
 
 import * as schema from "./schema";
-import { account, address, contact, creditCard, customer, profile, signonUser } from "./schema";
+import {
+  account,
+  address,
+  contact,
+  creditCard,
+  customer,
+  profile,
+  signonUser,
+  userRole,
+} from "./schema";
+
+/** Adds the administrator jps_admin and the role-less customer account (design F7, SD5) when missing. */
+function seedAdministration(db: BunSQLiteDatabase<typeof schema>): void {
+  db.insert(signonUser)
+    .values([
+      { userName: "jps_admin", password: "admin" },
+      { userName: "customer", password: "customer-password" },
+    ])
+    .onConflictDoNothing()
+    .run();
+  db.insert(userRole)
+    .values({ userName: "jps_admin", role: "administrator" })
+    .onConflictDoNothing()
+    .run();
+}
 
 /** Adds j2ee/j2ee and shopper/shopper (with a full customer record) when no sign-on user exists. */
 export function seedCustomers(db: BunSQLiteDatabase<typeof schema>): void {
-  if (db.select().from(signonUser).all().length > 0) return;
+  if (db.select().from(signonUser).all().length > 0) {
+    seedAdministration(db);
+    return;
+  }
   db.transaction((tx) => {
     tx.insert(signonUser)
       .values([
@@ -55,4 +82,5 @@ export function seedCustomers(db: BunSQLiteDatabase<typeof schema>): void {
       })
       .run();
   });
+  seedAdministration(db);
 }

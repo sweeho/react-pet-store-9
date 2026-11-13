@@ -291,3 +291,139 @@ export async function storeReceivedOrder(
     afterStore?.(tx);
   });
 }
+
+export interface PurchaseOrderDependentsInput {
+  id: number | string;
+  contact: ContactInput;
+  creditCard: { number: string; type: string; expiry: string };
+  lines: {
+    lineNumber: number;
+    category: string;
+    product: string;
+    item: string;
+    quantity: number;
+    unitPrice: number;
+  }[];
+}
+
+/** Stores an order with its one contact, its card and its lines in one transaction (design F6). */
+export async function createPurchaseOrderWithDependents(
+  input: PurchaseOrderDependentsInput,
+): Promise<void> {
+  const orderId = String(input.id);
+  db.transaction((tx) => {
+    const contactId = insertContact(tx, input.contact);
+    const creditCardId = insertCard(tx, {
+      cardNumber: input.creditCard.number,
+      cardType: input.creditCard.type,
+      expiryDate: input.creditCard.expiry,
+    });
+    insertOrder(tx, {
+      orderId,
+      orderDate: new Date(),
+      locale: "en_US",
+      total: input.lines.reduce((sum, l) => sum + l.quantity * l.unitPrice, 0),
+      contactId,
+      creditCardId,
+      lines: input.lines.map((l) => ({
+        orderId,
+        lineNumber: l.lineNumber,
+        categoryId: l.category,
+        productId: l.product,
+        itemId: l.item,
+        quantity: l.quantity,
+        unitPrice: l.unitPrice,
+        quantityShipped: 0,
+      })),
+    });
+  });
+}
+
+/** Deletes the order with its line items, status, contacts and card, in one transaction (R-0113). */
+export async function deletePurchaseOrder(id: number | string): Promise<void> {
+  const orderId = String(id);
+  db.transaction((tx) => {
+    const order = tx.select().from(purchaseOrder).where(eq(purchaseOrder.orderId, orderId)).get();
+    if (!order) return;
+    tx.delete(orderLineItem).where(eq(orderLineItem.orderId, orderId)).run();
+    tx.delete(orderStatus).where(eq(orderStatus.orderId, orderId)).run();
+    tx.delete(purchaseOrder).where(eq(purchaseOrder.orderId, orderId)).run();
+    for (const contactId of new Set([order.billContactId, order.shipContactId])) {
+      tx.delete(orderContact).where(eq(orderContact.id, contactId)).run();
+    }
+    tx.delete(orderCreditCard).where(eq(orderCreditCard.id, order.creditCardId)).run();
+  });
+}
+
+export async function findPurchaseOrderDependents(id: number | string) {
+  const orderId = String(id);
+  const order = db.select().from(purchaseOrder).where(eq(purchaseOrder.orderId, orderId)).get();
+  return {
+    contact: order
+      ? db.select().from(orderContact).where(eq(orderContact.id, order.shipContactId)).get()
+      : undefined,
+    creditCard: order
+      ? db.select().from(orderCreditCard).where(eq(orderCreditCard.id, order.creditCardId)).get()
+      : undefined,
+    lines: await getOrderLines(orderId),
+  };
+}
+
+export interface FulfillmentOrder {
+  orderId: string;
+  userId: string | null;
+  orderDate: Date;
+  status: string | undefined;
+  shipping: ContactInput | undefined;
+  lines: LineRecord[];
+}
+
+function shippingContact(d: Db, id: number): ContactInput | undefined {
+  const row = d.select().from(orderContact).where(eq(orderContact.id, id)).get();
+  if (!row) return undefined;
+  return {
+    firstName: row.firstName ?? undefined,
+    lastName: row.lastName ?? undefined,
+    phone: row.phone ?? undefined,
+    email: row.email ?? undefined,
+    address1: row.address1 ?? undefined,
+    address2: row.address2 ?? undefined,
+    city: row.city ?? undefined,
+    state: row.state ?? undefined,
+    postalCode: row.postalCode ?? undefined,
+    country: row.country ?? undefined,
+  };
+}
+
+/** An order with its shipping contact, lines and status, for the supplier hand-off and invoices. */
+export function readOrderForFulfillment(d: Db, orderId: string): FulfillmentOrder | undefined {
+  const order = d.select().from(purchaseOrder).where(eq(purchaseOrder.orderId, orderId)).get();
+  if (!order) return undefined;
+  return {
+    orderId,
+    userId: order.userId,
+    orderDate: order.orderDate,
+    status: d.select().from(orderStatus).where(eq(orderStatus.orderId, orderId)).get()?.status,
+    shipping: shippingContact(d, order.shipContactId),
+    lines: d
+      .select()
+      .from(orderLineItem)
+      .where(eq(orderLineItem.orderId, orderId))
+      .orderBy(asc(orderLineItem.lineNumber))
+      .all(),
+  };
+}
+
+/** Writes the shipped quantity of each line (never above the ordered quantity, by CHECK). */
+export function writeShippedQuantities(
+  d: Db,
+  orderId: string,
+  shipped: { lineNumber: number; shipped: number }[],
+): void {
+  for (const s of shipped) {
+    d.update(orderLineItem)
+      .set({ quantityShipped: s.shipped })
+      .where(and(eq(orderLineItem.orderId, orderId), eq(orderLineItem.lineNumber, s.lineNumber)))
+      .run();
+  }
+}
