@@ -81,7 +81,7 @@ export function replaceCatalog(db: BunSQLiteDatabase<Record<string, unknown>>, s
         .run();
     }
     for (const row of seed.inventory ?? []) {
-      tx.insert(inventory).values({ itemId: row.itemId, qty: row.qty }).run();
+      tx.insert(inventory).values({ itemId: row.itemId, quantity: row.qty }).run();
     }
   });
 }
@@ -154,8 +154,8 @@ export function upsertCatalog(db: BunSQLiteDatabase<Record<string, unknown>>, se
     }
     for (const row of seed.inventory ?? []) {
       tx.insert(inventory)
-        .values(row)
-        .onConflictDoUpdate({ target: inventory.itemId, set: { qty: row.qty } })
+        .values({ itemId: row.itemId, quantity: row.qty })
+        .onConflictDoUpdate({ target: inventory.itemId, set: { quantity: row.qty } })
         .run();
     }
   });

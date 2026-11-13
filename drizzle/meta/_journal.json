@@ -36,6 +36,13 @@
       "when": 1794460074418,
       "tag": "0004_opposite_mimic",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1794536619376,
+      "tag": "0005_legal_kulan_gath",
+      "breakpoints": true
     }
   ]
 }
