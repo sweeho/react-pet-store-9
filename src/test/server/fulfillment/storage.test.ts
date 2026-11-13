@@ -15,7 +15,15 @@ import { describe, expect, it } from "vitest";
 //   deletePurchaseOrder(id): Promise<void>  (cascades to contact, credit card, line items)
 //   findPurchaseOrderDependents(id): Promise<{ contact: unknown; creditCard: unknown; lines: unknown[] }>
 const dbm = () => import("../../../../db/client");
-const schema = () => import("../../../../db/schema");
+const schema = async () => {
+  const mod = await import("../../../../db/schema");
+  // Red until the fulfilment tables exist: fail on an assertion, not on a TypeError.
+  expect(mod.contacts).toBeDefined();
+  expect(mod.supplierOrders).toBeDefined();
+  expect(mod.supplierLineItems).toBeDefined();
+  expect(mod.inventory.quantity).toBeDefined();
+  return mod;
+};
 const repo = () => import("../../../../server/fulfillment/repository");
 
 async function newContact() {

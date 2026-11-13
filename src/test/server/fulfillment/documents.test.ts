@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { incomingOrder, line, supplierOrder } from "./helpers";
+import { incomingOrder, line, supplierOrder } from "./helpers.test";
 
 // Assumed module boundary: server/fulfillment/documents.ts exports
 //   readIncomingOrder(doc, { now }): { orderId, orderDate: Date, ... }   (missing / future / malformed date -> now)

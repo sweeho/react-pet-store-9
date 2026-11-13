@@ -90,3 +90,11 @@ export const incomingOrder = (orderId: number, lines: Partial<Line>[] = [{}]) =>
     ...l,
   })),
 });
+
+import { describe, expect, it } from "vitest";
+
+describe("fulfilment fixtures", () => {
+  it("builds a line with shipped 0", () => {
+    expect(line("A", 2).shipped).toBe(0);
+  });
+});

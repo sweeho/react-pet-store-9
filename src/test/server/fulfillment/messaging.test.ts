@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
-import { incomingOrder, line, memoryStore, supplierOrder } from "./helpers";
+import { incomingOrder, line, memoryStore, supplierOrder } from "./helpers.test";
 
 // Assumed module boundary: server/fulfillment/service.ts exports
 //   receivePurchaseOrder({ message, store, publish, now }): { accepted: boolean; supplierOrder: SupplierOrder; invoice: Invoice | null }

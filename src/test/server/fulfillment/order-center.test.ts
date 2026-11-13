@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
-import { line } from "./helpers";
+import { line } from "./helpers.test";
 
 // Assumed module boundary: server/fulfillment/order-center.ts exports
 //   applyInvoice({ order, invoice }): void  -- adds invoice line quantities to order.lines[].shipped by item
