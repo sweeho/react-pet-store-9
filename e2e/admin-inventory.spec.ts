@@ -11,6 +11,7 @@ test.describe("inventory update access", () => {
     page,
   }) => {
     await page.goto("/admin/login");
+    await expect(page.getByLabel("Username")).toBeVisible({ timeout: 5000 });
     await page.getByLabel("Username").fill("customer");
     await page.getByLabel("Password", { exact: true }).fill("customer-password");
     await page.getByRole("button", { name: /sign in|log in/i }).click();
