@@ -155,6 +155,23 @@ export function writeInventory(d: Db, itemId: string, quantity: number): void {
     .run();
 }
 
+/** Supplier orders as (order id, status); the supplier order id is the purchase-order number. */
+export const listSupplierOrderStatuses = (d: Db): { orderId: string; status: string }[] =>
+  d
+    .select({ id: supplierOrders.id, status: supplierOrders.status })
+    .from(supplierOrders)
+    .all()
+    .map((r) => ({ orderId: String(r.id), status: r.status }));
+
+/** Deletes a supplier order, its lines and its contact inside the caller's transaction. */
+export function deleteSupplierOrderRows(d: Db, id: number): void {
+  const row = d.select().from(supplierOrders).where(eq(supplierOrders.id, id)).get();
+  if (!row) return;
+  d.delete(supplierLineItems).where(eq(supplierLineItems.supplierOrderId, id)).run();
+  d.delete(supplierOrders).where(eq(supplierOrders.id, id)).run();
+  d.delete(contacts).where(eq(contacts.id, row.contactId)).run();
+}
+
 export async function saveSupplierOrder(order: SaveInput): Promise<void> {
   db.transaction((tx) => insertSupplierOrder(tx, order));
 }

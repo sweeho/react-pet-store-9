@@ -57,3 +57,6 @@ sqlite.db-shm
 # Stryker
 reports
 .stryker-tmp
+
+# Order batch job output
+batch-out/
