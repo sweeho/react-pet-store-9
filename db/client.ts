@@ -4,11 +4,8 @@ import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 
-import { replaceCatalog, type CatalogSeed } from "./catalog-seed";
-import catalogSeed from "./seed/catalog.json";
+import { loadSampleData } from "./sample-data";
 import * as schema from "./schema";
-import { seedCustomers } from "./customer-seed";
-import { category, users } from "./schema";
 
 // Vitest sets VITEST=true in every worker; an in-memory db keeps route
 // integration tests isolated from the file-backed dev/prod db and from
@@ -28,21 +25,6 @@ export const db = drizzle(sqlite, { schema });
 
 migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
 
-// Seed the same two users the mock API used to hardcode, so the demo data
-// (and the existing route tests) keep working out of the box.
-if (db.select().from(users).all().length === 0) {
-  db.insert(users)
-    .values([
-      { name: "John Doe", email: "john@example.com" },
-      { name: "Jane Smith", email: "jane@example.com" },
-    ])
-    .run();
-}
-
-// Load the legacy sample catalog (design C7) when the catalog is empty, as for users.
-if (db.select().from(category).all().length === 0) {
-  replaceCatalog(db, catalogSeed as CatalogSeed);
-}
-
-// Sample sign-on users j2ee and shopper (change swhr8-i-0005, design A7).
-seedCustomers(db);
+// Start-up loads the sample data (users, catalog, sample sign-on users) when missing; the
+// /api/populate endpoint shares this path.
+loadSampleData(db, { force: false });

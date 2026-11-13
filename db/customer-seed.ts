@@ -1,3 +1,4 @@
+import { eq, inArray } from "drizzle-orm";
 import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
 
 import * as schema from "./schema";
@@ -27,12 +28,8 @@ function seedAdministration(db: BunSQLiteDatabase<typeof schema>): void {
     .run();
 }
 
-/** Adds j2ee/j2ee and shopper/shopper (with a full customer record) when no sign-on user exists. */
-export function seedCustomers(db: BunSQLiteDatabase<typeof schema>): void {
-  if (db.select().from(signonUser).all().length > 0) {
-    seedAdministration(db);
-    return;
-  }
+/** Inserts j2ee/j2ee and shopper/shopper with a full customer record; the rows must not exist. */
+export function insertSampleCustomers(db: BunSQLiteDatabase<typeof schema>): void {
   db.transaction((tx) => {
     tx.insert(signonUser)
       .values([
@@ -82,5 +79,27 @@ export function seedCustomers(db: BunSQLiteDatabase<typeof schema>): void {
       })
       .run();
   });
+}
+
+/** Adds j2ee/j2ee and shopper/shopper (with a full customer record) when no sign-on user exists. */
+export function seedCustomers(db: BunSQLiteDatabase<typeof schema>): void {
+  if (db.select().from(signonUser).all().length === 0) insertSampleCustomers(db);
   seedAdministration(db);
+}
+
+/** Removes the sample sign-on users and their dependents, then inserts them again with sample values. */
+export function resetSampleCustomers(db: BunSQLiteDatabase<typeof schema>): void {
+  const names = ["j2ee", "shopper", "jps_admin", "customer"];
+  db.transaction((tx) => {
+    const old = tx.select().from(account).where(inArray(account.userName, names)).all();
+    tx.delete(signonUser).where(inArray(signonUser.userName, names)).run();
+    for (const a of old) {
+      const c = tx.select().from(contact).where(eq(contact.id, a.contactId)).get();
+      tx.delete(contact).where(eq(contact.id, a.contactId)).run();
+      if (c) tx.delete(address).where(eq(address.id, c.addressId)).run();
+      tx.delete(creditCard).where(eq(creditCard.id, a.creditCardId)).run();
+    }
+    insertSampleCustomers(tx as unknown as BunSQLiteDatabase<typeof schema>);
+    seedAdministration(tx as unknown as BunSQLiteDatabase<typeof schema>);
+  });
 }

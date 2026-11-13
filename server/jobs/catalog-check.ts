@@ -2,6 +2,8 @@
 // snapshot of the catalog and returns the log and exit code. The CLI in
 // scripts/catalog-check.ts reads SQLite into that shape.
 
+import { EXIT_ERROR, EXIT_FOUND } from "./batch-types";
+
 export interface CatalogSnapshot {
   categories: { id: string; locales: string[] }[];
   products: { id: string; categoryId: string }[];
@@ -21,24 +23,26 @@ export interface CatalogCheckInput {
   /** `null` when the catalog tables do not exist. */
   catalog: CatalogSnapshot | null;
   populate: (request: { forcefully: boolean }) => Promise<boolean>;
+  /** Re-reads the catalog after a successful populate; when absent the check ends with 0. */
+  reload?: () => CatalogSnapshot | null | Promise<CatalogSnapshot | null>;
 }
-
-/** Exit code bits; 8 is reserved for missing catalog tables (SWHR8-I-0013). */
-const EXIT = { C1: 1, C2: 2, C3: 4, MISSING: 8, C4: 16, C5: 32 } as const;
 
 export async function runCatalogCheck(
   input: CatalogCheckInput,
 ): Promise<{ exitCode: number; log: string[] }> {
+  if (input.catalog) return checkCatalog(input.catalog);
+  const loaded = await input.populate({ forcefully: false });
+  if (!loaded) return { exitCode: EXIT_ERROR, log: ["Populate request failed"] };
+  const reloaded = input.reload ? await input.reload() : null;
+  if (!reloaded) return { exitCode: 0, log: [] };
+  return checkCatalog(reloaded);
+}
+
+function checkCatalog(catalog: CatalogSnapshot): { exitCode: number; log: string[] } {
   const log: string[] = [];
-  if (!input.catalog) {
-    const loaded = await input.populate({ forcefully: false });
-    return { exitCode: loaded ? 0 : EXIT.MISSING, log };
-  }
-  const { categories, products, items, inventoryItemIds } = input.catalog;
-  let exitCode = 0;
-  const report = (code: keyof typeof EXIT, id: string, message: string) => {
+  const { categories, products, items, inventoryItemIds } = catalog;
+  const report = (code: string, id: string, message: string) => {
     log.push(`${code} ${id} ${message}`);
-    exitCode |= EXIT[code];
   };
 
   for (const c of categories) {
@@ -68,5 +72,5 @@ export async function runCatalogCheck(
     }
     if (!inventory.has(item.id)) report("C5", item.id, "no supplier inventory row");
   }
-  return { exitCode, log };
+  return { exitCode: log.length > 0 ? EXIT_FOUND : 0, log };
 }

@@ -45,8 +45,12 @@ describe("admin order routes", () => {
       sales,
       "r-adm",
       "/api/admin/sales?type=REVENUE&start=2000-01-01&end=2100-01-01",
-    )) as { totals: unknown[] };
+    )) as { totals: { total: number }[]; total: number };
     expect(Array.isArray(totals.totals)).toBe(true);
+    expect(totals.total).toBeCloseTo(
+      totals.totals.reduce((sum, t) => sum + t.total, 0),
+      2,
+    );
     await expect(call(sales, "r-adm", "/api/admin/sales?type=REVENUE")).rejects.toMatchObject({
       status: 400,
     });
