@@ -26,7 +26,7 @@ test("[SWHR8-C-0056] a visitor registers, completes the customer form, signs off
 
   await expect(page.getByRole("button", { name: `Hi, ${userName}` })).toBeVisible();
   await page.getByRole("button", { name: "Sign off" }).click();
-  await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
 
   await page.goto("/signon");
   await page.getByLabel("User name", { exact: true }).fill(userName);
