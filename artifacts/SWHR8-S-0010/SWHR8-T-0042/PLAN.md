@@ -19,6 +19,7 @@ Deliver the Administration area: administrator-only access with 54-minute idle e
 ## Fixed interface contracts
 
 The locked suites in `tests/acceptance/admin-order-management/` code against these; do not change them.
+
 - `server/lib/admin-session.ts`: `createAdminSession(): { id }`, `isAdminSessionExpired(session, now?)` (54 min idle)
 - `server/lib/admin-launcher.ts`: `handleAdminAction({ action?, session, host, port })` -> `{kind:"launch",descriptor}` | `{kind:"logout-page"}` | `{kind:"empty"}`
 - `server/lib/admin-requests.ts`: `handleOrderServiceRequest({ type, session, orders?, publish? })` -> `Promise<{ kind: "response"|"error"; message }>`; `publish` called once with `{ orders }`
@@ -30,6 +31,7 @@ The locked suites in `tests/acceptance/admin-order-management/` code against the
 ## Design reference
 
 Mockups are committed in `artifacts/SWHR8-S-0010/design/` (see `MANIFEST.md` there for the route and state each draws):
+
 - `/admin` signed out — `mockup-administrator-login.html` (1440), `mockup-administrator-login-mobile.html` (390)
 - `/admin` as administrator — `mockup-administration-launcher.html` (1440), `mockup-administration-launcher-mobile.html` (390)
 - `/admin/orders` Pending tab — `mockup-manage-orders-order-lists-by-status.html` (1440), `mockup-manage-orders-order-lists-by-status-mobi.html` (390)
@@ -42,6 +44,7 @@ Render each route beside its mockup at the stated viewport. Reuse existing token
 ## File/module ownership
 
 Create:
+
 - `server/lib/admin-session.ts`, `server/lib/admin-launcher.ts`, `server/lib/admin-requests.ts`, `server/lib/admin-orders.ts`, `server/lib/admin-sales.ts` (+ `*.test.ts` beside each)
 - `routes/api/admin/launch.post.ts`, `routes/api/admin/orders.get.ts`, `routes/api/admin/update-status.post.ts`, `routes/api/admin/sales.get.ts`, `routes/api/admin/admin-orders.test.ts`
 - `src/pages/admin/index.tsx`, `src/pages/admin/orders.tsx`, `src/pages/admin/sales.tsx`, `src/pages/admin/logout.tsx` (+ `*.test.tsx`)
@@ -49,6 +52,7 @@ Create:
 - `e2e/admin-orders.spec.ts`
 
 Modify:
+
 - `server/admin/auth.ts` (idle expiry), `src/pages/admin/login.tsx` (use the shared form only), `src/components/admin/api.ts`, `src/components/admin/logout-button.tsx` (go to `/admin/logout`)
 - `src/constants/primary-areas.ts` (administration href), `src/i18n/screens/en_US.ts`, `ja_JP.ts`, `zh_CN.ts`
 - related existing tests that assert the old nav href

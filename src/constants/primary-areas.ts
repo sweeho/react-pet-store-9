@@ -38,7 +38,7 @@ export const PRIMARY_AREAS: readonly PrimaryArea[] = [
   {
     slug: "administration",
     label: "Administration",
-    href: "/admin/inventory",
+    href: "/admin",
     description: "Sign in to manage supplier stock.",
   },
 ];
