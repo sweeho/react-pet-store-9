@@ -1,9 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- red-phase stub */
-// Order retrieval by date range (R-0015).
-export function findOrdersBetween<T extends { orderTime: Date }>(_input: {
+// Order retrieval by date range (R-0015): begin and end are both inclusive.
+export function findOrdersBetween<T extends { orderTime: Date }>(input: {
   orders: T[];
   begin: Date;
   end: Date;
 }): T[] {
-  throw new Error("VortexNotImplemented");
+  const begin = input.begin.getTime();
+  const end = input.end.getTime();
+  return input.orders.filter((o) => o.orderTime.getTime() >= begin && o.orderTime.getTime() <= end);
 }

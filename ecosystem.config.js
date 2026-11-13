@@ -20,5 +20,19 @@ module.exports = {
       out_file: "./logs/out.log",
       log_date_format: "YYYY-MM-DD HH:mm:ss Z",
     },
+    {
+      // Nightly order batch chain (design B4): PM2 starts it at 01:00; it waits for each slot and exits.
+      name: "order-batch-nightly",
+      script: "scripts/nightly-chain.ts",
+      interpreter: "bun",
+      exec_mode: "fork",
+      instances: 1,
+      cron_restart: "0 1 * * *",
+      autorestart: false,
+      env: { NODE_ENV: "production" },
+      error_file: "./logs/batch-err.log",
+      out_file: "./logs/batch-out.log",
+      log_date_format: "YYYY-MM-DD HH:mm:ss Z",
+    },
   ],
 };

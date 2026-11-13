@@ -339,20 +339,49 @@ export async function createPurchaseOrderWithDependents(
   });
 }
 
+/** Deletes the order's rows (lines, status, order, contacts, card) inside the caller's transaction. */
+export function deleteOrderRows(d: Db, orderId: string): void {
+  const order = d.select().from(purchaseOrder).where(eq(purchaseOrder.orderId, orderId)).get();
+  if (!order) return;
+  d.delete(orderLineItem).where(eq(orderLineItem.orderId, orderId)).run();
+  d.delete(orderStatus).where(eq(orderStatus.orderId, orderId)).run();
+  d.delete(purchaseOrder).where(eq(purchaseOrder.orderId, orderId)).run();
+  for (const contactId of new Set([order.billContactId, order.shipContactId])) {
+    d.delete(orderContact).where(eq(orderContact.id, contactId)).run();
+  }
+  d.delete(orderCreditCard).where(eq(orderCreditCard.id, order.creditCardId)).run();
+}
+
 /** Deletes the order with its line items, status, contacts and card, in one transaction (R-0113). */
 export async function deletePurchaseOrder(id: number | string): Promise<void> {
-  const orderId = String(id);
-  db.transaction((tx) => {
-    const order = tx.select().from(purchaseOrder).where(eq(purchaseOrder.orderId, orderId)).get();
-    if (!order) return;
-    tx.delete(orderLineItem).where(eq(orderLineItem.orderId, orderId)).run();
-    tx.delete(orderStatus).where(eq(orderStatus.orderId, orderId)).run();
-    tx.delete(purchaseOrder).where(eq(purchaseOrder.orderId, orderId)).run();
-    for (const contactId of new Set([order.billContactId, order.shipContactId])) {
-      tx.delete(orderContact).where(eq(orderContact.id, contactId)).run();
-    }
-    tx.delete(orderCreditCard).where(eq(orderCreditCard.id, order.creditCardId)).run();
-  });
+  db.transaction((tx) => deleteOrderRows(tx, String(id)));
+}
+
+/** Every order with the fields the batch jobs report on; an order without a status row is "UNKNOWN". */
+export function listBatchOrders(d: Db) {
+  const lines = new Map<string, number>();
+  for (const l of d.select({ orderId: orderLineItem.orderId }).from(orderLineItem).all()) {
+    lines.set(l.orderId, (lines.get(l.orderId) ?? 0) + 1);
+  }
+  return d
+    .select({
+      orderId: purchaseOrder.orderId,
+      userName: purchaseOrder.userId,
+      orderTime: purchaseOrder.orderDate,
+      locale: purchaseOrder.locale,
+      value: purchaseOrder.total,
+      status: orderStatus.status,
+    })
+    .from(purchaseOrder)
+    .leftJoin(orderStatus, eq(orderStatus.orderId, purchaseOrder.orderId))
+    .orderBy(asc(purchaseOrder.orderId))
+    .all()
+    .map((o) => ({
+      ...o,
+      userName: o.userName ?? "",
+      status: o.status ?? "UNKNOWN",
+      lineCount: lines.get(o.orderId) ?? 0,
+    }));
 }
 
 export async function findPurchaseOrderDependents(id: number | string) {
