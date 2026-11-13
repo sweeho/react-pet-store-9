@@ -82,7 +82,13 @@ Sign-on state is attached to the same session id. A signed-on session idle for 1
 
 **Supplier model.** A supplier order has the numeric id of the purchase order it came from, an order date, a status of PENDING or COMPLETED, one supplier contact and numbered lines (category, product, item, quantity, unit price, quantity shipped). Supplier rows are separate from order rows, as order rows are from customer rows. All supplier reads and writes go through `server/fulfillment/repository.ts`. Behaviour: `openspec/specs/order-fulfillment/` (after this sprint lands).
 
-**Jobs.** Batch jobs and operational checks are pure functions in `server/jobs/`. Each is given plain data, its settings and a `notify` callback, and returns an exit code: 0 ok, 4 problem found, 8 failure. A thin script in `scripts/` reads the database through the owning repositories, sends mail through `server/notifications/transport.ts`, and exits with that code. Batch settings (retention, stuck threshold, output folder, ops and finance mailboxes) come from the environment through one settings module. The jobs never run inside the web server. One nightly entry point, `server/jobs/schedule.ts`, is started by the host at 01:00 and decides the chain: backup, then the order extract, then the aging report, the inventory report and the Sunday purge. Each later job runs only when the job it depends on exited 0. Behaviour: `openspec/specs/order-reporting-batch/` (after this sprint lands).
+**Jobs.** Batch jobs and operational checks are pure functions in `server/jobs/`. Each is given plain data, its settings and, where it mails, a `notify` callback, and returns an exit code: 0 ok, 4 problem found, 8 failure. A thin script in `scripts/` reads the database through the owning repositories, sends mail through `server/notifications/transport.ts`, and exits with that code. Batch settings (retention, stuck threshold, low-stock limit, backup folder and retention, output folder, store and health-check URLs, ops and finance mailboxes) come from the environment through one settings module, `server/jobs/batch-settings.ts`. The jobs never run inside the web server. Three entry points are scheduled by the host:
+
+- `server/jobs/schedule.ts` is started at 01:00 and decides the nightly chain: the online backup (a SQLite `VACUUM INTO` copy into a dated folder, so the store stays up), then the order extract, then the aging report, the low-stock inventory report and the Sunday purge. Each later job runs only when the job it depends on exited 0.
+- The catalog check runs at 06:00. When the catalog tables are missing, it asks the running web server to load the sample data through `GET /api/populate?forcefully=false`. This is the only job that calls the web server. The endpoint and start-up seeding share one loader, `db/sample-data.ts`.
+- The health check runs every 10 minutes and requests the entry page of each store area over HTTP.
+
+Behaviour: `openspec/specs/order-reporting-batch/` and `openspec/specs/inventory-reporting/`.
 
 ## Order hand-off
 
@@ -130,7 +136,7 @@ Four tiers, one worked example each. Commands and how to extend: [README.md](./R
 ## Deployment
 
 - `ecosystem.config.js` (PM2) runs the real build: `.output/server/index.mjs`, under Bun (`interpreter: "bun"`) — required by `db/client.ts`'s `bun:sqlite` import. `nitro.service` (systemd) is the non-PM2 equivalent, same requirement.
-- `ecosystem.config.js` also declares `order-batch-nightly`, which runs `scripts/nightly-chain.ts` under Bun at 01:00 (`cron_restart`, `autorestart: false`). Its batch settings come from `BATCH_RETENTION_DAYS`, `BATCH_STUCK_HOURS`, `BATCH_OUT_DIR`, `BATCH_MAIL_FINANCE` and `BATCH_MAIL_OPS`, and mail goes through `MAIL_SMTP_URL`. `nitro.service` has no batch equivalent; a non-PM2 host schedules `bun run batch:nightly` itself.
+- `ecosystem.config.js` also declares three Bun job apps with `autorestart: false`: `order-batch-nightly` (`scripts/nightly-chain.ts`, `cron_restart` 01:00), `catalog-check` (06:00) and `health-check` (every 10 minutes). Their settings are the `BATCH_*` environment variables read by `server/jobs/batch-settings.ts`, and mail goes through `MAIL_SMTP_URL`. Backups are written under `BATCH_BACKUP_DIR` on the server's disk. `nitro.service` has no job equivalent; a non-PM2 host schedules `bun run batch:nightly`, `bun run catalog:check` and `bun run batch:health` itself.
 - `Dockerfile`/`docker-compose.yml` build a static `dist/` served by nginx — don't rely on them for the Nitro/DB-backed API without fixing first (they never run `.output/server/index.mjs`)
 
 ## Key Decisions
