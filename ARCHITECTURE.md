@@ -130,6 +130,7 @@ Four tiers, one worked example each. Commands and how to extend: [README.md](./R
 ## Deployment
 
 - `ecosystem.config.js` (PM2) runs the real build: `.output/server/index.mjs`, under Bun (`interpreter: "bun"`) — required by `db/client.ts`'s `bun:sqlite` import. `nitro.service` (systemd) is the non-PM2 equivalent, same requirement.
+- `ecosystem.config.js` also declares `order-batch-nightly`, which runs `scripts/nightly-chain.ts` under Bun at 01:00 (`cron_restart`, `autorestart: false`). Its batch settings come from `BATCH_RETENTION_DAYS`, `BATCH_STUCK_HOURS`, `BATCH_OUT_DIR`, `BATCH_MAIL_FINANCE` and `BATCH_MAIL_OPS`, and mail goes through `MAIL_SMTP_URL`. `nitro.service` has no batch equivalent; a non-PM2 host schedules `bun run batch:nightly` itself.
 - `Dockerfile`/`docker-compose.yml` build a static `dist/` served by nginx — don't rely on them for the Nitro/DB-backed API without fixing first (they never run `.output/server/index.mjs`)
 
 ## Key Decisions
