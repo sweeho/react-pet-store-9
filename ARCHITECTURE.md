@@ -114,7 +114,7 @@ Fulfilment consumes `order-decision` and runs in three queued steps, each drain 
 - that drain stores the supplier order as PENDING and tries to ship it at once. A line ships only in full, only when stock covers it, and stock is deducted. Each attempt that ships something puts one invoice, listing only the lines shipped in that attempt, on `invoice`;
 - the `invoice` drain adds the shipped quantities to the order's lines and sets `order_status` to SHIPPED_PART or COMPLETED. It publishes `shipped` on `order-status-mail` for every invoice and `completed` only when the order completed.
 
-An administrator's inventory save sets the quantities and re-attempts every PENDING supplier order in the same transaction. The rules are pure functions in `server/fulfillment/` over an injected store; `store.ts` adapts them to the database. Documents on these queues are XML. Behaviour: `openspec/specs/order-fulfillment/` (after this sprint lands).
+An administrator's inventory save sets the quantities and re-attempts every PENDING supplier order in the same transaction. The rules are pure functions in `server/fulfillment/` over an injected store; `store.ts` adapts them to the database. Documents on these queues are XML. The drains start with the server from `middleware/fulfillment.ts`; because the approval drain has no hook to signal fulfilment, `order-decision` is also polled once a second (polling is off under Vitest). Behaviour: `openspec/specs/order-fulfillment/` (after this sprint lands).
 
 ## Customer e-mail
 
