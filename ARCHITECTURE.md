@@ -31,7 +31,7 @@ See [PRODUCT.md](./PRODUCT.md) for what this is, [DESIGN.md](./DESIGN.md) for th
 │   ├── index.css           # Tailwind v4 + design tokens
 │   └── main.tsx
 ├── src/i18n/              # Locale provider, useScreen(), per-locale screen dictionaries
-├── server/                # Framework-free server modules, one folder per capability (e.g. server/localization/, server/catalog/); server/jobs/ holds operational checks; server/lib/ holds the admin order-management modules whose paths the locked acceptance tests fix
+├── server/                # Framework-free server modules, one folder per capability (e.g. server/localization/, server/catalog/); server/jobs/ holds operational checks; server/lib/ holds the pure admin order-management rules whose paths the locked acceptance tests fix, and server/admin/ their database reads and queue hand-off
 ├── routes/api/            # Backend routes, file-based (+ *.test.ts)
 ├── middleware/             # Runs before every route handler (session + locale resolution)
 ├── db/                      # Drizzle schema.ts + client.ts (sqlite connection, migrate, seed)
@@ -102,7 +102,7 @@ Order processing decides each received order in two steps:
 - receipt stores the order with status PENDING. When the order is under its locale's limit, the same transaction puts an OrderApproval document on the `order-approval` queue;
 - that queue's drain applies each decision only to a PENDING order. In one transaction it updates `order_status` and publishes the applied decision on the `order-decision` queue.
 
-Administrator decisions enter through `order-approval` as well: the admin order-management relay (`server/lib/admin-requests.ts`) puts one OrderApproval document per commit on that queue and replies SUCCESS once it is queued, not once it is applied. The same transaction publishes each applied decision once per consumer: on `order-decision` for fulfilment and on `order-status-mail` for customer e-mails. The rules live in `server/approval/service.ts`. Behaviour: `openspec/specs/order-approval/`.
+Administrator decisions enter through `order-approval` as well: the admin order-management relay (rules in `server/lib/admin-requests.ts`, hand-off in `server/admin/orders.ts`) puts one OrderApproval document per update-status request on that queue (the order lists send approvals and denials as two requests) and replies SUCCESS once it is queued, not once it is applied. The same transaction publishes each applied decision once per consumer: on `order-decision` for fulfilment and on `order-status-mail` for customer e-mails. The rules live in `server/approval/service.ts`. Behaviour: `openspec/specs/order-approval/`.
 
 Every queue is a set of rows in one database outbox, `queue_message`, keyed by queue name. A message commits or rolls back with the caller's transaction, and a failed send is raised to the caller. A row has one status, so each queue has exactly one consumer.
 
