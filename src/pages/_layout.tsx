@@ -1,5 +1,15 @@
 import { Dialog, DialogPanel } from "@headlessui/react";
-import { Globe, House, LayoutGrid, Menu, PawPrint, ShoppingCart, User, X } from "lucide-react";
+import {
+  Globe,
+  House,
+  LayoutGrid,
+  Menu,
+  PawPrint,
+  Shield,
+  ShoppingCart,
+  User,
+  X,
+} from "lucide-react";
 import { Link, NavLink, Outlet } from "react-router";
 
 import { AccountMenu } from "@/components/account/account-menu";
@@ -14,6 +24,7 @@ const AREA_ICONS = {
   localization: Globe,
   account: User,
   cart: ShoppingCart,
+  administration: Shield,
 } as const;
 
 function Brand() {

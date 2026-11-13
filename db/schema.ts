@@ -77,14 +77,16 @@ export const itemDetails = sqliteTable(
   (t) => [primaryKey({ columns: [t.itemId, t.locale] })],
 );
 
-// Created here because the catalog check (C5) needs it; fulfillment
-// (SWHR8-I-0010) extends it.
-export const inventory = sqliteTable("inventory", {
-  itemId: text("item_id")
-    .primaryKey()
-    .references(() => item.id),
-  qty: integer("qty").notNull(),
-});
+// Supplier stock (change swhr8-i-0010, design F5): one quantity per item id, never negative. There is
+// no foreign key to `item`: the legacy supplier keys stock by item id alone.
+export const inventory = sqliteTable(
+  "inventory",
+  {
+    itemId: text("item_id").primaryKey(),
+    quantity: integer("qty").notNull(),
+  },
+  (t) => [check("inventory_quantity_check", sql`${t.quantity} >= 0`)],
+);
 
 // Customer account and sign-on (change swhr8-i-0005, design A2). Contact, address
 // and card columns are nullable because a new customer owns empty rows (R-0054);
@@ -263,3 +265,62 @@ export const queueMessage = sqliteTable("queue_message", {
   status: text("status").notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+// Order fulfilment (change swhr8-i-0010, design F4, F7). Supplier tables are separate from the order
+// tables; supplier lines have no foreign key to `item` (legacy DDL).
+export const contacts = sqliteTable("supplier_contact", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  email: text("email"),
+  phone: text("phone"),
+  address1: text("address1"),
+  address2: text("address2"),
+  city: text("city"),
+  state: text("state"),
+  postalCode: text("postal_code"),
+  country: text("country"),
+});
+
+export const supplierOrders = sqliteTable(
+  "supplier_order",
+  {
+    id: integer("id").primaryKey(),
+    userId: text("user_id"),
+    orderDate: integer("order_date", { mode: "timestamp_ms" }).notNull(),
+    status: text("status").notNull().default("PENDING"),
+    contactId: integer("contact_id")
+      .notNull()
+      .references(() => contacts.id),
+  },
+  (t) => [check("supplier_order_status_check", sql`${t.status} in ('PENDING', 'COMPLETED')`)],
+);
+
+export const supplierLineItems = sqliteTable(
+  "supplier_line_item",
+  {
+    supplierOrderId: integer("supplier_order_id")
+      .notNull()
+      .references(() => supplierOrders.id),
+    lineNumber: integer("line_number").notNull(),
+    category: text("category").notNull(),
+    product: text("product").notNull(),
+    item: text("item").notNull(),
+    quantity: integer("quantity").notNull(),
+    unitPrice: real("unit_price").notNull(),
+    shipped: integer("shipped").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.supplierOrderId, t.lineNumber] })],
+);
+
+/** Administrator role (design F7): a sign-on user holds zero or more named roles. */
+export const userRole = sqliteTable(
+  "user_role",
+  {
+    userName: text("user_name")
+      .notNull()
+      .references(() => signonUser.userName, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userName, t.role] })],
+);

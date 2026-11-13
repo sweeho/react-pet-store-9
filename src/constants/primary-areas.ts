@@ -35,4 +35,10 @@ export const PRIMARY_AREAS: readonly PrimaryArea[] = [
     href: "/locale",
     description: "Choose the language you shop in.",
   },
+  {
+    slug: "administration",
+    label: "Administration",
+    href: "/admin/inventory",
+    description: "Sign in to manage supplier stock.",
+  },
 ];
