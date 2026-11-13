@@ -84,17 +84,22 @@ function Editor({
       Object.entries(entries).filter(([, v]) => v.trim() !== ""),
     );
     void postJson("/api/admin/inventory", { quantities })
-      .then((res) => {
-        if (!res.ok) throw new Error("Save failed");
-        setEntries({});
-        setSaved(true);
-        // Show the new on-hand quantities without leaving the page, so the banner stays up.
-        return fetchInventory().then(setItems);
-      })
-      .catch(() => {
-        setSaved(false);
-        setFailed(true);
-      })
+      .then(
+        (res) => {
+          if (!res.ok) throw new Error("Save failed");
+          setEntries({});
+          setSaved(true);
+          // Show the new on-hand quantities without leaving the page, so the banner stays up.
+          // The save is done even if this refresh fails; the old on-hand figures just stay.
+          return fetchInventory()
+            .then(setItems)
+            .catch(() => undefined);
+        },
+        () => {
+          setSaved(false);
+          setFailed(true);
+        },
+      )
       .finally(() => setBusy(false));
   }
 
@@ -188,7 +193,10 @@ function Editor({
                     placeholder="—"
                     aria-label={t("admin.inventory.newQuantityFor", { item: i.itemId })}
                     value={text}
-                    onChange={(e) => setEntries({ ...entries, [i.itemId]: e.target.value })}
+                    onChange={(e) => {
+                      setSaved(false);
+                      setEntries({ ...entries, [i.itemId]: e.target.value });
+                    }}
                     className={cn(
                       "border-input bg-background focus-visible:ring-ring ml-auto block h-9 w-full rounded-md border px-3 text-right text-sm tabular-nums focus-visible:ring-2 focus-visible:outline-none md:w-[120px]",
                       entry.kind === "ignored" && "border-destructive",
