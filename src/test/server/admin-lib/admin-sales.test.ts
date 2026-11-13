@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 
-import { salesTotals } from "./admin-sales";
+import { salesTotals } from "../../../../server/lib/admin-sales";
 
 const lines = [
   { orderDate: "2026-03-10", category: "FISH", itemId: "EST-1", quantity: 2, unitPrice: 10 },

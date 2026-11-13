@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 
-import { handleAdminAction } from "./admin-launcher";
+import { handleAdminAction } from "../../../../server/lib/admin-launcher";
 
 const session = { id: "sess-42" };
 

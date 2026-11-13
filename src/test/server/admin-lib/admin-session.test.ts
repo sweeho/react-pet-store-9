@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 
-import { createAdminSession, isAdminSessionExpired } from "./admin-session";
+import { createAdminSession, isAdminSessionExpired } from "../../../../server/lib/admin-session";
 
 describe("admin session idle expiry", () => {
   // case: SWHR8-C-0262@v1

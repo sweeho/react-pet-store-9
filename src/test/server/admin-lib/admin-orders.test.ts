@@ -1,7 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 
-import { findOrdersByStatus, listOrdersByStatus, orderStatusView } from "./admin-orders";
+import {
+  findOrdersByStatus,
+  listOrdersByStatus,
+  orderStatusView,
+} from "../../../../server/lib/admin-orders";
 
 const po = (orderId: string, orderDate = new Date(2026, 2, 10), value = 50) => ({
   orderId,

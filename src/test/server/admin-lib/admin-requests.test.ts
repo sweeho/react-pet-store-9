@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
 
-import { handleOrderServiceRequest } from "./admin-requests";
+import { handleOrderServiceRequest } from "../../../../server/lib/admin-requests";
 
 const session = { id: "sess-42" };
 const sent = (publish: ReturnType<typeof vi.fn>) =>
